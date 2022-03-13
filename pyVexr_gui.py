@@ -76,7 +76,14 @@ class MyWidget(QtWidgets.QWidget):
     ###############################
     @QtCore.pyqtSlot()
     def function(self):
-        loadImg()
+        tempImg = loadImg()
+        
+        convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+        convertedImg = convertToQt.scaled(800, 600, QtCore.Qt.KeepAspectRatio)
+
+        image = QtGui.QPixmap(convertedImg)
+        #rescaledImg = image.scaled(800,500,QtCore.Qt.KeepAspectRatio)
+        self.img.setPixmap(image)
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])

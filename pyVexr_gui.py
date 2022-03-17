@@ -38,12 +38,10 @@ class MyWidget(QtWidgets.QWidget):
 
         # Will have to replace the QLabel and QPixmap implementation with a QGraphicsView, in order to enable zoom and pan
         self.imgZone = QtWidgets.QGraphicsScene()
-        self.rectangleTest = QtWidgets.QGraphicsRectItem(0.1,0.1,1920.0,1080.0)
-        self.rectangleTest.setPos(0.0,0.0)
-        self.rectangleTest.setBrush(QtGui.QColor("green"))
-        self.imgZone.addItem(self.rectangleTest)
+        self.image = QtWidgets.QGraphicsPixmapItem()
+        self.imgZone.addItem(self.image)
         self.imgViewer = QtWidgets.QGraphicsView(self.imgZone)
-        self.imgViewer.fitInView(self.rectangleTest, QtCore.Qt.KeepAspectRatio)
+        #self.imgViewer.fitInView(self.rectangleTest, QtCore.Qt.KeepAspectRatio)
         #self.imgViewer.centerOn(self.rectangleTest)
 
 
@@ -122,13 +120,19 @@ class MyWidget(QtWidgets.QWidget):
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         convertedImg = convertToQt.scaled(800, 600, QtCore.Qt.KeepAspectRatio)
 
-        image = QtGui.QPixmap(convertedImg)
-        #rescaledImg = image.scaled(800,500,QtCore.Qt.KeepAspectRatio)
-        self.img.setPixmap(image)
-        # Fit rectangle in view on button hit
-        self.imgViewer.fitInView(self.rectangleTest, QtCore.Qt.KeepAspectRatio)
+        
+        # Set pixmap in self.image
+        self.image.setPixmap(QtGui.QPixmap.fromImage(convertedImg))
+        # Fit in view after first load
+        self.imgViewer.fitInView(self.image, QtCore.Qt.KeepAspectRatio)
         # Toggle visibility on widget
         #self.channelsFrame.setHidden(not self.channelsFrame.isHidden())
+
+    def resizeEvent(self, event):
+        #print("Resize")
+        # Fit image in view based on resize of the window
+        self.imgViewer.fitInView(self.image, QtCore.Qt.KeepAspectRatio)
+        QtWidgets.QWidget.resizeEvent(self, event)
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])

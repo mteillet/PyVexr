@@ -11,7 +11,7 @@ def main():
 
 def loadImg():
     print("PyVexr Loading Button")
-    temporaryImg = "exrExamples/multipart.0001.exr"
+    temporaryImg = "exrExamples/CamShape_holdoutMatte.0000.exr"
     convertedImg = convertExr(temporaryImg)
     return (convertedImg)
 

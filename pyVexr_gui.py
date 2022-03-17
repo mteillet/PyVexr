@@ -29,11 +29,24 @@ class MyWidget(QtWidgets.QWidget):
         self.colorspaceMenu = self.menuBar.addMenu('&Colorspace')
         self.infoMenu = self.menuBar.addMenu('&Info')
 
-        # Channel area - need to replace with a floating window
+        # Channel area - to make it appear using something containing the widgets and toggle its visibility on or off
         self.channels = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
         self.channels.setText("Exr Channels")
+        self.popupChannels = QtWidgets.QLabel()
+        self.popupChannels.setText("- This is a channel")
+        #self.channelsFrame.hide()
 
         # Will have to replace the QLabel and QPixmap implementation with a QGraphicsView, in order to enable zoom and pan
+        self.imgZone = QtWidgets.QGraphicsScene()
+        self.rectangleTest = QtWidgets.QGraphicsRectItem(0.1,0.1,1920.0,1080.0)
+        self.rectangleTest.setPos(0.0,0.0)
+        self.rectangleTest.setBrush(QtGui.QColor("green"))
+        self.imgZone.addItem(self.rectangleTest)
+        self.imgViewer = QtWidgets.QGraphicsView(self.imgZone)
+        self.imgViewer.fitInView(self.rectangleTest, QtCore.Qt.KeepAspectRatio)
+        #self.imgViewer.centerOn(self.rectangleTest)
+
+
         self.img = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
         self.img.setText("IMG")
         self.load = QtWidgets.QPushButton("Load")
@@ -63,20 +76,29 @@ class MyWidget(QtWidgets.QWidget):
 
         self.mainLayout = QtWidgets.QVBoxLayout(self)
         
+        # Top Bar
         self.topBarLayout = QtWidgets.QHBoxLayout()
         self.topBarLayout.addWidget(self.menuBar)
+
+        # Main Center layout #
 
         self.centerLayout = QtWidgets.QHBoxLayout()
         self.channelsLayout = QtWidgets.QVBoxLayout()
         self.channelsLayout.addWidget(self.channels)
+        self.channelsLayout.addWidget(self.popupChannels)
+        #self.channelsLayout.addWidget(self.channelsFrame)
+        
         self.imgLayout = QtWidgets.QVBoxLayout()
-        self.imgLayout.addWidget(self.img)
+        self.imgLayout.addWidget(self.imgViewer)
         self.imgLayout.addWidget(self.load)
+        
         self.versionsLayout = QtWidgets.QVBoxLayout()
         self.versionsLayout.addWidget(self.version)
         self.centerLayout.addLayout(self.channelsLayout)
         self.centerLayout.addLayout(self.imgLayout, stretch = 1)
         self.centerLayout.addLayout(self.versionsLayout)
+
+        # Bottom bars
 
         self.frameNumLayout = QtWidgets.QHBoxLayout()
         self.frameNumLayout.addWidget(self.frameNumberLabel)
@@ -103,6 +125,10 @@ class MyWidget(QtWidgets.QWidget):
         image = QtGui.QPixmap(convertedImg)
         #rescaledImg = image.scaled(800,500,QtCore.Qt.KeepAspectRatio)
         self.img.setPixmap(image)
+        # Fit rectangle in view on button hit
+        self.imgViewer.fitInView(self.rectangleTest, QtCore.Qt.KeepAspectRatio)
+        # Toggle visibility on widget
+        #self.channelsFrame.setHidden(not self.channelsFrame.isHidden())
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])

@@ -4,7 +4,7 @@
 
 import sys
 from PyQt5 import QtWidgets, QtCore, QtGui
-from pyVexr_main import loadImg
+from pyVexr_main import loadImg, interpretRectangle
 
 class MyWidget(QtWidgets.QWidget):
     def __init__(self):
@@ -13,6 +13,7 @@ class MyWidget(QtWidgets.QWidget):
 
         # StyleSheet settings
         self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
+        self._zoom = 0
         
 
         ####################################
@@ -37,10 +38,21 @@ class MyWidget(QtWidgets.QWidget):
         #self.channelsFrame.hide()
 
         # Will have to replace the QLabel and QPixmap implementation with a QGraphicsView, in order to enable zoom and pan
+        # Need to add a QGraphicsRect behind the graphicsPixmap in order to keep zoom in using it and adjusting the fit in view
+        # Depending on the Rectangle and not the Pixmap
         self.imgZone = QtWidgets.QGraphicsScene()
+        # RectWidget for tracking the view relative to the image
+        self.viewArea = QtWidgets.QGraphicsRectItem(0,0,10,10)
+        # Giving a color to the default rect -- only for debugging purposes
+        self.viewArea.setBrush(QtGui.QColor(255, 0, 0, 65))
+
         self.image = QtWidgets.QGraphicsPixmapItem()
         self.imgZone.addItem(self.image)
+        self.imgZone.addItem(self.viewArea)
+        
         self.imgViewer = QtWidgets.QGraphicsView(self.imgZone)
+        self.imgViewer.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.imgViewer.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         #self.imgViewer.fitInView(self.rectangleTest, QtCore.Qt.KeepAspectRatio)
         #self.imgViewer.centerOn(self.rectangleTest)
 
@@ -123,16 +135,44 @@ class MyWidget(QtWidgets.QWidget):
         
         # Set pixmap in self.image
         self.image.setPixmap(QtGui.QPixmap.fromImage(convertedImg))
+
+        # Give the rectangle view area the coordinates of the pixmap image after the image has been loaded
+        imgCoordinates = interpretRectangle(str(self.image.boundingRect()))
+        self.viewArea.setRect(imgCoordinates[0],imgCoordinates[1],imgCoordinates[2],imgCoordinates[3])
+
         # Fit in view after first load
-        self.imgViewer.fitInView(self.image, QtCore.Qt.KeepAspectRatio)
+        self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
         # Toggle visibility on widget
         #self.channelsFrame.setHidden(not self.channelsFrame.isHidden())
 
     def resizeEvent(self, event):
         #print("Resize")
         # Fit image in view based on resize of the window
-        self.imgViewer.fitInView(self.image, QtCore.Qt.KeepAspectRatio)
-        QtWidgets.QWidget.resizeEvent(self, event)
+        self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
+        
+    # Zooming using mouse wheel
+    def wheelEvent(self, event):
+        # Gettubg the zoom direction
+        wheelDirection = (event.angleDelta().y())
+        # Get the rectangle size
+        rectCoordinates = interpretRectangle(str(self.viewArea.rect()))
+        # Set the rectangle size
+        self.viewArea.setRect(rectCoordinates[0]+(wheelDirection/2),rectCoordinates[1]+(wheelDirection/2),rectCoordinates[2]-wheelDirection,rectCoordinates[3]-wheelDirection)
+        # Also sets the scene rectangle to avoid strangle scrolling behaviour !!!
+        sceneCoordinates = interpretRectangle(str(self.viewArea.rect()))
+        self.imgViewer.setSceneRect(sceneCoordinates[0],sceneCoordinates[1],sceneCoordinates[2],sceneCoordinates[3])
+        # Fit in view to follow the rectangle
+        self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
+
+    # All keypresses    
+    def keyPressEvent(self, event):
+        # Frame the image -- KEYPRESS F 
+        # Set the viewArea back to the default coordinates of the self.image pixmap and fits it in view
+        if (event.key() == QtCore.Qt.Key_F):
+            imgCoordinates = interpretRectangle(str(self.image.boundingRect()))
+            self.viewArea.setRect(imgCoordinates[0],imgCoordinates[1],imgCoordinates[2],imgCoordinates[3])
+            self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
+        
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])

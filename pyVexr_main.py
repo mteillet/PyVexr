@@ -41,6 +41,16 @@ def convertExr(path):
     convertedImg = rgb_image.data, w, h, bytes_per_line
     return(convertedImg)
 
+def interpretRectangle(str):
+    temp = str.split("(")
+    temp = temp[1][:-1]
+    temp = temp.split(",")
+    offsetX = float(temp[0])
+    offsetY = float(temp[1])
+    lenX = float(temp[2])
+    lenY = float(temp[3])
+    return(offsetX, offsetY, lenX, lenY)
+
 
 if __name__ == "__main__":
     main()

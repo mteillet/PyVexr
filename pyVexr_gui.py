@@ -5,6 +5,7 @@
 import sys
 from PyQt5 import QtWidgets, QtCore, QtGui
 from pyVexr_main import loadImg, interpretRectangle
+from math import sqrt
 
 class MyWidget(QtWidgets.QWidget):
     def __init__(self):
@@ -13,6 +14,7 @@ class MyWidget(QtWidgets.QWidget):
 
         # StyleSheet settings
         self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
+        self.setMouseTracking(True)
         self._zoom = 0
         
 
@@ -20,10 +22,8 @@ class MyWidget(QtWidgets.QWidget):
         # Code for the PyVexr Main windows #
         ####################################
 
+        # Menu bar area
         self.file = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
-        # doc for pyqt menu bar :
-        # https://pythonprogramminglanguage.com/pyqt-menu/
-        # https://realpython.com/python-menus-toolbars/
         self.menuBar = QtWidgets.QMenuBar()
         self.fileMenu = self.menuBar.addMenu('&File')
         self.editMenu = self.menuBar.addMenu('&Edit')
@@ -37,26 +37,24 @@ class MyWidget(QtWidgets.QWidget):
         self.popupChannels.setText("- This is a channel")
         #self.channelsFrame.hide()
 
-        # Will have to replace the QLabel and QPixmap implementation with a QGraphicsView, in order to enable zoom and pan
-        # Need to add a QGraphicsRect behind the graphicsPixmap in order to keep zoom in using it and adjusting the fit in view
-        # Depending on the Rectangle and not the Pixmap
+        # Image area - using a QGraphicsScene, a QGraphicsPixmap for image display and a QGraphicsRect for tracking the user view and zoom
         self.imgZone = QtWidgets.QGraphicsScene()
+       
         # RectWidget for tracking the view relative to the image
         self.viewArea = QtWidgets.QGraphicsRectItem(0,0,10,10)
         # Giving a color to the default rect -- only for debugging purposes
-        self.viewArea.setBrush(QtGui.QColor(255, 0, 0, 65))
+        self.viewArea.setBrush(QtGui.QColor(255, 0, 0, 30))
 
         self.image = QtWidgets.QGraphicsPixmapItem()
         self.imgZone.addItem(self.image)
         self.imgZone.addItem(self.viewArea)
         
         self.imgViewer = QtWidgets.QGraphicsView(self.imgZone)
+        self.imgViewer.viewport().setMouseTracking(True)
         self.imgViewer.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.imgViewer.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        #self.imgViewer.fitInView(self.rectangleTest, QtCore.Qt.KeepAspectRatio)
-        #self.imgViewer.centerOn(self.rectangleTest)
-
-
+        
+        # Temp img load button
         self.img = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
         self.img.setText("IMG")
         self.load = QtWidgets.QPushButton("Load")
@@ -149,6 +147,14 @@ class MyWidget(QtWidgets.QWidget):
         #print("Resize")
         # Fit image in view based on resize of the window
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
+
+
+    def mousePressEvent(self, event):
+        print("Mouse Press")
+        
+    def mouseMoveEvent(self, event):
+        print("Mouse Move")
+
         
     # Zooming using mouse wheel
     def wheelEvent(self, event):
@@ -156,8 +162,11 @@ class MyWidget(QtWidgets.QWidget):
         wheelDirection = (event.angleDelta().y())
         # Get the rectangle size
         rectCoordinates = interpretRectangle(str(self.viewArea.rect()))
-        # Set the rectangle size
-        self.viewArea.setRect(rectCoordinates[0]+(wheelDirection/2),rectCoordinates[1]+(wheelDirection/2),rectCoordinates[2]-wheelDirection,rectCoordinates[3]-wheelDirection)
+        # Check coordinates and sets the rectangle size in ordre to avoid unatural scrolling limitation because of the X or Y difference in size
+        if (sqrt((rectCoordinates[3] - rectCoordinates[1])**2) > sqrt((rectCoordinates[2] - rectCoordinates[0])**2)):
+            self.viewArea.setRect(rectCoordinates[0]+(wheelDirection/2),rectCoordinates[1],rectCoordinates[2]-wheelDirection,rectCoordinates[3])
+        else:
+            self.viewArea.setRect(rectCoordinates[0]+(wheelDirection/2),rectCoordinates[1]+(wheelDirection/2),rectCoordinates[2]-wheelDirection,rectCoordinates[3]-wheelDirection)
         # Also sets the scene rectangle to avoid strangle scrolling behaviour !!!
         sceneCoordinates = interpretRectangle(str(self.viewArea.rect()))
         self.imgViewer.setSceneRect(sceneCoordinates[0],sceneCoordinates[1],sceneCoordinates[2],sceneCoordinates[3])
@@ -171,7 +180,35 @@ class MyWidget(QtWidgets.QWidget):
         if (event.key() == QtCore.Qt.Key_F):
             imgCoordinates = interpretRectangle(str(self.image.boundingRect()))
             self.viewArea.setRect(imgCoordinates[0],imgCoordinates[1],imgCoordinates[2],imgCoordinates[3])
+            self.imgViewer.fitInView(self.image, QtCore.Qt.KeepAspectRatio)
             self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
+            
+
+        # Panning image -- KEYPRESS H,J,K,L , VIM like
+        if (event.key() == QtCore.Qt.Key_H):
+            #print("Left")
+            imgCoordinates = interpretRectangle(str(self.viewArea.rect()))
+            self.viewArea.setRect(imgCoordinates[0]-1,imgCoordinates[1],imgCoordinates[2]-1,imgCoordinates[3])
+            sceneCoordinates = interpretRectangle(str(self.viewArea.rect()))
+            self.imgViewer.setSceneRect(sceneCoordinates[0],sceneCoordinates[1],sceneCoordinates[2],sceneCoordinates[3])
+        if (event.key() == QtCore.Qt.Key_J):
+            #print("Up")
+            imgCoordinates = interpretRectangle(str(self.viewArea.rect()))
+            self.viewArea.setRect(imgCoordinates[0],imgCoordinates[1]-1,imgCoordinates[2],imgCoordinates[3]-1)
+            sceneCoordinates = interpretRectangle(str(self.viewArea.rect()))
+            self.imgViewer.setSceneRect(sceneCoordinates[0],sceneCoordinates[1],sceneCoordinates[2],sceneCoordinates[3])
+        if (event.key() == QtCore.Qt.Key_K):
+            #print("Down")
+            imgCoordinates = interpretRectangle(str(self.viewArea.rect()))
+            self.viewArea.setRect(imgCoordinates[0],imgCoordinates[1]+1,imgCoordinates[2],imgCoordinates[3]+1)
+            sceneCoordinates = interpretRectangle(str(self.viewArea.rect()))
+            self.imgViewer.setSceneRect(sceneCoordinates[0],sceneCoordinates[1],sceneCoordinates[2],sceneCoordinates[3])
+        if (event.key() == QtCore.Qt.Key_L):
+            #print("Right")
+            imgCoordinates = interpretRectangle(str(self.viewArea.rect()))
+            self.viewArea.setRect(imgCoordinates[0]+1,imgCoordinates[1],imgCoordinates[2]+1,imgCoordinates[3])
+            sceneCoordinates = interpretRectangle(str(self.viewArea.rect()))
+            self.imgViewer.setSceneRect(sceneCoordinates[0],sceneCoordinates[1],sceneCoordinates[2],sceneCoordinates[3])
         
 
 if __name__ == "__main__":

@@ -12,27 +12,81 @@ class graphicsView(QtWidgets.QGraphicsView):
     def __init__ (self, parent=None):
         super(graphicsView, self).__init__ (parent)
 
+        # Active keys dictionnary
+        self.activeKeys = {}
+        self.activeKeys[QtCore.Qt.Key_A] = False
+        self.activeKeys[QtCore.Qt.Key_B] = False
+        self.activeKeys[QtCore.Qt.Key_C] = False
+        self.activeKeys[QtCore.Qt.Key_D] = False
+        self.activeKeys[QtCore.Qt.Key_E] = False
+        # Alt key
+        self.activeKeys[16777251] = False
+
+        # Active mouse dictionnary
+        self.activeMouse = {}
+        self.activeMouse[QtCore.Qt.LeftButton] = False
+        self.activeMouse[QtCore.Qt.RightButton] = False
+        
     def mousePressEvent(self, event):
-        position = QtCore.QPointF(event.pos())
-        print ("pressed here: " + str(position.x()) + ", " + str(position.y()))
+        #print(event.button())
+        if event.button() in self.activeMouse:
+            self.activeMouse[event.button()] = True
+            
+        '''
+        if (self.activeKeys[16777251] == True):
+            # Obtenir 
+            position = QtCore.QPointF(event.pos())
+            print ("pressed here: " + str(position.x()) + ", " + str(position.y()))
+        '''
+        '''
+        modifiers = QtWidgets.QApplication.keyboardModifiers()
+        if modifiers == QtCore.Qt.ShiftModifier:
+            print('Shift+Click')
+            print(keypressed)
+            #print('You clicked Left!')
+            #position = QtCore.QPointF(event.pos())
+            #print ("pressed here: " + str(position.x()) + ", " + str(position.y()))
+        else:
+            print("Click")
+        '''
         self.update()
 
-    def mouseMoveEvent(self, event):
+
+    def mouseReleaseEvent(self, event):
+        if event.button() in self.activeMouse:
+            self.activeMouse[event.button()] = False
+        '''
         position = QtCore.QPointF(event.pos())
-        print ("moved here: " + str(position.x()) + ", " + str(position.y()))
+        print ("released here: " + str(position.x()) + ", " + str(position.y()))
+        '''
         self.update()
 
     def keyPressEvent(self, event):
         #print("GraphicsView " + str(event.key()))
-        # Alt key modifier !
+        if event.key() in self.activeKeys:
+                self.activeKeys[event.key()] = True
+        '''
+        # Alt key modifier
         if (event.key() == 16777251):
             print("Alt Clicked")
             #print(QtCore.QPointF(event.pos()))
+        '''
 
-    def mouseReleaseEvent(self, event):
-        position = QtCore.QPointF(event.pos())
-        print ("released here: " + str(position.x()) + ", " + str(position.y()))
+    def keyReleaseEvent(self, event):
+        if event.key() in self.activeKeys:
+            self.activeKeys[event.key()] = False    
+
+    
+    def mouseMoveEvent(self, event):
+        if (self.activeKeys[16777251] == True) & (self.activeMouse[QtCore.Qt.LeftButton] == True):
+            position = QtCore.QPointF(event.pos())
+            print ("moved here: " + str(position.x()) + ", " + str(position.y()))
         self.update()
+    
+
+
+    
+
 
 class MyWidget(QtWidgets.QWidget):
     def __init__(self):
@@ -83,7 +137,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgZone.addItem(self.viewArea)
         
         self.imgViewer = graphicsView()
-        self.imgViewer.setMouseTracking(True)
+        #self.imgViewer.setMouseTracking(True)
         self.imgViewer.setScene(self.imgZone)
         self.imgViewer.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.imgViewer.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)

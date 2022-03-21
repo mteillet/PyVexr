@@ -7,6 +7,33 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from pyVexr_main import loadImg, interpretRectangle
 from math import sqrt
 
+# Subclassing graphicsView in order to be able to track mouse movements in the scene
+class graphicsView(QtWidgets.QGraphicsView):
+    def __init__ (self, parent=None):
+        super(graphicsView, self).__init__ (parent)
+
+    def mousePressEvent(self, event):
+        position = QtCore.QPointF(event.pos())
+        print ("pressed here: " + str(position.x()) + ", " + str(position.y()))
+        self.update()
+
+    def mouseMoveEvent(self, event):
+        position = QtCore.QPointF(event.pos())
+        print ("moved here: " + str(position.x()) + ", " + str(position.y()))
+        self.update()
+
+    def keyPressEvent(self, event):
+        #print("GraphicsView " + str(event.key()))
+        # Alt key modifier !
+        if (event.key() == 16777251):
+            print("Alt Clicked")
+            #print(QtCore.QPointF(event.pos()))
+
+    def mouseReleaseEvent(self, event):
+        position = QtCore.QPointF(event.pos())
+        print ("released here: " + str(position.x()) + ", " + str(position.y()))
+        self.update()
+
 class MyWidget(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
@@ -37,24 +64,38 @@ class MyWidget(QtWidgets.QWidget):
         self.popupChannels.setText("- This is a channel")
         #self.channelsFrame.hide()
 
-        # Image area - using a QGraphicsScene, a QGraphicsPixmap for image display and a QGraphicsRect for tracking the user view and zoom
+
+        #self.mouseTracker = MyGraphicsView(self)
+
+        # Creating a new GrapicsView
+
+        # Graphics Scene used to have a virtual space for the objects
         self.imgZone = QtWidgets.QGraphicsScene()
-       
+
         # RectWidget for tracking the view relative to the image
         self.viewArea = QtWidgets.QGraphicsRectItem(0,0,10,10)
         # Giving a color to the default rect -- only for debugging purposes
         self.viewArea.setBrush(QtGui.QColor(255, 0, 0, 30))
 
+        # Putting the objects in the scene
         self.image = QtWidgets.QGraphicsPixmapItem()
         self.imgZone.addItem(self.image)
         self.imgZone.addItem(self.viewArea)
         
-        self.imgViewer = QtWidgets.QGraphicsView(self.imgZone)
-        self.imgViewer.viewport().setMouseTracking(True)
+        self.imgViewer = graphicsView()
+        self.imgViewer.setMouseTracking(True)
+        self.imgViewer.setScene(self.imgZone)
         self.imgViewer.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.imgViewer.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        
-        # Temp img load button
+        '''
+        # Graphics View for rendering the scene to the screen
+        self.imgViewer = QtWidgets.QGraphicsView(self.imgZone)
+        self.imgViewer.setMouseTracking(True)
+        self.imgViewer.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.imgViewer.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        '''
+
+        # Temp img load button -- Will be replaced with a load images dropdown in the menu
         self.img = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
         self.img.setText("IMG")
         self.load = QtWidgets.QPushButton("Load")
@@ -143,18 +184,27 @@ class MyWidget(QtWidgets.QWidget):
         # Toggle visibility on widget
         #self.channelsFrame.setHidden(not self.channelsFrame.isHidden())
 
+
+    def mouseMoveEvent(self, event):
+        print('Mouse move: pos {}'.format(event.pos()))
+
     def resizeEvent(self, event):
         #print("Resize")
         # Fit image in view based on resize of the window
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
 
+    def mouseReleaseEvent(self, event):
+        print("Mouse Release Event")
 
     def mousePressEvent(self, event):
         print("Mouse Press")
+        if event.button() == QtCore.Qt.LeftButton:
+            print('You clicked Left!')
         
-    def mouseMoveEvent(self, event):
-        print("Mouse Move")
+        #basePos = event.pos()
+        #print(basePos)
 
+        
         
     # Zooming using mouse wheel
     def wheelEvent(self, event):
@@ -173,8 +223,11 @@ class MyWidget(QtWidgets.QWidget):
         # Fit in view to follow the rectangle
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
 
+    
     # All keypresses    
     def keyPressEvent(self, event):
+        print(event.key())
+        print(self.sender())
         # Frame the image -- KEYPRESS F 
         # Set the viewArea back to the default coordinates of the self.image pixmap and fits it in view
         if (event.key() == QtCore.Qt.Key_F):
@@ -210,6 +263,14 @@ class MyWidget(QtWidgets.QWidget):
             sceneCoordinates = interpretRectangle(str(self.viewArea.rect()))
             self.imgViewer.setSceneRect(sceneCoordinates[0],sceneCoordinates[1],sceneCoordinates[2],sceneCoordinates[3])
         
+    def keyReleaseEvent(self, event):
+        print("Key Released")
+
+    
+
+        
+
+
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])

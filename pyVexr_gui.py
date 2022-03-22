@@ -21,6 +21,8 @@ class graphicsView(QtWidgets.QGraphicsView):
         self.activeKeys[QtCore.Qt.Key_E] = False
         # Alt key
         self.activeKeys[16777251] = False
+        # Ctrl key
+        self.activeKeys[16777249] = False
 
         # Active mouse dictionnary
         self.activeMouse = {}
@@ -34,46 +36,20 @@ class graphicsView(QtWidgets.QGraphicsView):
         #print(event.button())
         if event.button() in self.activeMouse:
             self.activeMouse[event.button()] = True
-            
-        '''
-        if (self.activeKeys[16777251] == True):
-            # Obtenir 
-            position = QtCore.QPointF(event.pos())
-            print ("pressed here: " + str(position.x()) + ", " + str(position.y()))
-        '''
-        '''
-        modifiers = QtWidgets.QApplication.keyboardModifiers()
-        if modifiers == QtCore.Qt.ShiftModifier:
-            print('Shift+Click')
-            print(keypressed)
-            #print('You clicked Left!')
-            #position = QtCore.QPointF(event.pos())
-            #print ("pressed here: " + str(position.x()) + ", " + str(position.y()))
-        else:
-            print("Click")
-        '''
         self.update()
 
 
     def mouseReleaseEvent(self, event):
         if event.button() in self.activeMouse:
             self.activeMouse[event.button()] = False
-        '''
-        position = QtCore.QPointF(event.pos())
-        print ("released here: " + str(position.x()) + ", " + str(position.y()))
-        '''
+
         self.update()
 
     def keyPressEvent(self, event):
         #print("GraphicsView " + str(event.key()))
         if event.key() in self.activeKeys:
                 self.activeKeys[event.key()] = True
-        '''
-        # Alt key modifier
-        if (event.key() == 16777251):
-            print("Alt Clicked")
-            #print(QtCore.QPointF(event.pos()))
-        '''
+
 
     def keyReleaseEvent(self, event):
         if event.key() in self.activeKeys:
@@ -81,19 +57,51 @@ class graphicsView(QtWidgets.QGraphicsView):
 
     
     def mouseMoveEvent(self, event):
+        sceneCoordinates = interpretRectangle(str(self.sceneRect()))
         if (self.activeKeys[16777251] == True) & (self.activeMouse[QtCore.Qt.LeftButton] == True):
+            sceneCoordinates = interpretRectangle(str(self.sceneRect()))
             position = QtCore.QPointF(event.pos())
             self.mouseMove[0].append(position.x())
             self.mouseMove[1].append(position.y())
             #print(self.mouseMove)
             if ((len(self.mouseMove[0]) >= 2) & (len(self.mouseMove[1]) >= 2) ):
-                print("Move X = " + str(self.mouseMove[0][1] - self.mouseMove[0][0]))
-                print("Move Y = " + str(self.mouseMove[1][1] - self.mouseMove[1][0]))
                 mouseMoveX =  (self.mouseMove[0][1] - self.mouseMove[0][0])
                 mouseMoveY =  (self.mouseMove[1][1] - self.mouseMove[1][0])
+                # If exceptions for mouse move
+                if (mouseMoveX > 10) | (mouseMoveX < -10):
+                    mouseMoveX = 0
+                if (mouseMoveY > 10) | (mouseMoveY < -10):
+                    mouseMoveY = 0
+                # Moving the Graphics view adding the mousemov vars to the current coordinates of the scene rect
+                sceneCoordinates = interpretRectangle(str(self.sceneRect()))
+                self.setSceneRect(sceneCoordinates[0]-mouseMoveX,sceneCoordinates[1]-mouseMoveY,sceneCoordinates[2]-mouseMoveX,sceneCoordinates[3]-mouseMoveY)
+                #print("Moved from : " + str(sceneCoordinates) + " to : " + str((sceneCoordinates[0]-mouseMoveX,sceneCoordinates[1]-mouseMoveY,sceneCoordinates[2]-mouseMoveX,sceneCoordinates[3]-mouseMoveY)) + " using " + str(mouseMoveX) + " , " + str(mouseMoveY) )
                 self.mouseMove[0] = []
                 self.mouseMove[1] = []
-            #print ("moved here: " + str(position.x()) + ", " + str(position.y()))
+        if (self.activeKeys[16777249] == True) & (self.activeMouse[QtCore.Qt.LeftButton] == True):
+            position = QtCore.QPointF(event.pos())
+            self.mouseMove[0].append(position.x())
+            self.mouseMove[1].append(position.y())
+            #print(self.mouseMove)
+            if ((len(self.mouseMove[0]) >= 2) & (len(self.mouseMove[1]) >= 2) ):
+                mouseMoveX =  (self.mouseMove[0][1] - self.mouseMove[0][0])
+                mouseMoveY =  (self.mouseMove[1][1] - self.mouseMove[1][0])
+                # If exceptions for mouse move
+                if (mouseMoveX > 10) | (mouseMoveX < -10):
+                    mouseMoveX = 0
+                if (mouseMoveY > 10) | (mouseMoveY < -10):
+                    mouseMoveY = 0
+                # Moving the Graphics view adding the mousemov vars to the current coordinates of the scene rect
+                #sceneCoordinates = interpretRectangle(str(self.sceneRect()))
+                if mouseMoveY > 0:
+                    print("Zoom in")
+                if mouseMoveY < 0:
+                    print("Zoom out")
+                #self.setSceneRect(sceneCoordinates[0]+mouseMoveY ,sceneCoordinates[1]+mouseMoveY ,sceneCoordinates[2]-mouseMoveY ,sceneCoordinates[3]-mouseMoveY )
+                #print("Moved from : " + str(sceneCoordinates) + " to : " + str((sceneCoordinates[0]+mouseMoveY ,sceneCoordinates[1]+mouseMoveY,sceneCoordinates[2]-mouseMoveY,sceneCoordinates[3]-mouseMoveY)) + " using "+ str(mouseMoveY) )
+                #self.mouseMove[0] = []
+                #self.mouseMove[1] = []
+            
         self.update()
     
 
@@ -142,7 +150,7 @@ class MyWidget(QtWidgets.QWidget):
         # RectWidget for tracking the view relative to the image
         self.viewArea = QtWidgets.QGraphicsRectItem(0,0,10,10)
         # Giving a color to the default rect -- only for debugging purposes
-        self.viewArea.setBrush(QtGui.QColor(255, 0, 0, 30))
+        #self.viewArea.setBrush(QtGui.QColor(255, 0, 0, 30))
 
         # Putting the objects in the scene
         self.image = QtWidgets.QGraphicsPixmapItem()

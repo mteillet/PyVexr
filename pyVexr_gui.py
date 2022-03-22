@@ -26,6 +26,9 @@ class graphicsView(QtWidgets.QGraphicsView):
         self.activeMouse = {}
         self.activeMouse[QtCore.Qt.LeftButton] = False
         self.activeMouse[QtCore.Qt.RightButton] = False
+
+        # Mouse Move list [x, y]
+        self.mouseMove = [[],[]]
         
     def mousePressEvent(self, event):
         #print(event.button())
@@ -80,7 +83,17 @@ class graphicsView(QtWidgets.QGraphicsView):
     def mouseMoveEvent(self, event):
         if (self.activeKeys[16777251] == True) & (self.activeMouse[QtCore.Qt.LeftButton] == True):
             position = QtCore.QPointF(event.pos())
-            print ("moved here: " + str(position.x()) + ", " + str(position.y()))
+            self.mouseMove[0].append(position.x())
+            self.mouseMove[1].append(position.y())
+            #print(self.mouseMove)
+            if ((len(self.mouseMove[0]) >= 2) & (len(self.mouseMove[1]) >= 2) ):
+                print("Move X = " + str(self.mouseMove[0][1] - self.mouseMove[0][0]))
+                print("Move Y = " + str(self.mouseMove[1][1] - self.mouseMove[1][0]))
+                mouseMoveX =  (self.mouseMove[0][1] - self.mouseMove[0][0])
+                mouseMoveY =  (self.mouseMove[1][1] - self.mouseMove[1][0])
+                self.mouseMove[0] = []
+                self.mouseMove[1] = []
+            #print ("moved here: " + str(position.x()) + ", " + str(position.y()))
         self.update()
     
 

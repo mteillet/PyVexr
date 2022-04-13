@@ -11,7 +11,7 @@ def main():
 
 def loadImg():
     print("PyVexr Loading Button")
-    temporaryImg = "exrExamples/CamShape_holdoutMatte.0000.exr"
+    temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
     convertedImg = convertExr(temporaryImg)
     return (convertedImg)
 
@@ -30,8 +30,10 @@ def convertExr(path):
 
     # Conversion from float32 to uint8
     # Perform conversion only if the file is not 8 bit integers
+    # FOR NOW, THE SECOND VALUE HAS BEEN MULTIPLIED BY 16 IN ORDER TO HAVE BETTER EXPOSURE
+    # NEED A WAY TO CORRECTLY SET THE CONVERSION BETWEEN 32 HALF EXR AND UINT8
     if(img.dtype != "uint8"):
-        img = cv.normalize(img, None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
+        img = cv.normalize(img, None, 0, 255*16, cv.NORM_MINMAX, cv.CV_8U)
     print(img.dtype)
 
     # Conversion to the QPixmap format

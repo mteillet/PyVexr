@@ -79,28 +79,29 @@ class graphicsView(QtWidgets.QGraphicsView):
                 self.mouseMove[0] = []
                 self.mouseMove[1] = []
         if (self.activeKeys[16777249] == True) & (self.activeMouse[QtCore.Qt.LeftButton] == True):
+            # Storing the mouse moves in a declared list
             position = QtCore.QPointF(event.pos())
+            
             self.mouseMove[0].append(position.x())
             self.mouseMove[1].append(position.y())
-            #print(self.mouseMove)
-            if ((len(self.mouseMove[0]) >= 2) & (len(self.mouseMove[1]) >= 2) ):
-                mouseMoveX =  (self.mouseMove[0][1] - self.mouseMove[0][0])
-                mouseMoveY =  (self.mouseMove[1][1] - self.mouseMove[1][0])
-                # If exceptions for mouse move
-                if (mouseMoveX > 10) | (mouseMoveX < -10):
-                    mouseMoveX = 0
-                if (mouseMoveY > 10) | (mouseMoveY < -10):
-                    mouseMoveY = 0
-                # Moving the Graphics view adding the mousemov vars to the current coordinates of the scene rect
-                #sceneCoordinates = interpretRectangle(str(self.sceneRect()))
-                if mouseMoveY > 0:
-                    print("Zoom in")
-                if mouseMoveY < 0:
-                    print("Zoom out")
-                #self.setSceneRect(sceneCoordinates[0]+mouseMoveY ,sceneCoordinates[1]+mouseMoveY ,sceneCoordinates[2]-mouseMoveY ,sceneCoordinates[3]-mouseMoveY )
-                #print("Moved from : " + str(sceneCoordinates) + " to : " + str((sceneCoordinates[0]+mouseMoveY ,sceneCoordinates[1]+mouseMoveY,sceneCoordinates[2]-mouseMoveY,sceneCoordinates[3]-mouseMoveY)) + " using "+ str(mouseMoveY) )
-                #self.mouseMove[0] = []
-                #self.mouseMove[1] = []
+
+            # Comparing the mouseMoves list when the list length is reached
+            if(len(self.mouseMove[1]) >= 2):
+                print("Mouse Moved")
+                direction = (self.mouseMove[1][1] - self.mouseMove[1][0]) + (self.mouseMove[0][1] - self.mouseMove[0][0])
+                sceneCoordinates = interpretRectangle(str(self.sceneRect()))
+
+                # Exception for too high mouse moves
+                if (direction > 10) | (direction < -10):
+                    direction = 0
+
+                # Zooming the view
+                self.scale(1.0 + direction * 0.025, 1.0 + direction * 0.025)
+
+                # Reset the mouse move lists
+                self.mouseMove[0] = []
+                self.mouseMove[1] = []
+
             
         self.update()
     

@@ -12,6 +12,9 @@ class graphicsView(QtWidgets.QGraphicsView):
     def __init__ (self, parent=None):
         super(graphicsView, self).__init__ (parent)
 
+        # Initial scene rect
+        self.defaultSceneRect = []
+
         # Active keys dictionnary
         self.activeKeys = {}
         self.activeKeys[QtCore.Qt.Key_A] = False
@@ -19,6 +22,7 @@ class graphicsView(QtWidgets.QGraphicsView):
         self.activeKeys[QtCore.Qt.Key_C] = False
         self.activeKeys[QtCore.Qt.Key_D] = False
         self.activeKeys[QtCore.Qt.Key_E] = False
+        self.activeKeys[QtCore.Qt.Key_F] = False
         # Alt key
         self.activeKeys[16777251] = False
         # Ctrl key
@@ -42,6 +46,7 @@ class graphicsView(QtWidgets.QGraphicsView):
     def mouseReleaseEvent(self, event):
         if event.button() in self.activeMouse:
             self.activeMouse[event.button()] = False
+            
 
         self.update()
 
@@ -53,10 +58,27 @@ class graphicsView(QtWidgets.QGraphicsView):
 
     def keyReleaseEvent(self, event):
         if event.key() in self.activeKeys:
-            self.activeKeys[event.key()] = False    
+            self.activeKeys[event.key()] = False   
 
+        # F for recenter
+        if str(event.key()) == str(70):
+            # Issue need to reset the zoom index too, otherwise won't work
+            print("Key is F")
+            # Reset zoom
+            self.resetTransform()
+            # Reset position
+            self.setSceneRect(self.defaultSceneRect[0], self.defaultSceneRect[1], self.defaultSceneRect[2], self.defaultSceneRect[3])
+            #print(self.defaultSceneRect[0], self.defaultSceneRect[1], self.defaultSceneRect[2], self.defaultSceneRect[3])
+            #print(interpretRectangle(str(self.sceneRect())))
     
     def mouseMoveEvent(self, event):
+        # Storing the initial scene rect
+        if len(self.defaultSceneRect) == 0:
+            temp = interpretRectangle(str(self.sceneRect()))
+            for val in temp:
+                self.defaultSceneRect.append(val)
+            print(self.defaultSceneRect)
+
         sceneCoordinates = interpretRectangle(str(self.sceneRect()))
         if (self.activeKeys[16777251] == True) & (self.activeMouse[QtCore.Qt.LeftButton] == True):
             sceneCoordinates = interpretRectangle(str(self.sceneRect()))
@@ -85,9 +107,8 @@ class graphicsView(QtWidgets.QGraphicsView):
             self.mouseMove[0].append(position.x())
             self.mouseMove[1].append(position.y())
 
-            # Comparing the mouseMoves list when the list length is reached
             if(len(self.mouseMove[1]) >= 2):
-                print("Mouse Moved")
+                #print("Mouse Moved")
                 direction = (self.mouseMove[1][1] - self.mouseMove[1][0]) + (self.mouseMove[0][1] - self.mouseMove[0][0])
                 sceneCoordinates = interpretRectangle(str(self.sceneRect()))
 
@@ -104,6 +125,7 @@ class graphicsView(QtWidgets.QGraphicsView):
 
             
         self.update()
+
     
 
 
@@ -261,90 +283,10 @@ class MyWidget(QtWidgets.QWidget):
         #self.channelsFrame.setHidden(not self.channelsFrame.isHidden())
 
 
-    def mouseMoveEvent(self, event):
-        print('Mouse move: pos {}'.format(event.pos()))
-
     def resizeEvent(self, event):
         #print("Resize")
         # Fit image in view based on resize of the window
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
-
-    def mouseReleaseEvent(self, event):
-        print("Mouse Release Event")
-
-    def mousePressEvent(self, event):
-        print("Mouse Press")
-        if event.button() == QtCore.Qt.LeftButton:
-            print('You clicked Left!')
-        
-        #basePos = event.pos()
-        #print(basePos)
-
-        
-        
-    # Zooming using mouse wheel
-    def wheelEvent(self, event):
-        # Gettubg the zoom direction
-        wheelDirection = (event.angleDelta().y())
-        # Get the rectangle size
-        rectCoordinates = interpretRectangle(str(self.viewArea.rect()))
-        # Check coordinates and sets the rectangle size in ordre to avoid unatural scrolling limitation because of the X or Y difference in size
-        if (sqrt((rectCoordinates[3] - rectCoordinates[1])**2) > sqrt((rectCoordinates[2] - rectCoordinates[0])**2)):
-            self.viewArea.setRect(rectCoordinates[0]+(wheelDirection/2),rectCoordinates[1],rectCoordinates[2]-wheelDirection,rectCoordinates[3])
-        else:
-            self.viewArea.setRect(rectCoordinates[0]+(wheelDirection/2),rectCoordinates[1]+(wheelDirection/2),rectCoordinates[2]-wheelDirection,rectCoordinates[3]-wheelDirection)
-        # Also sets the scene rectangle to avoid strangle scrolling behaviour !!!
-        sceneCoordinates = interpretRectangle(str(self.viewArea.rect()))
-        self.imgViewer.setSceneRect(sceneCoordinates[0],sceneCoordinates[1],sceneCoordinates[2],sceneCoordinates[3])
-        # Fit in view to follow the rectangle
-        self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
-
-    
-    # All keypresses    
-    def keyPressEvent(self, event):
-        print(event.key())
-        print(self.sender())
-        # Frame the image -- KEYPRESS F 
-        # Set the viewArea back to the default coordinates of the self.image pixmap and fits it in view
-        if (event.key() == QtCore.Qt.Key_F):
-            imgCoordinates = interpretRectangle(str(self.image.boundingRect()))
-            self.viewArea.setRect(imgCoordinates[0],imgCoordinates[1],imgCoordinates[2],imgCoordinates[3])
-            self.imgViewer.fitInView(self.image, QtCore.Qt.KeepAspectRatio)
-            self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
-            
-
-        # Panning image -- KEYPRESS H,J,K,L , VIM like
-        if (event.key() == QtCore.Qt.Key_H):
-            #print("Left")
-            imgCoordinates = interpretRectangle(str(self.viewArea.rect()))
-            self.viewArea.setRect(imgCoordinates[0]-1,imgCoordinates[1],imgCoordinates[2]-1,imgCoordinates[3])
-            sceneCoordinates = interpretRectangle(str(self.viewArea.rect()))
-            self.imgViewer.setSceneRect(sceneCoordinates[0],sceneCoordinates[1],sceneCoordinates[2],sceneCoordinates[3])
-        if (event.key() == QtCore.Qt.Key_J):
-            #print("Up")
-            imgCoordinates = interpretRectangle(str(self.viewArea.rect()))
-            self.viewArea.setRect(imgCoordinates[0],imgCoordinates[1]-1,imgCoordinates[2],imgCoordinates[3]-1)
-            sceneCoordinates = interpretRectangle(str(self.viewArea.rect()))
-            self.imgViewer.setSceneRect(sceneCoordinates[0],sceneCoordinates[1],sceneCoordinates[2],sceneCoordinates[3])
-        if (event.key() == QtCore.Qt.Key_K):
-            #print("Down")
-            imgCoordinates = interpretRectangle(str(self.viewArea.rect()))
-            self.viewArea.setRect(imgCoordinates[0],imgCoordinates[1]+1,imgCoordinates[2],imgCoordinates[3]+1)
-            sceneCoordinates = interpretRectangle(str(self.viewArea.rect()))
-            self.imgViewer.setSceneRect(sceneCoordinates[0],sceneCoordinates[1],sceneCoordinates[2],sceneCoordinates[3])
-        if (event.key() == QtCore.Qt.Key_L):
-            #print("Right")
-            imgCoordinates = interpretRectangle(str(self.viewArea.rect()))
-            self.viewArea.setRect(imgCoordinates[0]+1,imgCoordinates[1],imgCoordinates[2]+1,imgCoordinates[3])
-            sceneCoordinates = interpretRectangle(str(self.viewArea.rect()))
-            self.imgViewer.setSceneRect(sceneCoordinates[0],sceneCoordinates[1],sceneCoordinates[2],sceneCoordinates[3])
-        
-    def keyReleaseEvent(self, event):
-        print("Key Released")
-
-    
-
-        
 
 
 

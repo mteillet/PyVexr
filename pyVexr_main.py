@@ -39,8 +39,13 @@ def convertExr(path):
         # Correct conversion, need to apply a display correction on the image
         # Compare the exr with natron and image is displayed in linear space instead of SRGB
         img *= 255
+
         # Clamping the max value to avoid inverted brighter pixels 
         img[img>255] = 255
+
+        # Linear to srgb conversion
+        #img = linearToSrgb(img)  
+
         img = img.astype(np.uint8)
     print(img.dtype)
 
@@ -50,6 +55,17 @@ def convertExr(path):
     bytes_per_line = ch * w
     convertedImg = rgb_image.data, w, h, bytes_per_line
     return(convertedImg)
+
+def linearToSrgb(var):
+    # Looping over numpy array
+    with np.nditer(var, op_flags = ['readwrite']) as it:
+        for x in it:
+            if x <= 0.0031308:
+                x = 1.055 * (pow(x, (1.0 / 2.4))) - 0.055
+            else:
+                x = 12.92 * x
+    return(var)
+
 
 def interpretRectangle(str):
     temp = str.split("(")

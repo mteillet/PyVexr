@@ -33,7 +33,15 @@ def convertExr(path):
     # FOR NOW, THE SECOND VALUE HAS BEEN MULTIPLIED BY 16 IN ORDER TO HAVE BETTER EXPOSURE
     # NEED A WAY TO CORRECTLY SET THE CONVERSION BETWEEN 32 HALF EXR AND UINT8
     if(img.dtype != "uint8"):
-        img = cv.normalize(img, None, 0, 255*16, cv.NORM_MINMAX, cv.CV_8U)
+        #img = cv.normalize(img, None, 0, 255*16, cv.NORM_MINMAX, cv.CV_8U)
+        #img[img < 0] = 0
+
+        # Correct conversion, need to apply a display correction on the image
+        # Compare the exr with natron and image is displayed in linear space instead of SRGB
+        img *= 255
+        # Clamping the max value to avoid inverted brighter pixels 
+        img[img>255] = 255
+        img = img.astype(np.uint8)
     print(img.dtype)
 
     # Conversion to the QPixmap format

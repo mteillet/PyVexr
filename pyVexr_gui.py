@@ -67,7 +67,7 @@ class graphicsView(QtWidgets.QGraphicsView):
             # Reset zoom
             self.resetTransform()
             # Reset position
-            self.setSceneRect(self.defaultSceneRect[0], self.defaultSceneRect[1], self.defaultSceneRect[2], self.defaultSceneRect[3])
+            self.setSceneRect(0, 0, self.defaultSceneRect[2], self.defaultSceneRect[3])
             #print(self.defaultSceneRect[0], self.defaultSceneRect[1], self.defaultSceneRect[2], self.defaultSceneRect[3])
             #print(interpretRectangle(str(self.sceneRect())))
     
@@ -79,6 +79,7 @@ class graphicsView(QtWidgets.QGraphicsView):
                 self.defaultSceneRect.append(val)
             print(self.defaultSceneRect)
 
+        # Translate view
         sceneCoordinates = interpretRectangle(str(self.sceneRect()))
         if (self.activeKeys[16777251] == True) & (self.activeMouse[QtCore.Qt.LeftButton] == True):
             sceneCoordinates = interpretRectangle(str(self.sceneRect()))
@@ -88,7 +89,7 @@ class graphicsView(QtWidgets.QGraphicsView):
             #print(self.mouseMove)
             if ((len(self.mouseMove[0]) >= 2) & (len(self.mouseMove[1]) >= 2) ):
                 mouseMoveX =  (self.mouseMove[0][1] - self.mouseMove[0][0])
-                mouseMoveY =  (self.mouseMove[1][1] - self.mouseMove[1][0])
+                mouseMoveY =  (self.mouseMove[1][1] - self.mouseMove[1][0]) 
                 # If exceptions for mouse move
                 if (mouseMoveX > 10) | (mouseMoveX < -10):
                     mouseMoveX = 0
@@ -100,6 +101,8 @@ class graphicsView(QtWidgets.QGraphicsView):
                 #print("Moved from : " + str(sceneCoordinates) + " to : " + str((sceneCoordinates[0]-mouseMoveX,sceneCoordinates[1]-mouseMoveY,sceneCoordinates[2]-mouseMoveX,sceneCoordinates[3]-mouseMoveY)) + " using " + str(mouseMoveX) + " , " + str(mouseMoveY) )
                 self.mouseMove[0] = []
                 self.mouseMove[1] = []
+
+        # Zoom view
         if (self.activeKeys[16777249] == True) & (self.activeMouse[QtCore.Qt.LeftButton] == True):
             # Storing the mouse moves in a declared list
             position = QtCore.QPointF(event.pos())

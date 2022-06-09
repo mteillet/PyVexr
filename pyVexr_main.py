@@ -7,7 +7,7 @@ import cv2 as cv
 import numpy as np
 
 def main():
-    print("PyVexr")
+    print("PyVexr pre alpha version")
 
 def loadImg():
     print("PyVexr Loading Button")
@@ -34,7 +34,32 @@ def convertExr(path):
     # NEED A WAY TO CORRECTLY SET THE CONVERSION BETWEEN 32 HALF EXR AND UINT8
     if(img.dtype != "uint8"):
         #img = cv.normalize(img, None, 0, 255*16, cv.NORM_MINMAX, cv.CV_8U)
-        #img[img < 0] = 0
+        img[img < 0] = 0
+        
+        #img[img > 1] = 1
+        # Linear to srgb conversion
+        img = linearToSrgb(img)
+        '''
+        img = [0.015, 0.18, 1.0]
+        print(img)
+        for index, item in enumerate(img):
+            if item <= 0.0404482362771082:
+                img[index] = item/12.92
+            else:
+                img[index] = pow(((item + 0.055) / 1.055), 2.4)
+            
+            if item <= 0.00313066844250063:
+                img[index] = 1.055 * (pow(item, (1.0 / 2.4))) - 0.055
+            else:
+                img[index] = 12.92 * item
+            
+            img[index] = pow(item, 0.45)
+            
+
+            img[index] *= 255
+            
+        print(img)
+        '''
 
         # Correct conversion, need to apply a display correction on the image
         # Compare the exr with natron and image is displayed in linear space instead of SRGB
@@ -43,11 +68,11 @@ def convertExr(path):
         # Clamping the max value to avoid inverted brighter pixels 
         img[img>255] = 255
 
-        # Linear to srgb conversion
-        #img = linearToSrgb(img)  
-
+        # Converting to 8 bits for PyQt QPixmap support
         img = img.astype(np.uint8)
-    print(img.dtype)
+
+    
+    #print(img.dtype)
 
     # Conversion to the QPixmap format
     rgb_image = cv.cvtColor(img, cv.COLOR_BGR2RGB)
@@ -57,6 +82,10 @@ def convertExr(path):
     return(convertedImg)
 
 def linearToSrgb(var):
+    #var[var <= 0.0031308] = 1.055 * (pow(var[var <= 0.0031308], (1.0 / 2.4))) - 0.055
+    #var[var > 0.0031308] = 12.92 * var[var > 0.0031308]
+    var = np.power(var, 0.45)
+    '''
     # Looping over numpy array
     with np.nditer(var, op_flags = ['readwrite']) as it:
         for x in it:
@@ -64,6 +93,7 @@ def linearToSrgb(var):
                 x = 1.055 * (pow(x, (1.0 / 2.4))) - 0.055
             else:
                 x = 12.92 * x
+    '''
     return(var)
 
 

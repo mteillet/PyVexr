@@ -68,7 +68,6 @@ class graphicsView(QtWidgets.QGraphicsView):
             self.resetTransform()
             # Reset position
             self.setSceneRect(0, 0, self.defaultSceneRect[2], self.defaultSceneRect[3])
-            #print(self.defaultSceneRect[0], self.defaultSceneRect[1], self.defaultSceneRect[2], self.defaultSceneRect[3])
             #print(interpretRectangle(str(self.sceneRect())))
     
     def mouseMoveEvent(self, event):
@@ -98,7 +97,6 @@ class graphicsView(QtWidgets.QGraphicsView):
                 # Moving the Graphics view adding the mousemov vars to the current coordinates of the scene rect
                 sceneCoordinates = interpretRectangle(str(self.sceneRect()))
                 self.setSceneRect(sceneCoordinates[0]-mouseMoveX,sceneCoordinates[1]-mouseMoveY,sceneCoordinates[2]-mouseMoveX,sceneCoordinates[3]-mouseMoveY)
-                #print("Moved from : " + str(sceneCoordinates) + " to : " + str((sceneCoordinates[0]-mouseMoveX,sceneCoordinates[1]-mouseMoveY,sceneCoordinates[2]-mouseMoveX,sceneCoordinates[3]-mouseMoveY)) + " using " + str(mouseMoveX) + " , " + str(mouseMoveY) )
                 self.mouseMove[0] = []
                 self.mouseMove[1] = []
 

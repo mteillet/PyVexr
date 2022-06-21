@@ -1,5 +1,5 @@
 # PyVexr is a simple gui app designed to display exr to avoid having to open them in photoshop or other editing softwares
-# Using python, pyQt5, opencv and some C++
+# Using python, pyQt5 and opencv 
 
 #pyVexr_main.py
 
@@ -71,8 +71,27 @@ def ocio(img):
     print("OCIO transform")
     print("Available OCIO configs : \n- Filmic Base Contrast")
 
-def filmic(img):
+    # Calling filmicBaseContrast
+    filmicBaseContrast(img)
+
+def filmicBaseContrast(img):
     print(" -- FILMIC BASE CONTRAST -- ")
+
+    # Opening the filmic file
+    with open("/home/martin/Documents/PYTHON/PyVexr/ocio/filmic_blender/Filmic_to_0-70_1-03.spi1d", "r") as f:
+        data = f.readlines()
+    # Removing unecessary lines from the file
+    data = (data[5:-1])
+
+    filmicLut = []
+    for line in data:
+        filmicLut.append(float(line))
+
+    #img = filmicLut[int(img)]
+    print(type(img))
+    return(img)
+
+
 
 def interpretRectangle(str):
     temp = str.split("(")

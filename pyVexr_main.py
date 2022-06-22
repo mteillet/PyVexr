@@ -5,6 +5,7 @@
 
 import cv2 as cv
 import numpy as np
+import PyOpenColorIO as OCIO
 
 def main():
     print("PyVexr pre alpha version")

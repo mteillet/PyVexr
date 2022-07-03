@@ -10,67 +10,14 @@ import PyOpenColorIO as OCIO
 def main():
     print("PyVexr pre alpha version")
 
-def loadImg():
+def loadImg(ocioIn, ocioOut, ocioLook):
     print("PyVexr Loading Button")
     temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
-    convertedImg = convertExr(temporaryImg)
+    convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook)
     return (convertedImg)
 
-# Converting the Exr file with opencv to a readable image file for QtPixmap
-def convertExr(path):
-    img = cv.imread(path, cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
-    
-    # For debugging purpose, if you need to display the image in open cv to compare
-    '''
-    img=img*65535
-    img[img>65535]=65535
-    img=np.uint16(img)
-    cv.imshow("Display window", img)
-    k = cv.waitKey(0)
-    '''
-
-    # Conversion from float32 to uint8
-    # Perform conversion only if the file is not 8 bit integers
-    # FOR NOW, THE SECOND VALUE HAS BEEN MULTIPLIED BY 16 IN ORDER TO HAVE BETTER EXPOSURE
-    # NEED A WAY TO CORRECTLY SET THE CONVERSION BETWEEN 32 HALF EXR AND UINT8
-    if(img.dtype != "uint8"):
-        #img = cv.normalize(img, None, 0, 255*16, cv.NORM_MINMAX, cv.CV_8U)
-        img[img < 0] = 0
-
-        #Testing the filmic ocio config -- NEED to be converted to a separate function called from a menu later on
-        ocio(img)
-        
-        # NOT NEEDED ANYMORE, HANDLED BY THE OCIO
-        # Linear to srgb conversion
-        #img = linearToSrgb(img)
-
-        # Correct conversion, need to apply a display correction on the image
-        # Compare the exr with natron and image is displayed in linear space instead of SRGB
-        img *= 255
-
-        # Clamping the max value to avoid inverted brighter pixels 
-        img[img>255] = 255
-
-        # Converting to 8 bits for PyQt QPixmap support
-        img = img.astype(np.uint8)
-
-    
-    #print(img.dtype)
-
-    # Conversion to the QPixmap format
-    rgb_image = cv.cvtColor(img, cv.COLOR_BGR2RGB)
-    h,w,ch = rgb_image.shape
-    bytes_per_line = ch * w
-    convertedImg = rgb_image.data, w, h, bytes_per_line
-    return(convertedImg)
-
-def linearToSrgb(img):
-    img = np.power(img, 0.45)
-    return(img)
-
-def ocio(img):
-    print("OCIO -- {}".format("Version 2"))
-
+def initOCIO():
+    print("Init OCIO")
     ocioVar = "ocio/config.ocio"
     config = OCIO.Config.CreateFromFile(ocioVar)
     #print(config)
@@ -89,15 +36,121 @@ def ocio(img):
     # Getting ocio colorspaces from config
     colorSpaces = config.getColorSpaces()
     # Building a dictionnary of the colorspaces we get from the ocio
+    colorSpacesDict = {}
     for c in colorSpaces:
         # print(dir(c))
-        print(c.getName())
+        colorSpacesDict[c.getName()] = c
 
-    # Getting looks of the view 
     looks = config.getLooks()
+    # Building dict of the looks
+    looksDict = {}
     for look in looks:
-        #print(dir(look))
-        print(look.getName())
+        looksDict[look.getName()] = look
+
+
+    return(colorSpacesDict,looksDict)
+
+
+# Converting the Exr file with opencv to a readable image file for QtPixmap
+def convertExr(path, ocioIn, ocioOut, ocioLook):
+    img = cv.imread(path, cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
+    
+    # For debugging purpose, if you need to display the image in open cv to compare
+    '''
+    img=img*65535
+    img[img>65535]=65535
+    img=np.uint16(img)
+    cv.imshow("Display window", img)
+    k = cv.waitKey(0)
+    '''
+
+    if(img.dtype == "float32"):
+        # Making the actual OCIO Transform
+        ocioTransform(img, ocioIn, ocioOut, ocioLook)
+        img *= 255
+        # Clamping the values to avoid artifacts if values go over 255
+        img = clampImg(img)
+        # Conversion to the QPixmap format
+        img = img.astype(np.uint8)
+
+
+    """
+    # Conversion from float32 to uint8
+    if(img.dtype != "uint8"):
+        img[img < 0] = 0
+
+        #Testing the filmic ocio config -- NEED to be converted to a separate function called from a menu later on
+        ocio(img)
+        
+        # NOT NEEDED ANYMORE, HANDLED BY THE OCIO
+        # Linear to srgb conversion
+        #img = linearToSrgb(img)
+
+        # Correct conversion, need to apply a display correction on the image
+        # Compare the exr with natron and image is displayed in linear space instead of SRGB
+        img *= 255
+
+        # Clamping the max value to avoid inverted brighter pixels 
+        img[img>255] = 255
+
+        # Converting to 8 bits for PyQt QPixmap support
+        img = img.astype(np.uint8)
+    """
+
+    rgb_image = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+    h,w,ch = rgb_image.shape
+    bytes_per_line = ch * w
+    convertedImg = rgb_image.data, w, h, bytes_per_line
+    return(convertedImg)
+
+
+def ocioTransform(img, ocioIn, ocioOut, ocioLook):
+    print("Using PyOpenColorIO version 2")
+    print("Attempting convesion from {0} to {1} using look {2}".format(ocioIn, ocioOut, ocioLook))
+
+    ocioVar = "ocio/config.ocio"
+    config = OCIO.Config.CreateFromFile(ocioVar)
+    #print(dir(config))
+    if ocioLook != "None":
+        #print(ocioLook)
+        currentLook = config.getLook(ocioLook)
+        #print(currentLook)
+
+    view = config.getDefaultView(ocioOut)
+    
+    """
+    transform = OCIO.DisplayViewTransform()
+    transform.setSrc(ocioIn)
+    transform.setDisplay(ocioOut)
+    transform.setView(view)
+    transform.setLooksBypass(False)
+    """
+
+    #processor = config.getProcessor(transform)
+    processor = config.getProcessor(ocioIn, ocioOut)
+    cpu = processor.getDefaultCPUProcessor()
+
+    img = cpu.applyRGB(img)
+
+    return(img)
+
+def clampImg(img):
+    img[img>255] = 255
+    return(img)
+
+def ocio(img):
+    print("OCIO -- {}".format("Version 2"))
+
+    ocioVar = "ocio/config.ocio"
+    config = OCIO.Config.CreateFromFile(ocioVar)
+    #print(config)
+
+    # Getting displays list from ocio setup
+    displays = config.getActiveDisplays()
+    #print(displays)
+
+    # Getting views available for display
+    views = config.getViews("sRGB")
 
     processor = config.getProcessor("Linear", "sRGB")
     cpu = processor.getDefaultCPUProcessor()

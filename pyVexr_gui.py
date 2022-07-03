@@ -4,7 +4,7 @@
 
 import sys
 from PyQt5 import QtWidgets, QtCore, QtGui
-from pyVexr_main import loadImg, interpretRectangle
+from pyVexr_main import loadImg, interpretRectangle, initOCIO
 from math import sqrt
 
 # Subclassing graphicsView in order to be able to track mouse movements in the scene
@@ -156,6 +156,29 @@ class MyWidget(QtWidgets.QWidget):
         self.colorspaceMenu = self.menuBar.addMenu('&Colorspace')
         self.infoMenu = self.menuBar.addMenu('&Info')
 
+        # OCIO dropdown
+        ocioViews, looksDict= initOCIO()
+        # Setup dict in order to retrieve selected items
+        self.ocioInLabel = QtWidgets.QLabel("Input:")
+        self.ocioOutLabel = QtWidgets.QLabel("Output:")
+        self.ocioLooksLabel = QtWidgets.QLabel("Look :")
+        self.ocioIn = QtWidgets.QComboBox()
+        self.ocioOut = QtWidgets.QComboBox()
+        self.ocioLooks = QtWidgets.QComboBox()
+
+        if "sRGB" in ocioViews and "Linear" in ocioViews:
+            self.ocioIn.addItem("Linear")
+            self.ocioOut.addItem("sRGB")
+        for i in ocioViews:
+            if i != "Linear":
+                self.ocioIn.addItem(i)
+            if i != "sRGB":
+                self.ocioOut.addItem(i)
+        self.ocioLooks.addItem("None")
+        for x in looksDict:
+            self.ocioLooks.addItem(x)
+
+
         # Channel area - to make it appear using something containing the widgets and toggle its visibility on or off
         self.channels = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
         self.channels.setText("Exr Channels")
@@ -163,10 +186,6 @@ class MyWidget(QtWidgets.QWidget):
         self.popupChannels.setText("- This is a channel")
         #self.channelsFrame.hide()
 
-
-        #self.mouseTracker = MyGraphicsView(self)
-
-        # Creating a new GrapicsView
 
         # Graphics Scene used to have a virtual space for the objects
         self.imgZone = QtWidgets.QGraphicsScene()
@@ -227,6 +246,13 @@ class MyWidget(QtWidgets.QWidget):
         # Top Bar
         self.topBarLayout = QtWidgets.QHBoxLayout()
         self.topBarLayout.addWidget(self.menuBar)
+        self.topBarLayout.addStretch()
+        self.topBarLayout.addWidget(self.ocioInLabel)
+        self.topBarLayout.addWidget(self.ocioIn)
+        self.topBarLayout.addWidget(self.ocioOutLabel)
+        self.topBarLayout.addWidget(self.ocioOut)
+        self.topBarLayout.addWidget(self.ocioLooksLabel)
+        self.topBarLayout.addWidget(self.ocioLooks)
 
         # Main Center layout #
 
@@ -265,8 +291,12 @@ class MyWidget(QtWidgets.QWidget):
     ###############################
     @QtCore.pyqtSlot()
     def function(self):
-        tempImg = loadImg()
+        # OCIO DATA
+        print("Input : {0}\nOutput : {1}\nLook : {2}".format(self.ocioIn.currentText(),self.ocioOut.currentText(),self.ocioLooks.currentText()))
+
+        tempImg = loadImg(self.ocioIn.currentText(),self.ocioOut.currentText(),self.ocioLooks.currentText())
         
+
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         convertedImg = convertToQt.scaled(800, 600, QtCore.Qt.KeepAspectRatio)
 
@@ -282,7 +312,6 @@ class MyWidget(QtWidgets.QWidget):
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
         # Toggle visibility on widget
         #self.channelsFrame.setHidden(not self.channelsFrame.isHidden())
-
 
     def resizeEvent(self, event):
         #print("Resize")

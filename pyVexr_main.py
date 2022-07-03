@@ -40,9 +40,9 @@ def convertExr(path):
         #Testing the filmic ocio config -- NEED to be converted to a separate function called from a menu later on
         ocio(img)
         
-        #img[img > 1] = 1
+        # NOT NEEDED ANYMORE, HANDLED BY THE OCIO
         # Linear to srgb conversion
-        img = linearToSrgb(img)
+        #img = linearToSrgb(img)
 
         # Correct conversion, need to apply a display correction on the image
         # Compare the exr with natron and image is displayed in linear space instead of SRGB
@@ -69,27 +69,47 @@ def linearToSrgb(img):
     return(img)
 
 def ocio(img):
-    print("OCIO transform")
-    print("Available OCIO configs : \n- Filmic Base Contrast")
+    print("OCIO -- {}".format("Version 2"))
+
+    ocioVar = "ocio/config.ocio"
+    config = OCIO.Config.CreateFromFile(ocioVar)
+    #print(config)
+
+    # Getting displays list from ocio setup
+    displays = config.getActiveDisplays()
+    #print(displays)
+
+    # Getting views available for display
+    views = config.getViews("sRGB")
+    # PRINTING THE VIEWS AVAILABLE
+    """
+    for view in views:
+        print("Available View : {}".format(view))
+    """
+    # Getting ocio colorspaces from config
+    colorSpaces = config.getColorSpaces()
+    # Building a dictionnary of the colorspaces we get from the ocio
+    for c in colorSpaces:
+        # print(dir(c))
+        print(c.getName())
+
+    # Getting looks of the view 
+    looks = config.getLooks()
+    for look in looks:
+        #print(dir(look))
+        print(look.getName())
+
+    processor = config.getProcessor("Linear", "sRGB")
+    cpu = processor.getDefaultCPUProcessor()
+    img = cpu.applyRGB(img)
+
 
     # Calling filmicBaseContrast
-    filmicBaseContrast(img)
+    #filmicBaseContrast(img)
 
 def filmicBaseContrast(img):
     print(" -- FILMIC BASE CONTRAST -- ")
 
-    # Opening the filmic file
-    with open("/home/martin/Documents/PYTHON/PyVexr/ocio/filmic_blender/Filmic_to_0-70_1-03.spi1d", "r") as f:
-        data = f.readlines()
-    # Removing unecessary lines from the file
-    data = (data[5:-1])
-
-    filmicLut = []
-    for line in data:
-        filmicLut.append(float(line))
-
-    #img = filmicLut[int(img)]
-    print(type(img))
     return(img)
 
 

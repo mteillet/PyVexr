@@ -26,13 +26,12 @@ def initOCIO():
     displays = config.getActiveDisplays()
     #print(displays)
 
-    # Getting views available for display
-    views = config.getViews("sRGB")
-    # PRINTING THE VIEWS AVAILABLE
-    """
+    displayList = config.getDisplays()
+    views= config.getViews(displayList[0])
+    viewsList = []
     for view in views:
-        print("Available View : {}".format(view))
-    """
+        viewsList.append(view)
+    #print(viewsList)
     # Getting ocio colorspaces from config
     colorSpaces = config.getColorSpaces()
     # Building a dictionnary of the colorspaces we get from the ocio
@@ -48,7 +47,7 @@ def initOCIO():
         looksDict[look.getName()] = look
 
 
-    return(colorSpacesDict,looksDict)
+    return(colorSpacesDict,looksDict, viewsList)
 
 
 # Converting the Exr file with opencv to a readable image file for QtPixmap
@@ -110,24 +109,30 @@ def ocioTransform(img, ocioIn, ocioOut, ocioLook):
 
     ocioVar = "ocio/config.ocio"
     config = OCIO.Config.CreateFromFile(ocioVar)
-    #print(dir(config))
-    if ocioLook != "None":
-        #print(ocioLook)
-        currentLook = config.getLook(ocioLook)
-        #print(currentLook)
+    displays = config.getDisplays()
+    views = config.getViews(displays[0])
+    # views = [Standard,Filmic,Filmic Log, Raw, False Color]
+    looks = config.getLooks()
 
-    view = config.getDefaultView(ocioOut)
-    
-    """
+    # Trying to set a display view transform
     transform = OCIO.DisplayViewTransform()
     transform.setSrc(ocioIn)
-    transform.setDisplay(ocioOut)
-    transform.setView(view)
-    transform.setLooksBypass(False)
-    """
+    # Defaulting to SRGB here as displays selection has not been set up in the gui
+    transform.setDisplay(displays[0])
+    transform.setView(ocioOut)
 
+    viewer = OCIO.LegacyViewingPipeline()
+    viewer.setDisplayViewTransform(transform)
+    if ocioOut == "Filmic":
+        viewer.setLooksOverrideEnabled(True)
+        viewer.setLooksOverride(ocioLook)
+
+    view = config.getDefaultView(displays[0])
+    
+
+    processor = viewer.getProcessor(config, config.getCurrentContext())
     #processor = config.getProcessor(transform)
-    processor = config.getProcessor(ocioIn, ocioOut)
+    #processor = config.getProcessor(ocioIn, ocioOut)
     cpu = processor.getDefaultCPUProcessor()
 
     img = cpu.applyRGB(img)

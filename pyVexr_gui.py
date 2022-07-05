@@ -157,7 +157,7 @@ class MyWidget(QtWidgets.QWidget):
         self.infoMenu = self.menuBar.addMenu('&Info')
 
         # OCIO dropdown
-        ocioViews, looksDict= initOCIO()
+        ocioViews, looksDict, viewsList= initOCIO()
         # Setup dict in order to retrieve selected items
         self.ocioInLabel = QtWidgets.QLabel("Input:")
         self.ocioOutLabel = QtWidgets.QLabel("Output:")
@@ -168,12 +168,11 @@ class MyWidget(QtWidgets.QWidget):
 
         if "sRGB" in ocioViews and "Linear" in ocioViews:
             self.ocioIn.addItem("Linear")
-            self.ocioOut.addItem("sRGB")
         for i in ocioViews:
             if i != "Linear":
                 self.ocioIn.addItem(i)
-            if i != "sRGB":
-                self.ocioOut.addItem(i)
+        for view in viewsList:
+            self.ocioOut.addItem(view)
         self.ocioLooks.addItem("None")
         for x in looksDict:
             self.ocioLooks.addItem(x)

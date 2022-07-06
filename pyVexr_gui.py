@@ -4,7 +4,7 @@
 
 import sys
 from PyQt5 import QtWidgets, QtCore, QtGui
-from pyVexr_main import loadImg, interpretRectangle, initOCIO
+from pyVexr_main import loadImg, interpretRectangle, initOCIO, ocioLooksFromView
 from math import sqrt
 
 # Subclassing graphicsView in order to be able to track mouse movements in the scene
@@ -175,8 +175,6 @@ class MyWidget(QtWidgets.QWidget):
         for view in viewsList:
             self.ocioOut.addItem(view)
         self.ocioLooks.addItem("None")
-        for x in looksDict:
-            self.ocioLooks.addItem(x)
 
 
         # Channel area - to make it appear using something containing the widgets and toggle its visibility on or off
@@ -320,7 +318,10 @@ class MyWidget(QtWidgets.QWidget):
 
     def ocioOutChange(self):
         sender = self.sender()
-        print("Changed The View to : {}".format(sender.currentText()))
+        #print("Changed The View to : {}".format(sender.currentText()))
+        looks = ocioLooksFromView(sender.currentText())
+        self.ocioLooks.clear()
+        self.ocioLooks.addItems(looks)
 
 
 

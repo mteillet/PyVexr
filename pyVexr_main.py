@@ -139,6 +139,26 @@ def ocioTransform(img, ocioIn, ocioOut, ocioLook):
 
     return(img)
 
+def ocioLooksFromView(view):
+    ocioVar = "ocio/config.ocio"
+    config = OCIO.Config.CreateFromFile(ocioVar)
+    displays = config.getDisplays()
+    
+    looksObj = config.getLooks()
+    looks = []
+    for i in looksObj:
+        looks.append(i.getName())
+    if "Medium Contrast" in looks:
+        looks.pop(looks.index("Medium Contrast"))
+        looks.insert(0, "Medium Contrast")
+
+    # Exception for other views, otherwise the filmic views will be in every views
+    if (view != "Filmic"):
+        looks = ["None"]
+    return(looks)
+
+
+
 def clampImg(img):
     img[img>255] = 255
     return(img)

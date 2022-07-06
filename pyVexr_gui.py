@@ -164,6 +164,7 @@ class MyWidget(QtWidgets.QWidget):
         self.ocioLooksLabel = QtWidgets.QLabel("Look :")
         self.ocioIn = QtWidgets.QComboBox()
         self.ocioOut = QtWidgets.QComboBox()
+        self.ocioOut.activated.connect(self.ocioOutChange)
         self.ocioLooks = QtWidgets.QComboBox()
 
         if "sRGB" in ocioViews and "Linear" in ocioViews:
@@ -316,6 +317,10 @@ class MyWidget(QtWidgets.QWidget):
         #print("Resize")
         # Fit image in view based on resize of the window
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
+
+    def ocioOutChange(self):
+        sender = self.sender()
+        print("Changed The View to : {}".format(sender.currentText()))
 
 
 

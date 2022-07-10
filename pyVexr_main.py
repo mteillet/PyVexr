@@ -73,28 +73,6 @@ def convertExr(path, ocioIn, ocioOut, ocioLook):
         img = img.astype(np.uint8)
 
 
-    """
-    # Conversion from float32 to uint8
-    if(img.dtype != "uint8"):
-        img[img < 0] = 0
-
-        #Testing the filmic ocio config -- NEED to be converted to a separate function called from a menu later on
-        ocio(img)
-        
-        # NOT NEEDED ANYMORE, HANDLED BY THE OCIO
-        # Linear to srgb conversion
-        #img = linearToSrgb(img)
-
-        # Correct conversion, need to apply a display correction on the image
-        # Compare the exr with natron and image is displayed in linear space instead of SRGB
-        img *= 255
-
-        # Clamping the max value to avoid inverted brighter pixels 
-        img[img>255] = 255
-
-        # Converting to 8 bits for PyQt QPixmap support
-        img = img.astype(np.uint8)
-    """
 
     rgb_image = cv.cvtColor(img, cv.COLOR_BGR2RGB)
     h,w,ch = rgb_image.shape
@@ -123,9 +101,10 @@ def ocioTransform(img, ocioIn, ocioOut, ocioLook):
 
     viewer = OCIO.LegacyViewingPipeline()
     viewer.setDisplayViewTransform(transform)
-    if ocioOut == "Filmic":
-        viewer.setLooksOverrideEnabled(True)
-        viewer.setLooksOverride(ocioLook)
+    if ((ocioOut == "Filmic") | (ocioOut == "AgX")):
+        if ocioLook != "None":
+            viewer.setLooksOverrideEnabled(True)
+            viewer.setLooksOverride(ocioLook)
 
     view = config.getDefaultView(displays[0])
     
@@ -145,15 +124,24 @@ def ocioLooksFromView(view):
     displays = config.getDisplays()
     
     looksObj = config.getLooks()
-    looks = []
-    for i in looksObj:
-        looks.append(i.getName())
-    if "Medium Contrast" in looks:
-        looks.pop(looks.index("Medium Contrast"))
-        looks.insert(0, "Medium Contrast")
 
     # Exception for other views, otherwise the filmic views will be in every views
-    if (view != "Filmic"):
+    if ((view == "Filmic") | (view == "AgX")):
+        looks = []
+        for i in looksObj:
+            looks.append(i.getName())
+        if ((view == "Filmic") & ("Medium Contrast" in looks)):
+            looks.pop(looks.index("Medium Contrast"))
+            looks.insert(0, "Medium Contrast")
+            # Removing the AgX Golden look
+            looks.pop(looks.index("Golden"))
+        if ((view == "AgX") & ("Punchy" in looks)):
+            looks.pop(looks.index("Punchy"))
+            looks.insert(0, "Punchy")
+            # Removing Filmic Looks 
+            #looks.pop(looks.index("Medium contrast"))
+        looks.append("None")
+    else:
         looks = ["None"]
     return(looks)
 
@@ -184,12 +172,6 @@ def ocio(img):
 
     # Calling filmicBaseContrast
     #filmicBaseContrast(img)
-
-def filmicBaseContrast(img):
-    print(" -- FILMIC BASE CONTRAST -- ")
-
-    return(img)
-
 
 
 def interpretRectangle(str):

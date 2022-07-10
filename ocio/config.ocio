@@ -1,6 +1,7 @@
-# OpenColorIO configuration file for Blender
+# OpenColorIO configuration file for PyVexr
 #
 # Based on aces, nuke-default and spi configurations from OpenColorIO-Config
+# as well as Troy Sobotka filmic and AGX configs on his githubs
 #
 # Filmic Dynamic Range LUT configuration crafted by Troy James Sobotka with
 # special thanks and feedback from Guillermo, Claudio Rocha, Bassam Kurdali,
@@ -49,10 +50,16 @@ roles:
   matte_paint: Linear
   texture_paint: Linear
 
+file_rules:
+  - !<Rule> {name: Default, colorspace: default}
+
 displays:
   sRGB:
     - !<View> {name: Standard, colorspace: sRGB}
     - !<View> {name: Filmic, colorspace: Filmic sRGB}
+    - !<View> {name: AgX, colorspace: AgX Base}
+    - !<View> {name: Appearance Golden, colorspace: Appearance Golden sRGB}
+    - !<View> {name: Appearance Punchy, colorspace: Appearance Punchy sRGB}
     - !<View> {name: Filmic Log, colorspace: Filmic Log}
     - !<View> {name: Raw, colorspace: Raw}
     - !<View> {name: False Color, colorspace: False Color}
@@ -64,7 +71,7 @@ displays:
     - !<View> {name: Standard, colorspace: Raw}
 
 active_displays: [sRGB, XYZ, None]
-active_views: [Standard, Filmic, Filmic Log, Raw, False Color]
+active_views: [Standard, Filmic, AgX, Filmic Log, Raw, False Color]
 
 colorspaces:
   - !<ColorSpace>
@@ -227,6 +234,65 @@ colorspaces:
             - !<ColorSpaceTransform> {src: Linear, dst: Filmic Log}
             - !<MatrixTransform> {matrix: [0.2126729, 0.7151521, 0.0721750, 0, 0.2126729, 0.7151521, 0.0721750, 0, 0.2126729, 0.7151521, 0.0721750, 0, 0, 0, 0, 1]}
             - !<FileTransform> {src: filmic_false_color.spi3d, interpolation: best}
+
+  - !<ColorSpace>
+    name: AgX Log (Kraken)
+    aliases: [Log, AgX Log, Kraken, AgX Kraken Log]
+    family: Log Encodings
+    equalitygroup: ""
+    bitdepth: unknown
+    description: AgX Log, (Kraken)
+    isdata: false
+    allocation: uniform
+    from_scene_reference: !<GroupTransform>
+      children:
+        - !<RangeTransform> {min_in_value: 0, min_out_value: 0}
+        - !<MatrixTransform> {matrix: [0.842479062253094, 0.0784335999999992, 0.0792237451477643, 0, 0.0423282422610123, 0.878468636469772, 0.0791661274605434, 0, 0.0423756549057051, 0.0784336, 0.879142973793104, 0, 0, 0, 0, 1]}
+        - !<AllocationTransform> {allocation: lg2, vars: [-12.47393, 4.026069]}
+
+  - !<ColorSpace>
+    name: AgX Base
+    family: Imagery
+    equalitygroup: ""
+    bitdepth: unknown
+    description: AgX Base Image Encoding
+    isdata: false
+    allocation: uniform
+    from_scene_reference: !<GroupTransform>
+      children:
+        - !<ColorSpaceTransform> {src: Linear BT.709, dst: AgX Log (Kraken)}
+        - !<FileTransform> {src: AgX_Default_Contrast.spi1d}
+
+  - !<ColorSpace>
+    name: Appearance Golden sRGB
+    family: Appearances/Golden
+    equalitygroup: ""
+    bitdepth: unknown
+    description: A golden tinted, slightly washed look for sRGB displays
+    isdata: false
+    allocation: uniform
+    from_scene_reference: !<LookTransform> {src: Linear BT.709, dst: AgX Base, looks: Golden}
+
+  - !<ColorSpace>
+    name: Appearance Punchy sRGB
+    family: Appearances/Punchy
+    equalitygroup: ""
+    bitdepth: unknown
+    description: A punchy and more chroma laden look for sRGB displays
+    isdata: false
+    allocation: uniform
+    from_scene_reference: !<LookTransform> {src: Linear BT.709, dst: AgX Base, looks: Punchy}
+
+  - !<ColorSpace>
+    name: Linear BT.709
+    aliases: [Linear BT, Linear Tristimulus]
+    family: Colourspaces
+    equalitygroup: ""
+    bitdepth: unknown
+    description: Open Domain Linear BT.709 Tristimulus
+    isdata: false
+    allocation: uniform
+
 looks:
   - !<Look>
     name: Very High Contrast
@@ -281,3 +347,15 @@ looks:
         children:
             - !<FileTransform> {src: filmic_to_0-35_1-30.spi1d, interpolation: linear}
             - !<FileTransform> {src: filmic_to_0-70_1-03.spi1d, interpolation: linear, direction: inverse}
+
+  - !<Look>
+    name: Golden
+    process_space: AgX Base
+    description: A golden tinted, slightly washed look
+    transform: !<CDLTransform> {slope: [1, 0.9, 0.5], power: [0.8, 0.8, 0.8], sat: 1.3}
+
+  - !<Look>
+    name: Punchy
+    process_space: AgX Base
+    description: A punchy and more chroma laden look
+    transform: !<CDLTransform> {power: [1.35, 1.35, 1.35], sat: 1.4}

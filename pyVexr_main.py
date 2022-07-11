@@ -6,6 +6,7 @@
 import cv2 as cv
 import numpy as np
 import PyOpenColorIO as OCIO
+import OpenEXR as exr
 
 def main():
     print("PyVexr pre alpha version")
@@ -13,8 +14,15 @@ def main():
 def loadImg(ocioIn, ocioOut, ocioLook):
     print("PyVexr Loading Button")
     temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
+    exrTempTest(temporaryImg)
     convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook)
     return (convertedImg)
+
+def exrTempTest(img):
+    img = exr.InputFile(img)
+    print(img.header())
+
+        
 
 def initOCIO():
     print("Init OCIO")

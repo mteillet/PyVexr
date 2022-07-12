@@ -6,7 +6,8 @@
 import cv2 as cv
 import numpy as np
 import PyOpenColorIO as OCIO
-import OpenEXR as exr
+import OpenEXR as EXR
+import Imath
 
 def main():
     print("PyVexr pre alpha version")
@@ -14,13 +15,43 @@ def main():
 def loadImg(ocioIn, ocioOut, ocioLook):
     print("PyVexr Loading Button")
     temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
-    exrTempTest(temporaryImg)
+    temporaryImg = exrListChannels(temporaryImg)
     convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook)
     return (convertedImg)
 
-def exrTempTest(img):
-    img = exr.InputFile(img)
-    print(img.header())
+def exrListChannels(img):
+    exr = EXR.InputFile(img)
+    # Getting the RAW list of channels
+    header = exr.header()
+    channelsRaw = (header["channels"])
+    dw =  header["dataWindow"]
+    # Printing the raw list of channels (listed in alphabetical order)
+    for channel in channelsRaw:
+        print(channel, channelsRaw[channel])
+    # Check if Alpha channel exists
+    if ("A" in channelsRaw):
+        print("Channel is RGBA")
+    else:
+        print("Channel is RGB")
+
+    # Getting size for the numpy reshape
+    isize = (dw.max.y - dw.min.y + 1, dw.max.x - dw.min.x + 1)
+
+    # Test channel switch
+    channelR = exr.channel("Specular.R", Imath.PixelType(Imath.PixelType.FLOAT)) 
+    channelR = np.fromstring(channelR, dtype = np.float32)
+    channelR = np.reshape(channelR, isize)
+    channelG = exr.channel("Specular.G", Imath.PixelType(Imath.PixelType.FLOAT))
+    channelG = np.fromstring(channelG, dtype = np.float32)
+    channelG = np.reshape(channelG, isize)
+    channelB = exr.channel("Specular.B", Imath.PixelType(Imath.PixelType.FLOAT))
+    channelB = np.fromstring(channelB, dtype = np.float32)
+    channelB = np.reshape(channelB, isize) 
+    
+    # Channels will be merged by the openCV function later on
+    img = channelR, channelG, channelB
+    
+    return(img)
 
         
 
@@ -60,7 +91,8 @@ def initOCIO():
 
 # Converting the Exr file with opencv to a readable image file for QtPixmap
 def convertExr(path, ocioIn, ocioOut, ocioLook):
-    img = cv.imread(path, cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
+    img = cv.merge(path)
+    #img = cv.imread(path, cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
     
     # For debugging purpose, if you need to display the image in open cv to compare
     '''

@@ -14,8 +14,10 @@ def main():
 
 def loadImg(ocioIn, ocioOut, ocioLook):
     print("PyVexr Loading Button")
-    temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
-    temporaryImg = exrListChannels(temporaryImg)
+    #temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
+    #temporaryImg = "exrExamples/RenderPass_UTILS_1.0100.exr"
+    temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
+    channelList = exrListChannels(temporaryImg)
     convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook)
     return (convertedImg)
 
@@ -26,8 +28,20 @@ def exrListChannels(img):
     channelsRaw = (header["channels"])
     dw =  header["dataWindow"]
     # Printing the raw list of channels (listed in alphabetical order)
+    channelList = []
     for channel in channelsRaw:
-        print(channel, channelsRaw[channel])
+        #print(channel, channelsRaw[channel])
+        if ((channel.split(".")[0]) not in channelList) & (channel not in ["R","G","B","A"]):
+            channelList.append(channel.split(".")[0])
+        elif (channel) == "A":
+            channelList.insert(0,"RGBA")
+    # If RGBA is not in the channel list, then insert RGB, as it means the alpha channel was never found
+    if "RGBA" not in channelList:
+        channelList.inster(0, "RGB")
+    #print(channelList)
+    return(channelList)
+
+def exrSwitchChannel(img, channel):
     # Check if Alpha channel exists
     if ("A" in channelsRaw):
         print("Channel is RGBA")
@@ -91,8 +105,8 @@ def initOCIO():
 
 # Converting the Exr file with opencv to a readable image file for QtPixmap
 def convertExr(path, ocioIn, ocioOut, ocioLook):
-    img = cv.merge(path)
-    #img = cv.imread(path, cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
+    #img = cv.merge(path)
+    img = cv.imread(path, cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
     
     # For debugging purpose, if you need to display the image in open cv to compare
     '''

@@ -14,14 +14,16 @@ def main():
 
 def loadImg(ocioIn, ocioOut, ocioLook):
     print("PyVexr Loading Button")
-    #temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
+    temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
     #temporaryImg = "exrExamples/RenderPass_UTILS_1.0100.exr"
-    temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
-    channelList = exrListChannels(temporaryImg)
+    #temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
+    #channelList = exrListChannels(temporaryImg)
     convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook)
     return (convertedImg)
 
-def exrListChannels(img):
+def exrListChannels():
+    img = "exrExamples/RenderPass_LPE_1.0100.exr"
+
     exr = EXR.InputFile(img)
     # Getting the RAW list of channels
     header = exr.header()

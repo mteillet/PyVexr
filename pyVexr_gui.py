@@ -4,7 +4,7 @@
 
 import sys
 from PyQt5 import QtWidgets, QtCore, QtGui
-from pyVexr_main import loadImg, interpretRectangle, initOCIO, ocioLooksFromView
+from pyVexr_main import loadImg, interpretRectangle, initOCIO, ocioLooksFromView, exrListChannels
 from math import sqrt
 
 # Subclassing graphicsView in order to be able to track mouse movements in the scene
@@ -179,9 +179,7 @@ class MyWidget(QtWidgets.QWidget):
 
         # Channel area - to make it appear using something containing the widgets and toggle its visibility on or off
         self.channels = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
-        self.channels.setText("Exr Channels")
-        self.popupChannels = QtWidgets.QLabel()
-        self.popupChannels.setText("- This is a channel")
+        self.channels.setText("Exr Channels : ")
         #self.channelsFrame.hide()
 
 
@@ -203,13 +201,6 @@ class MyWidget(QtWidgets.QWidget):
         self.imgViewer.setScene(self.imgZone)
         self.imgViewer.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.imgViewer.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        '''
-        # Graphics View for rendering the scene to the screen
-        self.imgViewer = QtWidgets.QGraphicsView(self.imgZone)
-        self.imgViewer.setMouseTracking(True)
-        self.imgViewer.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.imgViewer.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        '''
 
         # Temp img load button -- Will be replaced with a load images dropdown in the menu
         self.img = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
@@ -256,8 +247,8 @@ class MyWidget(QtWidgets.QWidget):
 
         self.centerLayout = QtWidgets.QHBoxLayout()
         self.channelsLayout = QtWidgets.QVBoxLayout()
+        self.channelsLayout.addStretch()
         self.channelsLayout.addWidget(self.channels)
-        self.channelsLayout.addWidget(self.popupChannels)
         #self.channelsLayout.addWidget(self.channelsFrame)
         
         self.imgLayout = QtWidgets.QVBoxLayout()
@@ -294,7 +285,6 @@ class MyWidget(QtWidgets.QWidget):
 
         tempImg = loadImg(self.ocioIn.currentText(),self.ocioOut.currentText(),self.ocioLooks.currentText())
         
-
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         convertedImg = convertToQt.scaled(800, 600, QtCore.Qt.KeepAspectRatio)
 
@@ -310,6 +300,26 @@ class MyWidget(QtWidgets.QWidget):
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
         # Toggle visibility on widget
         #self.channelsFrame.setHidden(not self.channelsFrame.isHidden())
+
+        # Temp call to list channels -- NEED TO LATER BE REPLACED WITH A SHORTCUT / MENU
+        self.listChannels()
+
+    def listChannels(self):
+        print("Listing Exr Channels")
+        channels = exrListChannels()
+        # For now adding button, but better solution would be to add QRadioButtons in a QGroupBox which would be the item of a QScrollArea
+        #print(self.channelsLayout.count())
+        # If the is only the exr list label and its stretch
+        if self.channelsLayout.count() < 3:
+            for chan in channels:
+                self.btn = QtWidgets.QPushButton(chan)
+                self.btn.clicked.connect(self.channelChange)
+                self.channelsLayout.addWidget(self.btn)
+            self.channelsLayout.addStretch()
+
+    def channelChange(self):
+        sender = self.sender()
+        print(sender.text())
 
     def resizeEvent(self, event):
         #print("Resize")

@@ -19,12 +19,38 @@ def loadImg(ocioIn, ocioOut, ocioLook):
     #temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
     #channelList = exrListChannels(temporaryImg)
     convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook)
-    return (convertedImg)
+    pathToImg = temporaryImg
+    return (convertedImg, pathToImg)
 
-def exrListChannels():
-    img = "exrExamples/RenderPass_LPE_1.0100.exr"
+def updateImg(path, channel, ocioIn, ocioOut, ocioLook):
+    # Checking if a channel switch will be needed or not
+    if (channel in [None, "RGB", "RGBA"]):
+        #print("No channel merge needed")
+        img = cv.imread(path, cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
+        print("classic layer")
+    else:
+        splitImg = exrSwitchChannel(path, channel)
+        img = cv.merge(splitImg)
+        print("splittedLayer")
 
-    exr = EXR.InputFile(img)
+
+    if(img.dtype == "float32"):
+        # Making the actual OCIO Transform
+        ocioTransform(img, ocioIn, ocioOut, ocioLook)
+        img *= 255
+        # Clamping the values to avoid artifacts if values go over 255
+        img = clampImg(img)
+        # Conversion to the QPixmap format
+        img = img.astype(np.uint8)
+
+    rgb_image = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+    h,w,ch = rgb_image.shape
+    bytes_per_line = ch * w
+    convertedImg = rgb_image.data, w, h, bytes_per_line
+    return(convertedImg)
+
+def exrListChannels(path):
+    exr = EXR.InputFile(path)
     # Getting the RAW list of channels
     header = exr.header()
     channelsRaw = (header["channels"])
@@ -43,24 +69,23 @@ def exrListChannels():
     #print(channelList)
     return(channelList)
 
-def exrSwitchChannel(img, channel):
-    # Check if Alpha channel exists
-    if ("A" in channelsRaw):
-        print("Channel is RGBA")
-    else:
-        print("Channel is RGB")
+def exrSwitchChannel(path, channel):
+    exr = EXR.InputFile(path)
+    header = exr.header()
+    channelsRaw = header["channels"]
+    dw = header["dataWindow"]
 
     # Getting size for the numpy reshape
     isize = (dw.max.y - dw.min.y + 1, dw.max.x - dw.min.x + 1)
 
     # Test channel switch
-    channelR = exr.channel("Specular.R", Imath.PixelType(Imath.PixelType.FLOAT)) 
+    channelR = exr.channel("{}.R".format(channel), Imath.PixelType(Imath.PixelType.FLOAT)) 
     channelR = np.fromstring(channelR, dtype = np.float32)
     channelR = np.reshape(channelR, isize)
-    channelG = exr.channel("Specular.G", Imath.PixelType(Imath.PixelType.FLOAT))
+    channelG = exr.channel("{}.G".format(channel), Imath.PixelType(Imath.PixelType.FLOAT))
     channelG = np.fromstring(channelG, dtype = np.float32)
     channelG = np.reshape(channelG, isize)
-    channelB = exr.channel("Specular.B", Imath.PixelType(Imath.PixelType.FLOAT))
+    channelB = exr.channel("{}.B".format(channel), Imath.PixelType(Imath.PixelType.FLOAT))
     channelB = np.fromstring(channelB, dtype = np.float32)
     channelB = np.reshape(channelB, isize) 
     
@@ -127,8 +152,6 @@ def convertExr(path, ocioIn, ocioOut, ocioLook):
         img = clampImg(img)
         # Conversion to the QPixmap format
         img = img.astype(np.uint8)
-
-
 
     rgb_image = cv.cvtColor(img, cv.COLOR_BGR2RGB)
     h,w,ch = rgb_image.shape

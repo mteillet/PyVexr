@@ -4,7 +4,7 @@
 
 import sys
 from PyQt5 import QtWidgets, QtCore, QtGui
-from pyVexr_main import loadImg, interpretRectangle, initOCIO, ocioLooksFromView, exrListChannels
+from pyVexr_main import loadImg, interpretRectangle, initOCIO, ocioLooksFromView, exrListChannels, updateImg
 from math import sqrt
 
 # Subclassing graphicsView in order to be able to track mouse movements in the scene
@@ -143,6 +143,14 @@ class MyWidget(QtWidgets.QWidget):
         self.setMouseTracking(True)
         self._zoom = 0
         
+        # Global dict image related:
+        self.imgDict = {}
+        self.imgDict["path"] = None
+        self.imgDict["ocio"] = {}
+        self.imgDict["ocio"]["ocioIn"] = None
+        self.imgDict["ocio"]["ocioOut"] = None
+        self.imgDict["ocio"]["ocioLook"] = None
+        self.imgDict["channel"] = None
 
         ####################################
         # Code for the PyVexr Main windows #
@@ -163,9 +171,11 @@ class MyWidget(QtWidgets.QWidget):
         self.ocioOutLabel = QtWidgets.QLabel("Output:")
         self.ocioLooksLabel = QtWidgets.QLabel("Look :")
         self.ocioIn = QtWidgets.QComboBox()
+        self.ocioIn.activated.connect(self.ocioInChange)
         self.ocioOut = QtWidgets.QComboBox()
         self.ocioOut.activated.connect(self.ocioOutChange)
         self.ocioLooks = QtWidgets.QComboBox()
+        self.ocioLooks.activated.connect(self.ocioLookChange)
 
         if "sRGB" in ocioViews and "Linear" in ocioViews:
             self.ocioIn.addItem("Linear")
@@ -281,16 +291,18 @@ class MyWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def function(self):
         # OCIO DATA
-        print("Input : {0}\nOutput : {1}\nLook : {2}".format(self.ocioIn.currentText(),self.ocioOut.currentText(),self.ocioLooks.currentText()))
+        self.imgDict["ocio"]["ocioIn"] = self.ocioIn.currentText()
+        self.imgDict["ocio"]["ocioOut"] = self.ocioOut.currentText()
+        self.imgDict["ocio"]["ocioLook"] = self.ocioLooks.currentText()
+        print("Input : {0}\nOutput : {1}\nLook : {2}".format(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"]))
 
-        tempImg = loadImg(self.ocioIn.currentText(),self.ocioOut.currentText(),self.ocioLooks.currentText())
-        
+        tempImg, self.imgDict["path"]= loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
-        convertedImg = convertToQt.scaled(800, 600, QtCore.Qt.KeepAspectRatio)
+        # If need to rescale the image
+        #convertedImg = convertToQt.scaled(800, 600, QtCore.Qt.KeepAspectRatio)
 
-        
         # Set pixmap in self.image
-        self.image.setPixmap(QtGui.QPixmap.fromImage(convertedImg))
+        self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
 
         # Give the rectangle view area the coordinates of the pixmap image after the image has been loaded
         imgCoordinates = interpretRectangle(str(self.image.boundingRect()))
@@ -305,8 +317,7 @@ class MyWidget(QtWidgets.QWidget):
         self.listChannels()
 
     def listChannels(self):
-        print("Listing Exr Channels")
-        channels = exrListChannels()
+        channels = exrListChannels(self.imgDict["path"])
         # For now adding button, but better solution would be to add QRadioButtons in a QGroupBox which would be the item of a QScrollArea
         #print(self.channelsLayout.count())
         # If the is only the exr list label and its stretch
@@ -319,12 +330,24 @@ class MyWidget(QtWidgets.QWidget):
 
     def channelChange(self):
         sender = self.sender()
-        print(sender.text())
+        self.imgDict["channel"] = sender.text()
+        self.imageUpdate()
+
+    def imageUpdate(self):
+        print("Updating image using the dictionnary")
+        tempImg = updateImg(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"])
+        convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+        self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
 
     def resizeEvent(self, event):
         #print("Resize")
         # Fit image in view based on resize of the window
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
+
+    def ocioInChange(self):
+        sender = self.sender()
+        self.imgDict["ocio"]["ocioIn"] = self.ocioIn.currentText()
+        self.imageUpdate()
 
     def ocioOutChange(self):
         sender = self.sender()
@@ -332,6 +355,17 @@ class MyWidget(QtWidgets.QWidget):
         looks = ocioLooksFromView(sender.currentText())
         self.ocioLooks.clear()
         self.ocioLooks.addItems(looks)
+        # Updating the imgDict
+        self.imgDict["ocio"]["ocioIn"] = self.ocioIn.currentText()
+        self.imgDict["ocio"]["ocioOut"] = self.ocioOut.currentText()
+        self.imgDict["ocio"]["ocioLook"] = self.ocioLooks.currentText()
+        self.imageUpdate()
+
+    def ocioLookChange(self):
+        sender = self.sender()
+        self.imgDict["ocio"]["ocioLook"] = self.ocioLooks.currentText()
+        self.imageUpdate()
+
 
 
 

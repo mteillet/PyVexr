@@ -30,7 +30,8 @@ def updateImg(path, channel, ocioIn, ocioOut, ocioLook):
         print("classic layer")
     else:
         splitImg = exrSwitchChannel(path, channel)
-        img = cv.merge(splitImg)
+        # Merging the splitted exr channel (in a different order a openCV expects BGR by default)
+        img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
         print("splittedLayer")
 
 

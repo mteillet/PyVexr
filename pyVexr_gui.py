@@ -161,6 +161,8 @@ class MyWidget(QtWidgets.QWidget):
         self.menuBar = QtWidgets.QMenuBar()
         self.fileMenu = self.menuBar.addMenu('&File')
         self.editMenu = self.menuBar.addMenu('&Edit')
+        # NEED TO HOOK CHANNEL MENU BAR TO A FUNCTION FOR SHOWING / HIDING THE CHANNELS
+        self.editMenu = self.menuBar.addMenu('Channel')
         self.colorspaceMenu = self.menuBar.addMenu('&Colorspace')
         self.infoMenu = self.menuBar.addMenu('&Info')
 
@@ -254,7 +256,7 @@ class MyWidget(QtWidgets.QWidget):
         self.topBarLayout.addWidget(self.ocioLooks)
 
         # Main Center layout #
-
+        # NEED TO REPLACE THIS PART WITH A SHOW / HIDE PANNEL BASED ON A KEYSTROKE
         self.centerLayout = QtWidgets.QHBoxLayout()
         self.channelsLayout = QtWidgets.QVBoxLayout()
         self.channelsLayout.addStretch()

@@ -14,9 +14,10 @@ def main():
 
 def loadImg(ocioIn, ocioOut, ocioLook):
     print("PyVexr Loading Button")
-    #temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
+    temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
     #temporaryImg = "exrExamples/RenderPass_UTILS_1.0100.exr"
-    temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
+    #temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
+    #temporaryImg = "~/Documents/Downloads/Jonathan_bertin_09.jpg"
     #channelList = exrListChannels(temporaryImg)
     convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook)
     pathToImg = temporaryImg
@@ -216,8 +217,10 @@ def ocioLooksFromView(view):
             # Removing the AgX Golden look
             looks.pop(looks.index("Golden"))
         if ((view == "AgX") & ("Punchy" in looks)):
+            looks.insert(0, "None")
             looks.pop(looks.index("Punchy"))
-            looks.insert(0, "Punchy")
+            looks.insert(1, "Punchy")
+
             # Removing Filmic Looks 
             #looks.pop(looks.index("Medium contrast"))
         looks.append("None")

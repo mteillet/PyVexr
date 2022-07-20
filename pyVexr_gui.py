@@ -169,8 +169,8 @@ class MyWidget(QtWidgets.QWidget):
         # OCIO dropdown
         ocioViews, looksDict, viewsList= initOCIO()
         # Setup dict in order to retrieve selected items
-        self.ocioInLabel = QtWidgets.QLabel("Input:")
-        self.ocioOutLabel = QtWidgets.QLabel("Output:")
+        self.ocioInLabel = QtWidgets.QLabel("Source Input:")
+        self.ocioOutLabel = QtWidgets.QLabel("Output sRGB:")
         self.ocioLooksLabel = QtWidgets.QLabel("Look :")
         self.ocioIn = QtWidgets.QComboBox()
         self.ocioIn.activated.connect(self.ocioInChange)
@@ -298,7 +298,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["ocio"]["ocioIn"] = self.ocioIn.currentText()
         self.imgDict["ocio"]["ocioOut"] = self.ocioOut.currentText()
         self.imgDict["ocio"]["ocioLook"] = self.ocioLooks.currentText()
-        print("Input : {0}\nOutput : {1}\nLook : {2}".format(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"]))
+        print("Input : {0}\nOutput : {1} (sRGB)\nLook : {2}".format(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"]))
 
         tempImg, self.imgDict["path"]= loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)

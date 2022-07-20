@@ -192,6 +192,8 @@ class MyWidget(QtWidgets.QWidget):
         # Channel area - to make it appear using something containing the widgets and toggle its visibility on or off
         self.channels = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
         self.channels.setText("Exr Channels : ")
+        self.channelsScrollArea = QtWidgets.QScrollArea()
+        self.channelsGroupBox = QtWidgets.QGroupBox()
         #self.channelsFrame.hide()
 
 

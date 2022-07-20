@@ -14,9 +14,9 @@ def main():
 
 def loadImg(ocioIn, ocioOut, ocioLook):
     print("PyVexr Loading Button")
-    temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
+    #temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
     #temporaryImg = "exrExamples/RenderPass_UTILS_1.0100.exr"
-    #temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
+    temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
     #channelList = exrListChannels(temporaryImg)
     convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook)
     pathToImg = temporaryImg

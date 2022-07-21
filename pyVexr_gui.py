@@ -192,8 +192,10 @@ class MyWidget(QtWidgets.QWidget):
         # Channel area - to make it appear using something containing the widgets and toggle its visibility on or off
         self.channels = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
         self.channels.setText("Exr Channels : ")
-        self.channelsScrollArea = QtWidgets.QScrollArea()
         self.channelsGroupBox = QtWidgets.QGroupBox()
+        self.channelsScrollArea = QtWidgets.QScrollArea()
+        self.channelsScrollArea.setWidget(self.channelsGroupBox)
+        self.channelsDock = QtWidgets.QDockWidget("Dockable", self)
         #self.channelsFrame.hide()
 
 
@@ -258,12 +260,11 @@ class MyWidget(QtWidgets.QWidget):
         self.topBarLayout.addWidget(self.ocioLooks)
 
         # Main Center layout #
-        # NEED TO REPLACE THIS PART WITH A SHOW / HIDE PANNEL BASED ON A KEYSTROKE
         self.centerLayout = QtWidgets.QHBoxLayout()
         self.channelsLayout = QtWidgets.QVBoxLayout()
         self.channelsLayout.addStretch()
         self.channelsLayout.addWidget(self.channels)
-        #self.channelsLayout.addWidget(self.channelsFrame)
+        self.channelsGroupBox.setLayout(self.channelsLayout)
         
         self.imgLayout = QtWidgets.QVBoxLayout()
         self.imgLayout.addWidget(self.imgViewer)
@@ -271,7 +272,8 @@ class MyWidget(QtWidgets.QWidget):
         
         self.versionsLayout = QtWidgets.QVBoxLayout()
         self.versionsLayout.addWidget(self.version)
-        self.centerLayout.addLayout(self.channelsLayout)
+        # Need to find a way to add the Dock to the QWidget (which is not a QMainWindow)
+        #self.addDockWidget(Qt.RightDockWidgetArea, self.channelsDock)
         self.centerLayout.addLayout(self.imgLayout, stretch = 1)
         self.centerLayout.addLayout(self.versionsLayout)
 

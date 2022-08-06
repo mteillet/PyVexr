@@ -162,7 +162,10 @@ class MyWidget(QtWidgets.QWidget):
         self.fileMenu = self.menuBar.addMenu('&File')
         self.editMenu = self.menuBar.addMenu('&Edit')
         # NEED TO HOOK CHANNEL MENU BAR TO A FUNCTION FOR SHOWING / HIDING THE CHANNELS
-        self.editMenu = self.menuBar.addMenu('Channel')
+        self.channelsMenu = self.menuBar.addMenu('&Channels')
+        self.channelsAction = self.channelsMenu.addAction("Toggle Channel Display")
+        #print(dir(self.channelsMenu))
+        self.channelsAction.triggered.connect(self.channelsClicked)
         self.colorspaceMenu = self.menuBar.addMenu('&Colorspace')
         self.infoMenu = self.menuBar.addMenu('&Info')
 
@@ -193,9 +196,11 @@ class MyWidget(QtWidgets.QWidget):
         self.channels = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
         self.channels.setText("Exr Channels : ")
         self.channelsGroupBox = QtWidgets.QGroupBox()
-        self.channelsScrollArea = QtWidgets.QScrollArea()
-        self.channelsScrollArea.setWidget(self.channelsGroupBox)
-        self.channelsDock = QtWidgets.QDockWidget("Dockable", self)
+        self.channelsDock = QtWidgets.QDockWidget("EXR Channels", self)
+        self.channelsDock.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable)
+        # By default channel pannel should be hidden
+        self.channelsDock.hide()
+        self.channelsDock.setWidget(self.channelsGroupBox)
         #self.channelsFrame.hide()
 
 
@@ -273,7 +278,7 @@ class MyWidget(QtWidgets.QWidget):
         self.versionsLayout = QtWidgets.QVBoxLayout()
         self.versionsLayout.addWidget(self.version)
         # Need to find a way to add the Dock to the QWidget (which is not a QMainWindow)
-        #self.addDockWidget(Qt.RightDockWidgetArea, self.channelsDock)
+        self.centerLayout.addWidget(self.channelsDock)
         self.centerLayout.addLayout(self.imgLayout, stretch = 1)
         self.centerLayout.addLayout(self.versionsLayout)
 
@@ -321,6 +326,14 @@ class MyWidget(QtWidgets.QWidget):
 
         # Temp call to list channels -- NEED TO LATER BE REPLACED WITH A SHORTCUT / MENU
         self.listChannels()
+
+    def channelsClicked(self):
+        print("clicked menu")
+        print(self.channelsDock.isVisible())
+        if self.channelsDock.isVisible() == False:
+            self.channelsDock.show()
+        else:
+            self.channelsDock.hide()
 
     def listChannels(self):
         channels = exrListChannels(self.imgDict["path"])

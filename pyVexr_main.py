@@ -13,7 +13,7 @@ def main():
     print("PyVexr pre alpha version")
 
 def loadImg(ocioIn, ocioOut, ocioLook):
-    print("PyVexr Loading Button")
+    #print("PyVexr Loading Button")
     temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
     #temporaryImg = "exrExamples/RenderPass_UTILS_1.0100.exr"
     #temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
@@ -28,12 +28,12 @@ def updateImg(path, channel, ocioIn, ocioOut, ocioLook):
     if (channel in [None, "RGB", "RGBA"]):
         #print("No channel merge needed")
         img = cv.imread(path, cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
-        print("classic layer")
+        #print("classic layer")
     else:
         splitImg = exrSwitchChannel(path, channel)
         # Merging the splitted exr channel (in a different order a openCV expects BGR by default)
         img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
-        print("splittedLayer")
+        #print("splittedLayer")
 
 
     if(img.dtype == "float32"):
@@ -99,7 +99,7 @@ def exrSwitchChannel(path, channel):
         
 
 def initOCIO():
-    print("Init OCIO")
+    print("Init OCIO version 2")
     ocioVar = "ocio/config.ocio"
     config = OCIO.Config.CreateFromFile(ocioVar)
     #print(config)
@@ -163,8 +163,8 @@ def convertExr(path, ocioIn, ocioOut, ocioLook):
 
 
 def ocioTransform(img, ocioIn, ocioOut, ocioLook):
-    print("Using PyOpenColorIO version 2")
-    print("Attempting convesion from {0} to {1} using look {2}".format(ocioIn, ocioOut, ocioLook))
+    #print("Using PyOpenColorIO version 2")
+    #print("Attempting convesion from {0} to {1} using look {2}".format(ocioIn, ocioOut, ocioLook))
 
     ocioVar = "ocio/config.ocio"
     config = OCIO.Config.CreateFromFile(ocioVar)

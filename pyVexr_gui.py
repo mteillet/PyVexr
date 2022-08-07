@@ -315,7 +315,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["ocio"]["ocioIn"] = self.ocioIn.currentText()
         self.imgDict["ocio"]["ocioOut"] = self.ocioOut.currentText()
         self.imgDict["ocio"]["ocioLook"] = self.ocioLooks.currentText()
-        print("Input : {0}\nOutput : {1} (sRGB)\nLook : {2}".format(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"]))
+        #print("Input : {0}\nOutput : {1} (sRGB)\nLook : {2}".format(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"]))
 
         tempImg, self.imgDict["path"]= loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
@@ -368,7 +368,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imageUpdate()
 
     def imageUpdate(self):
-        print("Updating image using the dictionnary")
+        #print("Updating image using the dictionnary")
         tempImg = updateImg(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))

@@ -162,11 +162,12 @@ class MyWidget(QtWidgets.QWidget):
         self.fileMenu = self.menuBar.addMenu('&File')
         self.editMenu = self.menuBar.addMenu('&Edit')
         # NEED TO HOOK CHANNEL MENU BAR TO A FUNCTION FOR SHOWING / HIDING THE CHANNELS
-        self.channelsMenu = self.menuBar.addMenu('&Channels')
-        self.channelsAction = self.channelsMenu.addAction("Toggle Channel Display")
-        #print(dir(self.channelsMenu))
+        #self.channelsMenu = self.menuBar.addMenu('&Channels')
+        self.channelsAction = self.editMenu.addAction("Channels Pannel    &-&C")
+        self.versionsAction = self.editMenu.addAction("Versions Pannel    &-&V")
         self.channelsAction.triggered.connect(self.channelsClicked)
-        self.colorspaceMenu = self.menuBar.addMenu('&Colorspace')
+        self.versionsAction.triggered.connect(self.versionsClicked)
+        #self.colorspaceMenu = self.menuBar.addMenu('&Colorspace')
         self.infoMenu = self.menuBar.addMenu('&Info')
 
         # OCIO dropdown
@@ -192,16 +193,23 @@ class MyWidget(QtWidgets.QWidget):
         self.ocioLooks.addItem("None")
 
 
-        # Channel area - to make it appear using something containing the widgets and toggle its visibility on or off
+        # Channel area 
         self.channels = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
         self.channels.setText("Exr Channels : ")
         self.channelsGroupBox = QtWidgets.QGroupBox()
         self.channelsDock = QtWidgets.QDockWidget("EXR Channels", self)
         self.channelsDock.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable)
-        # By default channel pannel should be hidden
         self.channelsDock.hide()
         self.channelsDock.setWidget(self.channelsGroupBox)
-        #self.channelsFrame.hide()
+
+        # Version area 
+        self.version = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
+        self.version.setText("Versions : ")
+        self.versionsGroupBox = QtWidgets.QGroupBox()
+        self.versionsDock = QtWidgets.QDockWidget("Versions Panne", self)
+        self.versionsDock.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable)
+        self.versionsDock.hide()
+        self.versionsDock.setWidget(self.versionsGroupBox)
 
 
         # Graphics Scene used to have a virtual space for the objects
@@ -276,11 +284,13 @@ class MyWidget(QtWidgets.QWidget):
         self.imgLayout.addWidget(self.load)
         
         self.versionsLayout = QtWidgets.QVBoxLayout()
+        self.versionsLayout.addStretch()
         self.versionsLayout.addWidget(self.version)
-        # Need to find a way to add the Dock to the QWidget (which is not a QMainWindow)
+        self.versionsGroupBox.setLayout(self.versionsLayout)
+
         self.centerLayout.addWidget(self.channelsDock)
         self.centerLayout.addLayout(self.imgLayout, stretch = 1)
-        self.centerLayout.addLayout(self.versionsLayout)
+        self.centerLayout.addWidget(self.versionsDock)
 
         # Bottom bars
 
@@ -328,12 +338,17 @@ class MyWidget(QtWidgets.QWidget):
         self.listChannels()
 
     def channelsClicked(self):
-        print("clicked menu")
-        print(self.channelsDock.isVisible())
+        #print(self.channelsDock.isVisible())
         if self.channelsDock.isVisible() == False:
             self.channelsDock.show()
         else:
             self.channelsDock.hide()
+
+    def versionsClicked(self):
+        if self.versionsDock.isVisible() == False:
+            self.versionsDock.show()
+        else:
+            self.versionsDock.hide()
 
     def listChannels(self):
         channels = exrListChannels(self.imgDict["path"])

@@ -320,7 +320,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["ocio"]["ocioLook"] = self.ocioLooks.currentText()
         #print("Input : {0}\nOutput : {1} (sRGB)\nLook : {2}".format(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"]))
 
-        tempImg, self.imgDict["path"]= loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"])
+        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         # If need to rescale the image
         #convertedImg = convertToQt.scaled(800, 600, QtCore.Qt.KeepAspectRatio)

@@ -21,8 +21,7 @@ def loadImg(ocioIn, ocioOut, ocioLook, fileList):
     #temporaryImg = "~/Documents/Downloads/Jonathan_bertin_09.jpg"
     #channelList = exrListChannels(temporaryImg)
     convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook)
-    pathToImg = temporaryImg
-    return (convertedImg, pathToImg)
+    return (convertedImg)
 
 def updateImg(path, channel, ocioIn, ocioOut, ocioLook):
     # Checking if a channel switch will be needed or not
@@ -53,7 +52,7 @@ def updateImg(path, channel, ocioIn, ocioOut, ocioLook):
     return(convertedImg)
 
 def exrListChannels(path):
-    exr = EXR.InputFile(path)
+    exr = EXR.InputFile(path[0])
     # Getting the RAW list of channels
     header = exr.header()
     channelsRaw = (header["channels"])
@@ -73,7 +72,7 @@ def exrListChannels(path):
     return(channelList)
 
 def exrSwitchChannel(path, channel):
-    exr = EXR.InputFile(path)
+    exr = EXR.InputFile(path[0])
     header = exr.header()
     channelsRaw = header["channels"]
     dw = header["dataWindow"]

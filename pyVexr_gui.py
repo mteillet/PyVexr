@@ -334,8 +334,6 @@ class MyWidget(QtWidgets.QWidget):
         # Toggle visibility on widget
         #self.channelsFrame.setHidden(not self.channelsFrame.isHidden())
 
-        # Temp call to list channels -- NEED TO LATER BE REPLACED WITH A SHORTCUT / MENU
-        self.listChannels()
 
     def openFiles(self):
         dialog = QtWidgets.QFileDialog(self, caption = "Open Image")
@@ -346,6 +344,7 @@ class MyWidget(QtWidgets.QWidget):
             #print(filenames)
             self.imgDict["path"] = filenames
             self.loadFile()
+            self.listChannels()
 
     def channelsClicked(self):
         #print(self.channelsDock.isVisible())
@@ -362,15 +361,29 @@ class MyWidget(QtWidgets.QWidget):
 
     def listChannels(self):
         channels = exrListChannels(self.imgDict["path"])
-        # For now adding button, but better solution would be to add QRadioButtons in a QGroupBox which would be the item of a QScrollArea
-        #print(self.channelsLayout.count())
-        # If the is only the exr list label and its stretch
-        if self.channelsLayout.count() < 3:
-            for chan in channels:
-                self.btn = QtWidgets.QPushButton(chan)
-                self.btn.clicked.connect(self.channelChange)
-                self.channelsLayout.addWidget(self.btn)
-            self.channelsLayout.addStretch()
+        #print(channels)
+
+        # Removing old channelBtns if the channel Btns Var was created
+        removeList = []
+        for i in range(self.channelsLayout.count()):
+            currentWidget = (self.channelsLayout.itemAt(i).widget())
+            #print(currentWidget.__class__.__name__)
+            if ((currentWidget.__class__.__name__) == "QPushButton"):
+                #print("Will remove : {0}".format(currentWidget))
+                removeList.append(currentWidget)
+        if len(removeList) > 1:
+            separator = self.channelsLayout.itemAt(self.channelsLayout.count() - 1).widget()
+            self.channelsLayout.removeWidget(separator)
+        for widget in removeList:
+            widget.setParent(None)
+            #self.channelsLayout.removeWidget(widget)
+
+        channelBtns = []
+        for chan in channels:
+            self.btn = QtWidgets.QPushButton(chan)
+            self.btn.clicked.connect(self.channelChange)
+            self.channelsLayout.addWidget(self.btn)
+        self.channelsLayout.addStretch(2)
 
     def channelChange(self):
         sender = self.sender()

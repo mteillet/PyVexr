@@ -12,9 +12,10 @@ import Imath
 def main():
     print("PyVexr pre alpha version")
 
-def loadImg(ocioIn, ocioOut, ocioLook):
+def loadImg(ocioIn, ocioOut, ocioLook, fileList):
     #print("PyVexr Loading Button")
-    temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
+    temporaryImg = fileList[0]
+    #temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
     #temporaryImg = "exrExamples/RenderPass_UTILS_1.0100.exr"
     #temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
     #temporaryImg = "~/Documents/Downloads/Jonathan_bertin_09.jpg"

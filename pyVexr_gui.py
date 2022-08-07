@@ -145,7 +145,7 @@ class MyWidget(QtWidgets.QWidget):
         
         # Global dict image related:
         self.imgDict = {}
-        self.imgDict["path"] = None
+        self.imgDict["path"] = []
         self.imgDict["ocio"] = {}
         self.imgDict["ocio"]["ocioIn"] = None
         self.imgDict["ocio"]["ocioOut"] = None
@@ -160,15 +160,17 @@ class MyWidget(QtWidgets.QWidget):
         self.file = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
         self.menuBar = QtWidgets.QMenuBar()
         self.fileMenu = self.menuBar.addMenu('&File')
+        self.openAction = self.fileMenu.addAction("Open        &-&C&t&r&l&+&O")
+        self.openAction.triggered.connect(self.openFiles)
         self.editMenu = self.menuBar.addMenu('&Edit')
         # NEED TO HOOK CHANNEL MENU BAR TO A FUNCTION FOR SHOWING / HIDING THE CHANNELS
         #self.channelsMenu = self.menuBar.addMenu('&Channels')
         self.channelsAction = self.editMenu.addAction("Channels Pannel    &-&C")
         self.versionsAction = self.editMenu.addAction("Versions Pannel    &-&V")
+        self.infosAction = self.editMenu.addAction("Help")
         self.channelsAction.triggered.connect(self.channelsClicked)
         self.versionsAction.triggered.connect(self.versionsClicked)
         #self.colorspaceMenu = self.menuBar.addMenu('&Colorspace')
-        self.infoMenu = self.menuBar.addMenu('&Info')
 
         # OCIO dropdown
         ocioViews, looksDict, viewsList= initOCIO()
@@ -235,7 +237,7 @@ class MyWidget(QtWidgets.QWidget):
         self.img = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
         self.img.setText("IMG")
         self.load = QtWidgets.QPushButton("Load")
-        self.load.clicked.connect(self.function)
+        self.load.clicked.connect(self.loadFile)
 
         # Version area - Need to replace with a floating window
         self.version = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
@@ -310,14 +312,15 @@ class MyWidget(QtWidgets.QWidget):
     # Code for the Slot functions #
     ###############################
     @QtCore.pyqtSlot()
-    def function(self):
+    def loadFile(self):
+        #print(self.imgDict["path"])
         # OCIO DATA
         self.imgDict["ocio"]["ocioIn"] = self.ocioIn.currentText()
         self.imgDict["ocio"]["ocioOut"] = self.ocioOut.currentText()
         self.imgDict["ocio"]["ocioLook"] = self.ocioLooks.currentText()
         #print("Input : {0}\nOutput : {1} (sRGB)\nLook : {2}".format(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"]))
 
-        tempImg, self.imgDict["path"]= loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"])
+        tempImg, self.imgDict["path"]= loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         # If need to rescale the image
         #convertedImg = convertToQt.scaled(800, 600, QtCore.Qt.KeepAspectRatio)
@@ -336,6 +339,16 @@ class MyWidget(QtWidgets.QWidget):
 
         # Temp call to list channels -- NEED TO LATER BE REPLACED WITH A SHORTCUT / MENU
         self.listChannels()
+
+    def openFiles(self):
+        dialog = QtWidgets.QFileDialog(self, caption = "Open Image")
+        dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
+
+        if dialog.exec():
+            filenames = dialog.selectedFiles()
+            #print(filenames)
+            self.imgDict["path"] = filenames
+            self.loadFile()
 
     def channelsClicked(self):
         #print(self.channelsDock.isVisible())

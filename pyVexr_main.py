@@ -27,7 +27,7 @@ def updateImg(path, channel, ocioIn, ocioOut, ocioLook):
     # Checking if a channel switch will be needed or not
     if (channel in [None, "RGB", "RGBA"]):
         #print("No channel merge needed")
-        img = cv.imread(path, cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
+        img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
         #print("classic layer")
     else:
         splitImg = exrSwitchChannel(path, channel)

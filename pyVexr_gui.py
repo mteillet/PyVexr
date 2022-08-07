@@ -236,8 +236,6 @@ class MyWidget(QtWidgets.QWidget):
         # Temp img load button -- Will be replaced with a load images dropdown in the menu
         self.img = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
         self.img.setText("IMG")
-        self.load = QtWidgets.QPushButton("Load")
-        self.load.clicked.connect(self.loadFile)
 
         # Version area - Need to replace with a floating window
         self.version = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
@@ -283,7 +281,6 @@ class MyWidget(QtWidgets.QWidget):
         
         self.imgLayout = QtWidgets.QVBoxLayout()
         self.imgLayout.addWidget(self.imgViewer)
-        self.imgLayout.addWidget(self.load)
         
         self.versionsLayout = QtWidgets.QVBoxLayout()
         self.versionsLayout.addStretch()

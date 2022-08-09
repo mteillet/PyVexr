@@ -11,7 +11,8 @@ from math import sqrt
 class graphicsView(QtWidgets.QGraphicsView):
     def __init__ (self, parent=None):
         super(graphicsView, self).__init__ (parent)
-
+        #self.setAcceptDrops(True)
+        
         # Initial scene rect
         self.defaultSceneRect = []
 
@@ -35,7 +36,20 @@ class graphicsView(QtWidgets.QGraphicsView):
 
         # Mouse Move list [x, y]
         self.mouseMove = [[],[]]
-        
+
+
+    def dragEnterEvent(self, event):
+        print("drag")
+        if (event.mimeData().hasFormat("text/plain")):
+            print("File found")
+            print(event)
+            event.acceptProposedAction()
+        event.accept()
+
+    def dropEvent(self, event):
+        print("drop")
+        event.accept()
+
     def mousePressEvent(self, event):
         #print(event.button())
         if event.button() in self.activeMouse:
@@ -47,7 +61,6 @@ class graphicsView(QtWidgets.QGraphicsView):
         if event.button() in self.activeMouse:
             self.activeMouse[event.button()] = False
             
-
         self.update()
 
     def keyPressEvent(self, event):
@@ -137,6 +150,7 @@ class MyWidget(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PyVexr -- OpenExr Viewer") 
+        self.setAcceptDrops(True)
 
         # StyleSheet settings
         self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
@@ -219,6 +233,7 @@ class MyWidget(QtWidgets.QWidget):
 
         # RectWidget for tracking the view relative to the image
         self.viewArea = QtWidgets.QGraphicsRectItem(0,0,10,10)
+        self.viewArea.setAcceptDrops(True)
         # Giving a color to the default rect -- only for debugging purposes
         #self.viewArea.setBrush(QtGui.QColor(255, 0, 0, 30))
 
@@ -227,11 +242,12 @@ class MyWidget(QtWidgets.QWidget):
         self.imgZone.addItem(self.image)
         self.imgZone.addItem(self.viewArea)
         
-        self.imgViewer = graphicsView()
+        self.imgViewer = graphicsView(self)
         #self.imgViewer.setMouseTracking(True)
         self.imgViewer.setScene(self.imgZone)
         self.imgViewer.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.imgViewer.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.imgViewer.setAcceptDrops(True)
 
         # Temp img load button -- Will be replaced with a load images dropdown in the menu
         self.img = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
@@ -333,6 +349,17 @@ class MyWidget(QtWidgets.QWidget):
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
         # Toggle visibility on widget
         #self.channelsFrame.setHidden(not self.channelsFrame.isHidden())
+
+    def dragEnterEvent(self, event):
+        print("drag")
+        if (event.mimeData().hasFormat("text/plain")):
+            #print(event)
+            event.accept()
+
+    def dropEvent(self, event):
+        print("drop")
+        print(event.mimeData().text())
+        event.accept()
 
 
     def openFiles(self):

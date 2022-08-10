@@ -38,18 +38,6 @@ class graphicsView(QtWidgets.QGraphicsView):
         self.mouseMove = [[],[]]
 
 
-    def dragEnterEvent(self, event):
-        print("drag")
-        if (event.mimeData().hasFormat("text/plain")):
-            print("File found")
-            print(event)
-            event.acceptProposedAction()
-        event.accept()
-
-    def dropEvent(self, event):
-        print("drop")
-        event.accept()
-
     def mousePressEvent(self, event):
         #print(event.button())
         if event.button() in self.activeMouse:
@@ -140,7 +128,20 @@ class graphicsView(QtWidgets.QGraphicsView):
             
         self.update()
 
-    
+    def dragEnterEvent(self, event):
+        if (event.mimeData().hasUrls()):
+            event.accept()
+
+    def dropEvent(self, event):
+        filenames = []
+        for url in event.mimeData().urls():
+            # Need to add a check in order to verify if the uil.toLocalFile() are valid exrs before sending them to the updateImgDict function
+            #print(url.toLocalFile())
+            filenames.append(url.toLocalFile())
+        widget.updateImgDict(filenames)
+
+        event.accept()
+   
 
 
     
@@ -349,6 +350,11 @@ class MyWidget(QtWidgets.QWidget):
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
         # Toggle visibility on widget
         #self.channelsFrame.setHidden(not self.channelsFrame.isHidden())
+
+    def updateImgDict(self, path):
+        self.imgDict["path"] = path
+        self.loadFile()
+        self.listChannels()
 
     def dragEnterEvent(self, event):
         print("drag")

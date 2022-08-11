@@ -3,6 +3,7 @@
 # PyVexr_gui.py
 
 import sys
+import os
 from PyQt5 import QtWidgets, QtCore, QtGui
 from pyVexr_main import loadImg, interpretRectangle, initOCIO, ocioLooksFromView, exrListChannels, updateImg
 from math import sqrt
@@ -15,6 +16,16 @@ class graphicsView(QtWidgets.QGraphicsView):
         
         # Initial scene rect
         self.defaultSceneRect = []
+
+        # SHORTCUTS
+        self.openShortCut = QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+O"), self)
+        self.openShortCut.activated.connect(self.openFilesShortcut)
+        self.channelShortCut = QtWidgets.QShortcut(QtGui.QKeySequence("C"), self)
+        self.channelShortCut.activated.connect(self.channelsShortcut)
+        self.versionShortCut = QtWidgets.QShortcut(QtGui.QKeySequence("V"), self)
+        self.versionShortCut.activated.connect(self.versionsShortcut)
+
+
 
         # Active keys dictionnary
         self.activeKeys = {}
@@ -37,9 +48,11 @@ class graphicsView(QtWidgets.QGraphicsView):
         # Mouse Move list [x, y]
         self.mouseMove = [[],[]]
 
-
+    ###############################
+    # Code for the Slot functions #
+    ###############################
+    @QtCore.pyqtSlot()
     def mousePressEvent(self, event):
-        #print(event.button())
         if event.button() in self.activeMouse:
             self.activeMouse[event.button()] = True
         self.update()
@@ -135,16 +148,30 @@ class graphicsView(QtWidgets.QGraphicsView):
     def dropEvent(self, event):
         filenames = []
         for url in event.mimeData().urls():
-            # Need to add a check in order to verify if the uil.toLocalFile() are valid exrs before sending them to the updateImgDict function
-            #print(url.toLocalFile())
-            filenames.append(url.toLocalFile())
+            path = url.toLocalFile()
+            # Check if file exists and is an exr
+            if os.path.exists(path) == True:
+                if path.endswith(".exr") == True:
+                    print("File exists {}".format(path))
+                    filenames.append(url.toLocalFile())
+                else:
+                    # Append the default pyVexr logo
+                    filenames.append("/home/martin/Documents/PYTHON/PyVexr/imgs/pyVexrSplashScreen_v001.exr")
+        #print(filenames)
         widget.updateImgDict(filenames)
-
         event.accept()
-   
 
+    def openFilesShortcut(self):
+        #print("Open File")
+        widget.openFiles()
 
-    
+    def channelsShortcut(self):
+        #print("channels toggle")
+        widget.channelsClicked()
+
+    def versionsShortcut(self):
+        #print("versionsShortcul")
+        widget.versionsClicked()
 
 
 class MyWidget(QtWidgets.QWidget):
@@ -465,5 +492,9 @@ if __name__ == "__main__":
     widget = MyWidget()
     widget.resize(800,600)
     widget.show()
+
+    # Init the gui with the default pyVexr splashcreen in order to enable drag and drop from the start
+    filenames = ["/home/martin/Documents/PYTHON/PyVexr/imgs/pyVexrSplashScreen_v001.exr"]
+    widget.updateImgDict(filenames)
 
     sys.exit(app.exec())

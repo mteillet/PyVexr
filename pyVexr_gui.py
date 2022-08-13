@@ -24,6 +24,8 @@ class graphicsView(QtWidgets.QGraphicsView):
         self.channelShortCut.activated.connect(self.channelsShortcut)
         self.versionShortCut = QtWidgets.QShortcut(QtGui.QKeySequence("V"), self)
         self.versionShortCut.activated.connect(self.versionsShortcut)
+        self.expoShortcut = QtWidgets.QShortcut(QtGui.QKeySequence("E"), self)
+        self.expoShortcut.activated.connect(self.exposureShortcut)
 
 
 
@@ -173,6 +175,8 @@ class graphicsView(QtWidgets.QGraphicsView):
         #print("versionsShortcul")
         widget.versionsClicked()
 
+    def exposureShortcut(self):
+        widget.showExposureText()
 
 class MyWidget(QtWidgets.QWidget):
     def __init__(self):
@@ -265,11 +269,17 @@ class MyWidget(QtWidgets.QWidget):
         self.viewArea.setAcceptDrops(True)
         # Giving a color to the default rect -- only for debugging purposes
         #self.viewArea.setBrush(QtGui.QColor(255, 0, 0, 30))
+        # Exposure text, hidden by default
+        self.exposureText = QtWidgets.QGraphicsTextItem("Exposure : ")
+        self.exposureText.setScale(2)
+        self.exposureText.setDefaultTextColor(QtGui.QColor("white"))
+        self.exposureText.hide()
 
         # Putting the objects in the scene
         self.image = QtWidgets.QGraphicsPixmapItem()
         self.imgZone.addItem(self.image)
         self.imgZone.addItem(self.viewArea)
+        self.imgZone.addItem(self.exposureText)
         
         self.imgViewer = graphicsView(self)
         #self.imgViewer.setMouseTracking(True)
@@ -483,6 +493,12 @@ class MyWidget(QtWidgets.QWidget):
         sender = self.sender()
         self.imgDict["ocio"]["ocioLook"] = self.ocioLooks.currentText()
         self.imageUpdate()
+
+    def showExposureText(self):
+        if (self.exposureText.isVisible() == False):
+            self.exposureText.show()
+        else:
+            self.exposureText.hide()
 
 
 

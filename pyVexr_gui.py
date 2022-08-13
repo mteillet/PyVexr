@@ -152,11 +152,11 @@ class graphicsView(QtWidgets.QGraphicsView):
             # Check if file exists and is an exr
             if os.path.exists(path) == True:
                 if path.endswith(".exr") == True:
-                    print("File exists {}".format(path))
+                    #print("File exists {}".format(path))
                     filenames.append(url.toLocalFile())
                 else:
                     # Append the default pyVexr logo
-                    filenames.append("/home/martin/Documents/PYTHON/PyVexr/imgs/pyVexrSplashScreen_v001.exr")
+                    filenames.append("/home/martin/Documents/PYTHON/PyVexr/imgs/pyVexrSplashScreen_v002.exr")
         #print(filenames)
         widget.updateImgDict(filenames)
         event.accept()
@@ -178,6 +178,7 @@ class MyWidget(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PyVexr -- OpenExr Viewer") 
+        self.setWindowIcon(QtGui.QIcon("/home/martin/Documents/PYTHON/PyVexr/imgs/pyVexr_Icon_512.jpeg"))
         self.setAcceptDrops(True)
 
         # StyleSheet settings

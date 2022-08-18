@@ -24,8 +24,6 @@ class graphicsView(QtWidgets.QGraphicsView):
         self.channelShortCut.activated.connect(self.channelsShortcut)
         self.versionShortCut = QtWidgets.QShortcut(QtGui.QKeySequence("V"), self)
         self.versionShortCut.activated.connect(self.versionsShortcut)
-        self.expoShortcut = QtWidgets.QShortcut(QtGui.QKeySequence("E"), self)
-        self.expoShortcut.activated.connect(self.exposureShortcut)
 
 
 
@@ -41,6 +39,10 @@ class graphicsView(QtWidgets.QGraphicsView):
         self.activeKeys[16777251] = False
         # Ctrl key
         self.activeKeys[16777249] = False
+        # + and - keys
+        self.activeKeys[43] = False
+        self.activeKeys[45] = False
+
 
         # Active mouse dictionnary
         self.activeMouse = {}
@@ -70,6 +72,13 @@ class graphicsView(QtWidgets.QGraphicsView):
         #print("GraphicsView " + str(event.key()))
         if event.key() in self.activeKeys:
                 self.activeKeys[event.key()] = True
+        if event.key() == QtCore.Qt.Key_E:
+            widget.showExposureText()
+        # Expo change if key hit is + of -
+        if (event.key() == 43) | (event.key() == 45):
+            # Boost expo
+            widget.exposureChange(event.key())
+
 
 
     def keyReleaseEvent(self, event):
@@ -175,8 +184,6 @@ class graphicsView(QtWidgets.QGraphicsView):
         #print("versionsShortcul")
         widget.versionsClicked()
 
-    def exposureShortcut(self):
-        widget.showExposureText()
 
 class MyWidget(QtWidgets.QWidget):
     def __init__(self):
@@ -198,6 +205,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["ocio"]["ocioOut"] = None
         self.imgDict["ocio"]["ocioLook"] = None
         self.imgDict["channel"] = None
+        self.imgDict["exposure"] = 0
 
         ####################################
         # Code for the PyVexr Main windows #
@@ -494,9 +502,26 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["ocio"]["ocioLook"] = self.ocioLooks.currentText()
         self.imageUpdate()
 
+    def exposureChange(self, key):
+        # Tweak expo only if E has been pressed before, and therefore the text is toggled on
+        if (self.exposureText.isVisible() == True):
+            #print(key)
+            if key == 43:
+                #print("Boost expo")
+                self.imgDict["exposure"] += 0.1
+                self.updateExposure()
+            if key == 45:
+                #print("Lower expo")
+                self.imgDict["exposure"] -= 0.1
+                self.updateExposure()
+
+    def updateExposure(self):
+        self.exposureText.setPlainText("Exposure : {}".format(round(self.imgDict["exposure"], 2)))
+
     def showExposureText(self):
         if (self.exposureText.isVisible() == False):
             self.exposureText.show()
+            self.updateExposure()
         else:
             self.exposureText.hide()
 

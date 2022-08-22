@@ -5,7 +5,7 @@
 import sys
 import os
 from PyQt5 import QtWidgets, QtCore, QtGui
-from pyVexr_main import loadImg, interpretRectangle, initOCIO, ocioLooksFromView, exrListChannels, updateImg
+from pyVexr_main import loadImg, interpretRectangle, initOCIO, ocioLooksFromView, exrListChannels, updateImg, updateExposure
 from math import sqrt
 
 # Subclassing graphicsView in order to be able to track mouse movements in the scene
@@ -504,16 +504,25 @@ class MyWidget(QtWidgets.QWidget):
 
     def exposureChange(self, key):
         # Tweak expo only if E has been pressed before, and therefore the text is toggled on
+        # Need to integrate the exposure in every call to backend image update, otherwise exposure will be reset on any other backend image call (such as ocio change or channel change)
         if (self.exposureText.isVisible() == True):
             #print(key)
             if key == 43:
                 #print("Boost expo")
                 self.imgDict["exposure"] += 0.1
                 self.updateExposure()
+                tempImg = updateExposure(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["exposure"])
+                convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+                self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+
             if key == 45:
                 #print("Lower expo")
                 self.imgDict["exposure"] -= 0.1
                 self.updateExposure()
+                tempImg = updateExposure(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["exposure"])
+                convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+                self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+
 
     def updateExposure(self):
         self.exposureText.setPlainText("Exposure : {}".format(round(self.imgDict["exposure"], 2)))

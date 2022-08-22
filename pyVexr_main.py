@@ -51,6 +51,35 @@ def updateImg(path, channel, ocioIn, ocioOut, ocioLook):
     convertedImg = rgb_image.data, w, h, bytes_per_line
     return(convertedImg)
 
+def updateExposure(path, channel, ocioIn, ocioOut, ocioLook, exposure):
+    # Check for the current channel
+    if (channel in [None, "RGB", "RGBA"]):
+        img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
+    else:
+        splitImg = exrSwitchChannel(path, channel)
+        img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
+
+    print(exposure)
+    # ExposureChange
+    img = img * pow(2,float(exposure))
+
+    if(img.dtype == "float32"):
+        # Making the actual OCIO Transform
+        ocioTransform(img, ocioIn, ocioOut, ocioLook)
+        img *= 255
+        # Clamping the values to avoid artifacts if values go over 255
+        img = clampImg(img)
+        # Conversion to the QPixmap format
+        img = img.astype(np.uint8)
+
+    rgb_image = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+    h,w,ch = rgb_image.shape
+    bytes_per_line = ch * w
+    convertedImg = rgb_image.data, w, h, bytes_per_line
+    return(convertedImg)
+
+
+
 def exrListChannels(path):
     exr = EXR.InputFile(path[0])
     # Getting the RAW list of channels

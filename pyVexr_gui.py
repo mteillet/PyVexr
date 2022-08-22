@@ -75,7 +75,7 @@ class graphicsView(QtWidgets.QGraphicsView):
         if event.key() == QtCore.Qt.Key_E:
             widget.showExposureText()
         # Expo change if key hit is + of -
-        if (event.key() == 43) | (event.key() == 45):
+        if (event.key() == 43) | (event.key() == 45) | (event.key() == 48):
             # Boost expo
             widget.exposureChange(event.key())
 
@@ -380,7 +380,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["ocio"]["ocioLook"] = self.ocioLooks.currentText()
         #print("Input : {0}\nOutput : {1} (sRGB)\nLook : {2}".format(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"]))
 
-        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"])
+        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         # If need to rescale the image
         #convertedImg = convertToQt.scaled(800, 600, QtCore.Qt.KeepAspectRatio)
@@ -469,9 +469,13 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["channel"] = sender.text()
         self.imageUpdate()
 
+    def refreshImg(self):
+        img = updateImg(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"], self.imgDict["exposure"])
+        return(img)
+
     def imageUpdate(self):
         #print("Updating image using the dictionnary")
-        tempImg = updateImg(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"])
+        tempImg = self.refreshImg()
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
 
@@ -504,14 +508,13 @@ class MyWidget(QtWidgets.QWidget):
 
     def exposureChange(self, key):
         # Tweak expo only if E has been pressed before, and therefore the text is toggled on
-        # Need to integrate the exposure in every call to backend image update, otherwise exposure will be reset on any other backend image call (such as ocio change or channel change)
         if (self.exposureText.isVisible() == True):
             #print(key)
             if key == 43:
                 #print("Boost expo")
                 self.imgDict["exposure"] += 0.1
                 self.updateExposure()
-                tempImg = updateExposure(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["exposure"])
+                tempImg = self.refreshImg()
                 convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
                 self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
 
@@ -519,7 +522,15 @@ class MyWidget(QtWidgets.QWidget):
                 #print("Lower expo")
                 self.imgDict["exposure"] -= 0.1
                 self.updateExposure()
-                tempImg = updateExposure(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["exposure"])
+                tempImg = self.refreshImg()
+                convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+                self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+
+            if key == 48:
+                #print("Reset Exposure")
+                self.imgDict["exposure"] = 0
+                self.updateExposure()
+                tempImg = self.refreshImg()
                 convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
                 self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
 

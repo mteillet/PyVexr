@@ -12,7 +12,7 @@ import Imath
 def main():
     print("PyVexr pre alpha version")
 
-def loadImg(ocioIn, ocioOut, ocioLook, fileList):
+def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure):
     #print("PyVexr Loading Button")
     temporaryImg = fileList[0]
     #temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
@@ -20,10 +20,10 @@ def loadImg(ocioIn, ocioOut, ocioLook, fileList):
     #temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
     #temporaryImg = "~/Documents/Downloads/Jonathan_bertin_09.jpg"
     #channelList = exrListChannels(temporaryImg)
-    convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook)
+    convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook, exposure)
     return (convertedImg)
 
-def updateImg(path, channel, ocioIn, ocioOut, ocioLook):
+def updateImg(path, channel, ocioIn, ocioOut, ocioLook, exposure):
     # Checking if a channel switch will be needed or not
     if (channel in [None, "RGB", "RGBA"]):
         #print("No channel merge needed")
@@ -35,6 +35,9 @@ def updateImg(path, channel, ocioIn, ocioOut, ocioLook):
         img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
         #print("splittedLayer")
 
+    # ExposureChange
+    if (exposure != 0):
+        img = img * pow(2,float(exposure))
 
     if(img.dtype == "float32"):
         # Making the actual OCIO Transform
@@ -59,7 +62,6 @@ def updateExposure(path, channel, ocioIn, ocioOut, ocioLook, exposure):
         splitImg = exrSwitchChannel(path, channel)
         img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
 
-    print(exposure)
     # ExposureChange
     img = img * pow(2,float(exposure))
 
@@ -162,7 +164,7 @@ def initOCIO():
 
 
 # Converting the Exr file with opencv to a readable image file for QtPixmap
-def convertExr(path, ocioIn, ocioOut, ocioLook):
+def convertExr(path, ocioIn, ocioOut, ocioLook, exposure):
     #img = cv.merge(path)
     img = cv.imread(path, cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
     
@@ -174,6 +176,10 @@ def convertExr(path, ocioIn, ocioOut, ocioLook):
     cv.imshow("Display window", img)
     k = cv.waitKey(0)
     '''
+    # ExposureChange
+    if (exposure != 0):
+        img = img * pow(2,float(exposure))
+
 
     if(img.dtype == "float32"):
         # Making the actual OCIO Transform

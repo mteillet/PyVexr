@@ -218,10 +218,21 @@ class MyWidget(QtWidgets.QWidget):
         self.openAction = self.fileMenu.addAction("Open        &-&C&t&r&l&+&O")
         self.openAction.triggered.connect(self.openFiles)
         self.editMenu = self.menuBar.addMenu('&Edit')
-        # NEED TO HOOK CHANNEL MENU BAR TO A FUNCTION FOR SHOWING / HIDING THE CHANNELS
-        #self.channelsMenu = self.menuBar.addMenu('&Channels')
+        # Exposure Actions
+        self.exposureAction = self.editMenu.addMenu("Exposure                  &-&E")
+        self.expoUpAction = self.exposureAction.addAction("Increase Exposure      &+")
+        self.expoUpAction.triggered.connect(self.exposureMenu)
+        self.expoDownAction = self.exposureAction.addAction("Decrease Exposure     &-")
+        self.expoDownAction.triggered.connect(self.exposureMenu)
+        self.expoResetAction = self.exposureAction.addAction("Reset Exposure           &0")
+        self.expoResetAction.triggered.connect(self.exposureMenu)
+        # Saturation Actions
+        self.saturationAction = self.editMenu.addMenu("Saturation                &-&S")
+        self.satUp = self.saturationAction.addAction("Increase Saturation        &+")
+        self.satDown = self.saturationAction.addAction("Decrease Saturation       &-")
+        self.satReset = self.saturationAction.addAction("Reset Saturation             &0")
         self.channelsAction = self.editMenu.addAction("Channels Pannel    &-&C")
-        self.versionsAction = self.editMenu.addAction("Versions Pannel    &-&V")
+        self.versionsAction = self.editMenu.addAction("Versions Pannel     &-&V")
         self.infosAction = self.editMenu.addAction("Help")
         self.channelsAction.triggered.connect(self.channelsClicked)
         self.versionsAction.triggered.connect(self.versionsClicked)
@@ -534,6 +545,22 @@ class MyWidget(QtWidgets.QWidget):
                 convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
                 self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
 
+    def exposureMenu(self):
+        menuSent = (self.sender().text())
+        
+        if (self.exposureText.isVisible() == False):
+            self.showExposureText()
+        key = 0
+        if menuSent.startswith("Increase Exposure") == True:
+            #print("Boost Expo")
+            key = 43
+        elif menuSent.startswith("Decrease Exposure") == True:
+            #print("Decrease Expo")
+            key = 45
+        elif menuSent.startswith("Reset Exposure") == True:
+            #print("Reset expo")
+            key = 48
+        self.exposureChange(key)
 
     def updateExposure(self):
         self.exposureText.setPlainText("Exposure : {}".format(round(self.imgDict["exposure"], 2)))

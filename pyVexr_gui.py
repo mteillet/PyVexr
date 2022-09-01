@@ -74,6 +74,8 @@ class graphicsView(QtWidgets.QGraphicsView):
                 self.activeKeys[event.key()] = True
         if event.key() == QtCore.Qt.Key_E:
             widget.showExposureText()
+        if event.key() == QtCore.Qt.Key_S:
+            widget.showSaturationText()
         # Expo change if key hit is + of -
         if (event.key() == 43) | (event.key() == 45) | (event.key() == 48):
             # Boost expo
@@ -206,6 +208,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["ocio"]["ocioLook"] = None
         self.imgDict["channel"] = None
         self.imgDict["exposure"] = 0
+        self.imgDict["saturation"] = 0
 
         ####################################
         # Code for the PyVexr Main windows #
@@ -294,11 +297,18 @@ class MyWidget(QtWidgets.QWidget):
         self.exposureText.setDefaultTextColor(QtGui.QColor("white"))
         self.exposureText.hide()
 
+        # Saturation Text
+        self.saturationText = QtWidgets.QGraphicsTextItem("Saturation : ")
+        self.saturationText.setScale(2)
+        self.saturationText.setDefaultTextColor(QtGui.QColor("white"))
+        self.saturationText.hide()
+
         # Putting the objects in the scene
         self.image = QtWidgets.QGraphicsPixmapItem()
         self.imgZone.addItem(self.image)
         self.imgZone.addItem(self.viewArea)
         self.imgZone.addItem(self.exposureText)
+        self.imgZone.addItem(self.saturationText)
         
         self.imgViewer = graphicsView(self)
         #self.imgViewer.setMouseTracking(True)
@@ -571,6 +581,16 @@ class MyWidget(QtWidgets.QWidget):
             self.updateExposure()
         else:
             self.exposureText.hide()
+
+    def updateSaturation(self):
+        self.saturationText.setPlainText("Saturation : {}".format(round(self.imgDict["saturation"], 2)))
+
+    def showSaturationText(self):
+        if (self.saturationText.isVisible() == False):
+            self.saturationText.show()
+            self.updateSaturation()
+        else:
+            self.saturationText.hide()
 
 
 

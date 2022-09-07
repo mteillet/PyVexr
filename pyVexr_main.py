@@ -7,6 +7,7 @@ import cv2 as cv
 import numpy as np
 import PyOpenColorIO as OCIO
 import OpenEXR as EXR
+import math
 import Imath
 
 def main():
@@ -58,16 +59,62 @@ def updateImg(path, channel, ocioIn, ocioOut, ocioLook, exposure, saturation):
     convertedImg = rgb_image.data, w, h, bytes_per_line
     return(convertedImg)
 
+def rgbToHsv(rgb):
+    maxv = np.amax(rgb, axis=2)
+    maxc = np.argmax(rgb, axis=2)
+    minv = np.amin(rgb, axis=2)
+    minc = np.argmin(rgb, axis=2)
+
+    hsv = np.zeros(rgb.shape, dtype='float32')
+
+    hsv[maxc == minc, 0] = np.zeros(hsv[maxc == minc, 0].shape)
+    hsv[maxc == 0, 0] = (((rgb[..., 1] - rgb[..., 2]) * 60.0 / (maxv - minv + np.spacing(1))) % 360.0)[maxc == 0]
+    hsv[maxc == 1, 0] = (((rgb[..., 2] - rgb[..., 0]) * 60.0 / (maxv - minv + np.spacing(1))) + 120.0)[maxc == 1]
+    hsv[maxc == 2, 0] = (((rgb[..., 0] - rgb[..., 1]) * 60.0 / (maxv - minv + np.spacing(1))) + 240.0)[maxc == 2]
+    hsv[maxv == 0, 1] = np.zeros(hsv[maxv == 0, 1].shape)
+    hsv[maxv != 0, 1] = (1 - minv / (maxv + np.spacing(1)))[maxv != 0]
+    hsv[..., 2] = maxv
+
+    return(hsv)
+
+def hsvToRgb(hsv):
+    hi = np.floor(hsv[..., 0] / 60.0) % 6
+    hi = hi.astype('uint8')
+    v = hsv[..., 2].astype('float32')
+    f = (hsv[..., 0] / 60.0) - np.floor(hsv[..., 0] / 60.0)
+    p = v * (1.0 - hsv[..., 1])
+    q = v * (1.0 - (f * hsv[..., 1]))
+    t = v * (1.0 - ((1.0 - f) * hsv[..., 1]))
+
+    rgb = np.zeros(hsv.shape)
+    rgb[hi == 0, :] = np.dstack((v, t, p))[hi == 0, :]
+    rgb[hi == 1, :] = np.dstack((q, v, p))[hi == 1, :]
+    rgb[hi == 2, :] = np.dstack((p, v, t))[hi == 2, :]
+    rgb[hi == 3, :] = np.dstack((p, q, v))[hi == 3, :]
+    rgb[hi == 4, :] = np.dstack((t, p, v))[hi == 4, :]
+    rgb[hi == 5, :] = np.dstack((v, p, q))[hi == 5, :]
+
+    return(rgb)
+
 def saturationTweak(img, saturation):
     if saturation != 1:
-        hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+        #rgb = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+        hsv = rgbToHsv(img)
         (h,s,v) = cv.split(hsv)
+        # lin2log
+        #s = np.log(s)
+        # sat Mul
         s = s * saturation
+        # log2lin
+        #s = pow(2, s)
+        # Clipping to avoid out of boundaries values
         s = np.clip(s,0,255)
-        hsv = cv.merge([h,s,v])
-        img = cv.cvtColor(hsv, cv.COLOR_HSV2BGR)
+        # Re-merging the hue and value with modified saturation
+        mergedhsv = cv.merge([h,s,v])
+        #rgb = hsvToRgb(mergedhsv)
+        rgb = cv.cvtColor(mergedhsv, cv.COLOR_HSV2RGB)
 
-    return(img)
+    return(rgb)
 
 def exrListChannels(path):
     exr = EXR.InputFile(path[0])

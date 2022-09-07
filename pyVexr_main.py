@@ -80,7 +80,14 @@ def updateExposure(path, channel, ocioIn, ocioOut, ocioLook, exposure):
     convertedImg = rgb_image.data, w, h, bytes_per_line
     return(convertedImg)
 
+def rgbToHsv(img):
+    if saturation != 0:
+        hsv = cv.cvtColor(img, cv2.COLOR_BGR2HSV)
+        # Do something
+        img = cv.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
+    return(img)
+    
 
 def exrListChannels(path):
     exr = EXR.InputFile(path[0])

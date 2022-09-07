@@ -5,7 +5,7 @@
 import sys
 import os
 from PyQt5 import QtWidgets, QtCore, QtGui
-from pyVexr_main import loadImg, interpretRectangle, initOCIO, ocioLooksFromView, exrListChannels, updateImg, updateExposure
+from pyVexr_main import loadImg, interpretRectangle, initOCIO, ocioLooksFromView, exrListChannels, updateImg 
 from math import sqrt
 
 # Subclassing graphicsView in order to be able to track mouse movements in the scene
@@ -233,8 +233,11 @@ class MyWidget(QtWidgets.QWidget):
         # Saturation Actions
         self.saturationAction = self.editMenu.addMenu("Saturation                &-&S")
         self.satUp = self.saturationAction.addAction("Increase Saturation        &+")
+        self.satUp.triggered.connect(self.saturationMenu)
         self.satDown = self.saturationAction.addAction("Decrease Saturation       &-")
+        self.satDown.triggered.connect(self.saturationMenu)
         self.satReset = self.saturationAction.addAction("Reset Saturation             &0")
+        self.satReset.triggered.connect(self.saturationMenu)
         self.channelsAction = self.editMenu.addAction("Channels Pannel    &-&C")
         self.versionsAction = self.editMenu.addAction("Versions Pannel     &-&V")
         self.infosAction = self.editMenu.addAction("Help")
@@ -532,25 +535,25 @@ class MyWidget(QtWidgets.QWidget):
         if (self.saturationText.isVisible() == True):
             #print("saturation change {}".format(key))
             if key == 43:
-                self.imgDict["saturation"] += 0.1
+                self.imgDict["saturation"] += 0.01
                 self.updateSaturation()
-                #tempImg = self.refreshImg()
-                #convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
-                #self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+                tempImg = self.refreshImg()
+                convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+                self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
 
             if key == 45:
-                self.imgDict["saturation"] -= 0.1
+                self.imgDict["saturation"] -= 0.01
                 self.updateSaturation()
-                #tempImg = self.refreshImg()
-                #convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
-                #self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+                tempImg = self.refreshImg()
+                convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+                self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
 
             if key == 48:
                 self.imgDict["saturation"] = 1
                 self.updateSaturation()
-                #tempImg = self.refreshImg()
-                #convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
-                #self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+                tempImg = self.refreshImg()
+                convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+                self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
 
 
     def exposureChange(self, key):
@@ -597,6 +600,22 @@ class MyWidget(QtWidgets.QWidget):
             #print("Reset expo")
             key = 48
         self.exposureChange(key)
+
+    def saturationMenu(self):
+        menuSent = self.sender().text()
+
+        if (self.saturationText.isVisible() == False):
+            self.showSaturationText()
+        key = 0
+        if menuSent.startswith("Increase Sat") == True:
+            key = 43
+        elif menuSent.startswith("Decrease Sat") == True:
+            key = 45
+        elif menuSent.startswith("Reset Sat") == True:
+            key = 48
+        self.satChange(key)
+
+
 
     def updateExposure(self):
         self.exposureText.setPlainText("Exposure : {}".format(round(self.imgDict["exposure"], 2)))

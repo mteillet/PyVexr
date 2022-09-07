@@ -80,6 +80,7 @@ class graphicsView(QtWidgets.QGraphicsView):
         if (event.key() == 43) | (event.key() == 45) | (event.key() == 48):
             # Boost expo
             widget.exposureChange(event.key())
+            widget.satChange(event.key())
 
 
 
@@ -208,7 +209,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["ocio"]["ocioLook"] = None
         self.imgDict["channel"] = None
         self.imgDict["exposure"] = 0
-        self.imgDict["saturation"] = 0
+        self.imgDict["saturation"] = 1
 
         ####################################
         # Code for the PyVexr Main windows #
@@ -401,7 +402,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["ocio"]["ocioLook"] = self.ocioLooks.currentText()
         #print("Input : {0}\nOutput : {1} (sRGB)\nLook : {2}".format(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"]))
 
-        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"])
+        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         # If need to rescale the image
         #convertedImg = convertToQt.scaled(800, 600, QtCore.Qt.KeepAspectRatio)
@@ -491,7 +492,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imageUpdate()
 
     def refreshImg(self):
-        img = updateImg(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"], self.imgDict["exposure"])
+        img = updateImg(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"], self.imgDict["exposure"], self.imgDict["saturation"])
         return(img)
 
     def imageUpdate(self):
@@ -526,6 +527,31 @@ class MyWidget(QtWidgets.QWidget):
         sender = self.sender()
         self.imgDict["ocio"]["ocioLook"] = self.ocioLooks.currentText()
         self.imageUpdate()
+
+    def satChange(self, key):
+        if (self.saturationText.isVisible() == True):
+            #print("saturation change {}".format(key))
+            if key == 43:
+                self.imgDict["saturation"] += 0.1
+                self.updateSaturation()
+                #tempImg = self.refreshImg()
+                #convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+                #self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+
+            if key == 45:
+                self.imgDict["saturation"] -= 0.1
+                self.updateSaturation()
+                #tempImg = self.refreshImg()
+                #convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+                #self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+
+            if key == 48:
+                self.imgDict["saturation"] = 1
+                self.updateSaturation()
+                #tempImg = self.refreshImg()
+                #convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+                #self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+
 
     def exposureChange(self, key):
         # Tweak expo only if E has been pressed before, and therefore the text is toggled on
@@ -574,6 +600,9 @@ class MyWidget(QtWidgets.QWidget):
 
     def updateExposure(self):
         self.exposureText.setPlainText("Exposure : {}".format(round(self.imgDict["exposure"], 2)))
+
+    def updateSaturation(self):
+        self.saturationText.setPlainText("Saturation : {}".format(round(self.imgDict["saturation"], 2)))
 
     def showExposureText(self):
         if (self.exposureText.isVisible() == False):

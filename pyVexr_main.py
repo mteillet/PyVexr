@@ -12,7 +12,7 @@ import Imath
 def main():
     print("PyVexr pre alpha version")
 
-def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure):
+def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure, saturation):
     #print("PyVexr Loading Button")
     temporaryImg = fileList[0]
     #temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
@@ -20,10 +20,10 @@ def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure):
     #temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
     #temporaryImg = "~/Documents/Downloads/Jonathan_bertin_09.jpg"
     #channelList = exrListChannels(temporaryImg)
-    convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook, exposure)
+    convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook, exposure, saturation)
     return (convertedImg)
 
-def updateImg(path, channel, ocioIn, ocioOut, ocioLook, exposure):
+def updateImg(path, channel, ocioIn, ocioOut, ocioLook, exposure, saturation):
     # Checking if a channel switch will be needed or not
     if (channel in [None, "RGB", "RGBA"]):
         #print("No channel merge needed")
@@ -34,6 +34,10 @@ def updateImg(path, channel, ocioIn, ocioOut, ocioLook, exposure):
         # Merging the splitted exr channel (in a different order a openCV expects BGR by default)
         img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
         #print("splittedLayer")
+
+    # SaturationChange
+    if (saturation != 1):
+        img = saturationTweak(img, saturation)
 
     # ExposureChange
     if (exposure != 0):
@@ -80,11 +84,14 @@ def updateExposure(path, channel, ocioIn, ocioOut, ocioLook, exposure):
     convertedImg = rgb_image.data, w, h, bytes_per_line
     return(convertedImg)
 
-def rgbToHsv(img):
-    if saturation != 0:
-        hsv = cv.cvtColor(img, cv2.COLOR_BGR2HSV)
-        # Do something
-        img = cv.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+def saturationTweak(img, saturation):
+    if saturation != 1:
+        hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+        (h,s,v) = cv.split(hsv)
+        s = s * saturation
+        s = np.clip(s,0,255)
+        hsv = cv.merge([h,s,v])
+        img = cv.cvtColor(hsv, cv.COLOR_HSV2BGR)
 
     return(img)
     
@@ -171,7 +178,7 @@ def initOCIO():
 
 
 # Converting the Exr file with opencv to a readable image file for QtPixmap
-def convertExr(path, ocioIn, ocioOut, ocioLook, exposure):
+def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation):
     #img = cv.merge(path)
     img = cv.imread(path, cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
     

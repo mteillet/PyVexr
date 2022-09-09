@@ -5,7 +5,7 @@
 import sys
 import os
 from PyQt5 import QtWidgets, QtCore, QtGui
-from pyVexr_main import loadImg, interpretRectangle, initOCIO, ocioLooksFromView, exrListChannels, updateImg 
+from pyVexr_main import loadImg, interpretRectangle, initOCIO, ocioLooksFromView, exrListChannels, updateImg, seqFromPath 
 from math import sqrt
 
 # Subclassing graphicsView in order to be able to track mouse movements in the scene
@@ -403,8 +403,16 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["ocio"]["ocioIn"] = self.ocioIn.currentText()
         self.imgDict["ocio"]["ocioOut"] = self.ocioOut.currentText()
         self.imgDict["ocio"]["ocioLook"] = self.ocioLooks.currentText()
-        #print("Input : {0}\nOutput : {1} (sRGB)\nLook : {2}".format(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"]))
-
+        #Loading frames from same nomenclature
+        seqDict = seqFromPath(self.imgDict["path"])
+        #Init the slider
+        self.initSlider(seqDict)
+        """
+        for key in seqDict:
+            print("Sequence : {} has the following files :".format(key))
+            for i in seqDict[key]:
+                print(i)
+        """
         tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         # If need to rescale the image
@@ -419,8 +427,34 @@ class MyWidget(QtWidgets.QWidget):
 
         # Fit in view after first load
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
-        # Toggle visibility on widget
-        #self.channelsFrame.setHidden(not self.channelsFrame.isHidden())
+
+    def initSlider(self, seqDict):
+        frameList = []
+        for shot in seqDict:
+            for frame in shot:
+                frameList.append(frame)
+
+        sliderStyleSheet = """
+        QSlider,QSlider:enabled,QSlider:focus     {
+                  background: qcolor(50,50,50,50);   }
+        QSlider:item:hover    {   background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #ffa02f, stop: 1 #eaa553);
+                  color: #000000;              }
+        QWidget:item:selected {   background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #ffa02f, stop: 1 #d7801a);      }
+         QSlider::groove:horizontal {
+                 border: 1px solid #222222;
+                 background: qcolor(0,0,0,0);
+                  }
+          QSlider::handle:horizontal {
+                  background:  qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, stop:0 rgba(255,255,255, 141), stop:0.497175 rgba(255,255,255, 255), stop:0.497326 rgba(255,255,255,255), stop:1 rgba(255,255,255,255));
+                  width: 3px;
+                   }
+         """
+
+        self.frameNumber.setValue(1)
+        self.frameNumber.setMinimum(1)
+        self.frameNumber.setMaximum(len(frameList))
+        self.frameNumber.setTickInterval(1)
+        self.frameNumber.setStyleSheet(sliderStyleSheet)
 
     def updateImgDict(self, path):
         self.imgDict["path"] = path
@@ -428,7 +462,7 @@ class MyWidget(QtWidgets.QWidget):
         self.listChannels()
 
     def dragEnterEvent(self, event):
-        print("drag")
+        #print("drag")
         if (event.mimeData().hasFormat("text/plain")):
             #print(event)
             event.accept()

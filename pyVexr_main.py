@@ -7,11 +7,61 @@ import cv2 as cv
 import numpy as np
 import PyOpenColorIO as OCIO
 import OpenEXR as EXR
-import math
 import Imath
+import glob
 
 def main():
     print("PyVexr pre alpha version")
+
+def seqFromPath(path):
+    '''
+    Looking for the list of paths
+    for each path, compare if the string before the exr is the same or not
+    if it is not the same, add to a new list in the dict
+    and then scan folder to get the full range looking for files and add them into the dict
+    '''
+    pathList = {}
+    #print(path)
+    for i in path:
+        seqName, searchPath = fileSearchPath(i)
+        if seqName in pathList:
+            #print("{} is in the dict".format(seqName))
+            pathList[seqName].append(i)
+        else:
+            pathList[seqName] = [i]
+
+    seqDict = autoRangeFromPath(pathList)
+
+    return(seqDict)
+
+def fileSearchPath(filepath):
+    '''
+    Taking a filepath as an arg
+    Returning the filename - .exr and the frame number as seqName
+    Returning the filepath - .exr and the frame number as search path
+    '''
+    filepath= (filepath.split("/"))
+    filename = (filepath[-1]).split(".")
+    seqName = (".".join(filename[:-2]))
+    searchPath = "{0}/{1}".format("/".join(filepath[:-1]), seqName)
+ 
+    return(seqName, searchPath)
+
+def autoRangeFromPath(pathList):
+    '''
+    Auto - detecting the exrs having the same path but with different frame numbers from the ones that were opened / drag and dropped
+    '''
+    seqDict = {}
+    for i in pathList:
+        #print("Trying to auto-detect frames for the {} sequence".format(i))
+        seqName, searchPath = fileSearchPath(pathList[i][0])
+        fileList = glob.glob(str(searchPath)+"*.exr")
+        fileList.sort()
+        seqDict[i] = fileList
+
+    return(seqDict)
+
+        
 
 def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure, saturation):
     #print("PyVexr Loading Button")

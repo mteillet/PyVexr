@@ -6,6 +6,7 @@ import sys
 import os
 from PyQt5 import QtWidgets, QtCore, QtGui
 from pyVexr_main import loadImg, interpretRectangle, initOCIO, ocioLooksFromView, exrListChannels, updateImg, seqFromPath 
+from pyVexr_timelineGui import Timeline
 from math import sqrt
 
 # Subclassing graphicsView in order to be able to track mouse movements in the scene
@@ -330,12 +331,14 @@ class MyWidget(QtWidgets.QWidget):
         self.version.setText("Versions")
 
         # Slider for the frame sequence
-        self.frameNumber = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.frameNumber.setValue(101)
-        self.frameNumber.setMinimum(101)
-        self.frameNumber.setMaximum(111)
-        self.frameNumber.setTickPosition(QtWidgets.QSlider.TicksAbove)
-        self.frameNumber.setStyleSheet("color: white")
+        #self.frameNumber = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.frameNumber = Timeline()
+        self.frameNumber.slider.valueChanged.connect(self.sliderChanged)
+        #self.frameNumber.setValue(101)
+        #self.frameNumber.setMinimum(101)
+        #self.frameNumber.setMaximum(111)
+        #self.frameNumber.setTickPosition(QtWidgets.QSlider.TicksAbove)
+        #self.frameNumber.setStyleSheet("color: white")
         self.frameNumberLabel = QtWidgets.QLabel()
         self.frameNumberLabel.setText("Frame Number")
         
@@ -415,8 +418,6 @@ class MyWidget(QtWidgets.QWidget):
         """
         tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
-        # If need to rescale the image
-        #convertedImg = convertToQt.scaled(800, 600, QtCore.Qt.KeepAspectRatio)
 
         # Set pixmap in self.image
         self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
@@ -428,11 +429,28 @@ class MyWidget(QtWidgets.QWidget):
         # Fit in view after first load
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
 
+    def changeFrame(self, frame):
+        self.imgDict["path"][0] = frame
+        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"])
+        convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+
+        # Set pixmap in self.image
+        self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+
+        # Give the rectangle view area the coordinates of the pixmap image after the image has been loaded
+        imgCoordinates = interpretRectangle(str(self.image.boundingRect()))
+        self.viewArea.setRect(imgCoordinates[0],imgCoordinates[1],imgCoordinates[2],imgCoordinates[3])
+
+
+    def sliderChanged(self):
+        currentPos = (self.frameNumber.slider.value())
+        frame = self.frameNumber.returnFrame(currentPos)
+        self.changeFrame(frame)
+
     def initSlider(self, seqDict):
-        frameList = []
-        for shot in seqDict:
-            for frame in shot:
-                frameList.append(frame)
+        shotRange = {}
+        # print(seqDict)
+        timeLineDict = self.getFrames(seqDict)
 
         sliderStyleSheet = """
         QSlider,QSlider:enabled,QSlider:focus     {
@@ -450,11 +468,30 @@ class MyWidget(QtWidgets.QWidget):
                    }
          """
 
-        self.frameNumber.setValue(1)
-        self.frameNumber.setMinimum(1)
-        self.frameNumber.setMaximum(len(frameList))
-        self.frameNumber.setTickInterval(1)
+        #self.frameNumber.setValue(1)
+        #self.frameNumber.setMinimum(1)
+        self.frameNumber.updateSlider(timeLineDict)
+        #self.frameNumber.setTickInterval(1)
         self.frameNumber.setStyleSheet(sliderStyleSheet)
+
+    def getFrames(self,seqDict):
+        #print(seqDict)
+        timeLineDict = {}
+        current = 0
+
+        for shot in seqDict:
+            for frame in seqDict[shot]:
+                timeLineDict[current] = {}
+                timeLineDict[current]["position"] = current
+                timeLineDict[current]["shot"] = shot
+                realFrame = frame.split("/")
+                realFrame = ((realFrame[-1]).split("."))[-2]
+                timeLineDict[current]["frame"] = realFrame
+                timeLineDict[current]["path"] = frame
+                current += 1
+
+        return(timeLineDict)
+
 
     def updateImgDict(self, path):
         self.imgDict["path"] = path

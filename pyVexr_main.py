@@ -55,7 +55,7 @@ def autoRangeFromPath(pathList):
     for i in pathList:
         #print("Trying to auto-detect frames for the {} sequence".format(i))
         seqName, searchPath = fileSearchPath(pathList[i][0])
-        fileList = glob.glob(str(searchPath)+"*.exr")
+        fileList = glob.glob(str(searchPath)+".*.exr")
         fileList.sort()
         seqDict[i] = fileList
 
@@ -182,7 +182,7 @@ def exrListChannels(path):
             channelList.insert(0,"RGBA")
     # If RGBA is not in the channel list, then insert RGB, as it means the alpha channel was never found
     if "RGBA" not in channelList:
-        channelList.inster(0, "RGB")
+        channelList.insert(0, "RGB")
     #print(channelList)
     return(channelList)
 

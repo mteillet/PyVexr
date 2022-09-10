@@ -339,8 +339,6 @@ class MyWidget(QtWidgets.QWidget):
         #self.frameNumber.setMaximum(111)
         #self.frameNumber.setTickPosition(QtWidgets.QSlider.TicksAbove)
         #self.frameNumber.setStyleSheet("color: white")
-        self.frameNumberLabel = QtWidgets.QLabel()
-        self.frameNumberLabel.setText("Frame Number")
         
         # Player buttons area
         self.player = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
@@ -385,7 +383,6 @@ class MyWidget(QtWidgets.QWidget):
         # Bottom bars
 
         self.frameNumLayout = QtWidgets.QHBoxLayout()
-        self.frameNumLayout.addWidget(self.frameNumberLabel)
         self.frameNumLayout.addWidget(self.frameNumber, stretch = 1)
         
         self.playerLayout = QtWidgets.QHBoxLayout()

@@ -68,7 +68,7 @@ class _Timeline(QtWidgets.QWidget):
         try:
             (timelineDictInfos["slider"][0])
             total = (len(timelineDictInfos["slider"]))-1
-            item = painter.device().width() / total
+            item = painter.device().width() / (total+0.00001)
             current = 0
             previousName = "pyVexrTempName"
             for i in timelineDictInfos["slider"]:

@@ -231,6 +231,8 @@ class MyWidget(QtWidgets.QWidget):
         self.expoDownAction.triggered.connect(self.exposureMenu)
         self.expoResetAction = self.exposureAction.addAction("Reset Exposure           &0")
         self.expoResetAction.triggered.connect(self.exposureMenu)
+        self.expoCustomAction = self.exposureAction.addAction("Custom Exposure")
+        self.expoCustomAction.triggered.connect(self.customExpoMenu)
         # Saturation Actions
         self.saturationAction = self.editMenu.addMenu("Saturation                &-&S")
         self.satUp = self.saturationAction.addAction("Increase Saturation        &+")
@@ -239,6 +241,8 @@ class MyWidget(QtWidgets.QWidget):
         self.satDown.triggered.connect(self.saturationMenu)
         self.satReset = self.saturationAction.addAction("Reset Saturation             &0")
         self.satReset.triggered.connect(self.saturationMenu)
+        self.satCustom = self.saturationAction.addAction("Custom Saturation")
+        self.satCustom.triggered.connect(self.customSatMenu)
         self.channelsAction = self.editMenu.addAction("Channels Pannel    &-&C")
         self.versionsAction = self.editMenu.addAction("Versions Pannel     &-&V")
         self.infosAction = self.editMenu.addAction("Help")
@@ -669,6 +673,31 @@ class MyWidget(QtWidgets.QWidget):
             key = 48
         self.exposureChange(key)
 
+    def customExpoMenu(self):
+        self.expoPop = ExposurePopup()
+        self.expoPop.show()
+        self.expoPop.spin.valueChanged.connect(self.updateCustomExpo)
+        
+    def updateCustomExpo(self):
+        self.imgDict["exposure"] = self.expoPop.spin.value()
+        self.updateExposure()
+        tempImg = self.refreshImg()
+        convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+        self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+
+    def customSatMenu(self):
+        self.satPop = SaturationPopup()
+        self.satPop.show()
+        self.satPop.spin.valueChanged.connect(self.updateCustomSat)
+        
+    def updateCustomSat(self):
+        self.imgDict["saturation"] = (self.satPop.spin.value())
+        self.updateSaturation()
+        tempImg = self.refreshImg()
+        convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+        self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+
+
     def saturationMenu(self):
         menuSent = self.sender().text()
 
@@ -707,6 +736,62 @@ class MyWidget(QtWidgets.QWidget):
             self.updateSaturation()
         else:
             self.saturationText.hide()
+
+class ExposurePopup(QtWidgets.QWidget):
+    def __init__(self, *args, **kwargs):
+        super(ExposurePopup, self).__init__(*args, **kwargs)
+        self.setWindowTitle("Set custom Exposure")
+        self.setFixedWidth(500)
+        self.setFixedHeight(50)
+
+        self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
+
+        layout = QtWidgets.QVBoxLayout()
+        textLayout = QtWidgets.QHBoxLayout()
+
+        self.label = QtWidgets.QLabel("Enter Exposure : ")
+        self.spin = QtWidgets.QDoubleSpinBox()
+        self.spin.setLocale(QtCore.QLocale("English"))
+        self.spin.setSingleStep(0.5)
+        self.spin.setMinimum(-1000)
+        self.spin.setMaximum(1000)
+
+        textLayout.addWidget(self.label)
+        textLayout.addStretch()
+        textLayout.addWidget(self.spin)
+        
+        layout.addLayout(textLayout)
+
+        self.setLayout(layout)
+
+class SaturationPopup(QtWidgets.QWidget):
+    def __init__(self, *args, **kwargs):
+        super(SaturationPopup, self).__init__(*args, **kwargs)
+        self.setWindowTitle("Set custom saturation")
+        self.setFixedWidth(500)
+        self.setFixedHeight(50)
+
+        self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
+
+        layout = QtWidgets.QVBoxLayout()
+        textLayout = QtWidgets.QHBoxLayout()
+
+        self.label = QtWidgets.QLabel("Enter Saturation : ")
+        self.spin = QtWidgets.QDoubleSpinBox()
+        self.spin.setLocale(QtCore.QLocale("English"))
+        self.spin.setSingleStep(0.25)
+        self.spin.setValue(1)
+        self.spin.setMinimum(0)
+        self.spin.setMaximum(1000)
+
+        textLayout.addWidget(self.label)
+        textLayout.addStretch()
+        textLayout.addWidget(self.spin)
+        
+        layout.addLayout(textLayout)
+
+        self.setLayout(layout)
+
 
 
 

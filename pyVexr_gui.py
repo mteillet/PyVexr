@@ -40,6 +40,8 @@ class graphicsView(QtWidgets.QGraphicsView):
         self.activeKeys[16777251] = False
         # Ctrl key
         self.activeKeys[16777249] = False
+        # Shitf key 
+        self.activeKeys[16777248] = False
         # + and - keys
         self.activeKeys[43] = False
         self.activeKeys[45] = False
@@ -82,7 +84,11 @@ class graphicsView(QtWidgets.QGraphicsView):
             # Boost expo
             widget.exposureChange(event.key())
             widget.satChange(event.key())
-
+        # Mirror image on X if Shift + X
+        if ((self.activeKeys[16777248]) & (event.key() == 88)):
+            widget.mirrorXToggle()
+        if ((self.activeKeys[16777248]) & (event.key() == 89)):
+            widget.mirrorYToggle()
 
 
     def keyReleaseEvent(self, event):
@@ -188,17 +194,6 @@ class graphicsView(QtWidgets.QGraphicsView):
         #print("versionsShortcul")
         widget.versionsClicked()
 
-    def flipX(self):
-        """
-        flipping the image on the X axis
-        """
-        sceneCoordinates = interpretRectangle(str(self.sceneRect()))
-        print(self.sceneRect())
-        print(sceneCoordinates[2], sceneCoordinates[3], sceneCoordinates[0], sceneCoordinates[1])
-        self.setSceneRect(sceneCoordinates[2], sceneCoordinates[3], -sceneCoordinates[2], -sceneCoordinates[3])
-        print("flipped")
-        self.update()
-
 class MyWidget(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
@@ -237,9 +232,9 @@ class MyWidget(QtWidgets.QWidget):
         self.editMenu = self.menuBar.addMenu('&Edit')
         # Mirror Action
         self.mirror = self.editMenu.addMenu("Mirror/Flip image")
-        self.mirrorX = self.mirror.addAction("Flip X")
+        self.mirrorX = self.mirror.addAction("Flip X              &-&S&h&i&f&t&+&X")
         self.mirrorX.triggered.connect(self.mirrorXToggle)
-        self.mirrorY = self.mirror.addAction("Flip Y")
+        self.mirrorY = self.mirror.addAction("Flip Y              &-&S&h&i&f&t&+&Y")
         self.mirrorY.triggered.connect(self.mirrorYToggle)
         # Exposure Actions
         self.exposureAction = self.editMenu.addMenu("Exposure                  &-&E")

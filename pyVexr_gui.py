@@ -188,6 +188,16 @@ class graphicsView(QtWidgets.QGraphicsView):
         #print("versionsShortcul")
         widget.versionsClicked()
 
+    def flipX(self):
+        """
+        flipping the image on the X axis
+        """
+        sceneCoordinates = interpretRectangle(str(self.sceneRect()))
+        print(self.sceneRect())
+        print(sceneCoordinates[2], sceneCoordinates[3], sceneCoordinates[0], sceneCoordinates[1])
+        self.setSceneRect(sceneCoordinates[2], sceneCoordinates[3], -sceneCoordinates[2], -sceneCoordinates[3])
+        print("flipped")
+        self.update()
 
 class MyWidget(QtWidgets.QWidget):
     def __init__(self):
@@ -211,6 +221,8 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["channel"] = None
         self.imgDict["exposure"] = 0
         self.imgDict["saturation"] = 1
+        self.imgDict["flipX"] = False
+        self.imgDict["flipY"] = False
 
         ####################################
         # Code for the PyVexr Main windows #
@@ -223,6 +235,12 @@ class MyWidget(QtWidgets.QWidget):
         self.openAction = self.fileMenu.addAction("Open        &-&C&t&r&l&+&O")
         self.openAction.triggered.connect(self.openFiles)
         self.editMenu = self.menuBar.addMenu('&Edit')
+        # Mirror Action
+        self.mirror = self.editMenu.addMenu("Mirror/Flip image")
+        self.mirrorX = self.mirror.addAction("Flip X")
+        self.mirrorX.triggered.connect(self.mirrorXToggle)
+        self.mirrorY = self.mirror.addAction("Flip Y")
+        self.mirrorY.triggered.connect(self.mirrorYToggle)
         # Exposure Actions
         self.exposureAction = self.editMenu.addMenu("Exposure                  &-&E")
         self.expoUpAction = self.exposureAction.addAction("Increase Exposure      &+")
@@ -326,10 +344,6 @@ class MyWidget(QtWidgets.QWidget):
         self.imgViewer.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.imgViewer.setAcceptDrops(True)
 
-        # Temp img load button -- Will be replaced with a load images dropdown in the menu
-        self.img = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
-        self.img.setText("IMG")
-
         # Version area - Need to replace with a floating window
         self.version = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
         self.version.setText("Versions")
@@ -430,6 +444,9 @@ class MyWidget(QtWidgets.QWidget):
         # Fit in view after first load
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
 
+        # Check mirror state
+        self.mirrorToggles()
+
     def changeFrame(self, frame):
         self.imgDict["path"][0] = frame
         tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"])
@@ -441,12 +458,13 @@ class MyWidget(QtWidgets.QWidget):
         # Give the rectangle view area the coordinates of the pixmap image after the image has been loaded
         imgCoordinates = interpretRectangle(str(self.image.boundingRect()))
         self.viewArea.setRect(imgCoordinates[0],imgCoordinates[1],imgCoordinates[2],imgCoordinates[3])
-
+        
 
     def sliderChanged(self):
         currentPos = (self.frameNumber.slider.value())
         frame = self.frameNumber.returnFrame(currentPos)
         self.changeFrame(frame)
+        self.mirrorToggles()
 
     def initSlider(self, seqDict):
         shotRange = {}
@@ -468,12 +486,52 @@ class MyWidget(QtWidgets.QWidget):
                   width: 3px;
                    }
          """
-
-        #self.frameNumber.setValue(1)
-        #self.frameNumber.setMinimum(1)
         self.frameNumber.updateSlider(timeLineDict)
         #self.frameNumber.setTickInterval(1)
         self.frameNumber.setStyleSheet(sliderStyleSheet)
+
+    def mirrorXToggle(self):
+        """
+        Toggling the imgDict FlipX 
+        """
+        if self.imgDict["flipX"] == False:
+            self.imgDict["flipX"] = True
+        else:
+            self.imgDict["flipX"] = False
+        self.mirrorXAction()
+        
+    def mirrorXAction(self):
+        """
+        Actually Mirroring the image
+        """
+        image = (self.image.pixmap())
+        mirrored = image.transformed(QtGui.QTransform().scale(-1, 1))
+        self.image.setPixmap(mirrored)
+
+    def mirrorYToggle(self):
+        """
+        Toggling the imgDict FlipX 
+        """
+        if self.imgDict["flipY"] == False:
+            self.imgDict["flipY"] = True
+        else:
+            self.imgDict["flipY"] = False
+        self.mirrorYAction()
+
+    def mirrorYAction(self):
+        """
+        Actually Mirroring the image
+        """
+        image = (self.image.pixmap())
+        mirrored = image.transformed(QtGui.QTransform().scale(1, -1))
+        self.image.setPixmap(mirrored)
+
+       
+    def mirrorToggles(self):
+        if self.imgDict["flipX"] == True:
+            self.mirrorXAction()
+        if self.imgDict["flipY"] == True:
+            self.mirrorYAction()
 
     def getFrames(self,seqDict):
         #print(seqDict)
@@ -567,14 +625,14 @@ class MyWidget(QtWidgets.QWidget):
         self.imageUpdate()
 
     def refreshImg(self):
-        img = updateImg(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"], self.imgDict["exposure"], self.imgDict["saturation"])
-        return(img)
+        tempImg = updateImg(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"], self.imgDict["exposure"], self.imgDict["saturation"])
+        convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+        self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+        self.mirrorToggles()
 
     def imageUpdate(self):
         #print("Updating image using the dictionnary")
-        tempImg = self.refreshImg()
-        convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
-        self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+        self.refreshImg()
 
     def resizeEvent(self, event):
         #print("Resize")
@@ -609,23 +667,17 @@ class MyWidget(QtWidgets.QWidget):
             if key == 43:
                 self.imgDict["saturation"] += 0.01
                 self.updateSaturation()
-                tempImg = self.refreshImg()
-                convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
-                self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+                self.refreshImg()
 
             if key == 45:
                 self.imgDict["saturation"] -= 0.01
                 self.updateSaturation()
-                tempImg = self.refreshImg()
-                convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
-                self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+                self.refreshImg()
 
             if key == 48:
                 self.imgDict["saturation"] = 1
                 self.updateSaturation()
-                tempImg = self.refreshImg()
-                convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
-                self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+                self.refreshImg()
 
 
     def exposureChange(self, key):
@@ -636,25 +688,19 @@ class MyWidget(QtWidgets.QWidget):
                 #print("Boost expo")
                 self.imgDict["exposure"] += 0.1
                 self.updateExposure()
-                tempImg = self.refreshImg()
-                convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
-                self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+                self.refreshImg()
 
             if key == 45:
                 #print("Lower expo")
                 self.imgDict["exposure"] -= 0.1
                 self.updateExposure()
-                tempImg = self.refreshImg()
-                convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
-                self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+                self.refreshImg()
 
             if key == 48:
                 #print("Reset Exposure")
                 self.imgDict["exposure"] = 0
                 self.updateExposure()
-                tempImg = self.refreshImg()
-                convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
-                self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+                self.refreshImg()
 
     def exposureMenu(self):
         menuSent = (self.sender().text())
@@ -681,9 +727,7 @@ class MyWidget(QtWidgets.QWidget):
     def updateCustomExpo(self):
         self.imgDict["exposure"] = self.expoPop.spin.value()
         self.updateExposure()
-        tempImg = self.refreshImg()
-        convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
-        self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+        self.refreshImg()
 
     def customSatMenu(self):
         self.satPop = SaturationPopup()
@@ -693,9 +737,7 @@ class MyWidget(QtWidgets.QWidget):
     def updateCustomSat(self):
         self.imgDict["saturation"] = (self.satPop.spin.value())
         self.updateSaturation()
-        tempImg = self.refreshImg()
-        convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
-        self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+        self.refreshImg()
 
 
     def saturationMenu(self):

@@ -471,10 +471,20 @@ class MyWidget(QtWidgets.QWidget):
         self.changeFrame(frame)
         self.mirrorToggles()
 
+        # Updating the layers on the new shot
+        #print(self.timeLineDict[currentPos]["shot"])
+        if (currentPos >= 1):
+            if ((self.timeLineDict[currentPos]["shot"] != self.timeLineDict[currentPos-1]["shot"]) | (self.timeLineDict[currentPos]["shot"] != self.timeLineDict[currentPos+1]["shot"])):
+                self.listChannels()
+            else:
+                pass
+        else:
+            self.listChannels
+
     def initSlider(self, seqDict):
         shotRange = {}
         # print(seqDict)
-        timeLineDict = self.getFrames(seqDict)
+        self.timeLineDict = self.getFrames(seqDict)
 
         sliderStyleSheet = """
         QSlider,QSlider:enabled,QSlider:focus     {
@@ -491,7 +501,7 @@ class MyWidget(QtWidgets.QWidget):
                   width: 3px;
                    }
          """
-        self.frameNumber.updateSlider(timeLineDict)
+        self.frameNumber.updateSlider(self.timeLineDict)
         #self.frameNumber.setTickInterval(1)
         self.frameNumber.setStyleSheet(sliderStyleSheet)
 
@@ -540,21 +550,21 @@ class MyWidget(QtWidgets.QWidget):
 
     def getFrames(self,seqDict):
         #print(seqDict)
-        timeLineDict = {}
+        self.timeLineDict = {}
         current = 0
 
         for shot in seqDict:
             for frame in seqDict[shot]:
-                timeLineDict[current] = {}
-                timeLineDict[current]["position"] = current
-                timeLineDict[current]["shot"] = shot
+                self.timeLineDict[current] = {}
+                self.timeLineDict[current]["position"] = current
+                self.timeLineDict[current]["shot"] = shot
                 realFrame = frame.split("/")
                 realFrame = ((realFrame[-1]).split("."))[-2]
-                timeLineDict[current]["frame"] = realFrame
-                timeLineDict[current]["path"] = frame
+                self.timeLineDict[current]["frame"] = realFrame
+                self.timeLineDict[current]["path"] = frame
                 current += 1
 
-        return(timeLineDict)
+        return(self.timeLineDict)
 
 
     def updateImgDict(self, path):

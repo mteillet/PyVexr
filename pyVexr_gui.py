@@ -218,6 +218,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["saturation"] = 1
         self.imgDict["flipX"] = False
         self.imgDict["flipY"] = False
+        self.imgDict["RGBA"] = "RGB"
 
         ####################################
         # Code for the PyVexr Main windows #
@@ -240,10 +241,16 @@ class MyWidget(QtWidgets.QWidget):
         self.fileMenu.addSeparator()
         self.exit = self.fileMenu.addAction("Exit PyVexr")
         # Mirror Action
+        self.channelMenu = self.editMenu.addMenu("Current Channel")
+        self.channelR = self.channelMenu.addAction("R")
+        self.channelG = self.channelMenu.addAction("G")
+        self.channelB = self.channelMenu.addAction("B")
+        self.channelA = self.channelMenu.addAction("A")
         self.mirror = self.editMenu.addMenu("Mirror/Flip image")
         self.mirrorX = self.mirror.addAction("Flip X              &-&S&h&i&f&t&+&X")
         self.mirrorX.triggered.connect(self.mirrorXToggle)
         self.mirrorY = self.mirror.addAction("Flip Y              &-&S&h&i&f&t&+&Y")
+        self.contactSheet = self.editMenu.addAction("Contact Sheet")
         self.mirrorY.triggered.connect(self.mirrorYToggle)
         self.fileMenu.addSeparator()
         self.infosAction = self.editMenu.addAction("Help")
@@ -468,18 +475,18 @@ class MyWidget(QtWidgets.QWidget):
     def sliderChanged(self):
         currentPos = (self.frameNumber.slider.value())
         frame = self.frameNumber.returnFrame(currentPos)
+        positionMax = (self.frameNumber.slider.maximum())
         self.changeFrame(frame)
         self.mirrorToggles()
 
         # Updating the layers on the new shot
         #print(self.timeLineDict[currentPos]["shot"])
-        if (currentPos >= 1):
+        if (currentPos >= 1) & (currentPos != positionMax):
             if ((self.timeLineDict[currentPos]["shot"] != self.timeLineDict[currentPos-1]["shot"]) | (self.timeLineDict[currentPos]["shot"] != self.timeLineDict[currentPos+1]["shot"])):
                 self.listChannels()
-            else:
-                pass
         else:
-            self.listChannels
+            if (currentPos == positionMax):
+                self.listChannels()
 
     def initSlider(self, seqDict):
         shotRange = {}

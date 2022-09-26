@@ -175,9 +175,15 @@ def exrListChannels(path):
     # Printing the raw list of channels (listed in alphabetical order)
     channelList = []
     for channel in channelsRaw:
-        #print(channel, channelsRaw[channel])
-        if ((channel.split(".")[0]) not in channelList) & (channel not in ["R","G","B","A"]):
-            channelList.append(channel.split(".")[0])
+
+        if "." in channel:
+            tempChannel = channel.split(".")
+            tempChannel = ".".join(tempChannel[:-1])
+        else:
+            tempChannel = channel
+
+        if (tempChannel not in channelList) & (channel not in ["R","G","B","A"]):
+            channelList.append(tempChannel)
         elif (channel) == "A":
             channelList.insert(0,"RGBA")
     # If RGBA is not in the channel list, then insert RGB, as it means the alpha channel was never found
@@ -195,6 +201,49 @@ def exrSwitchChannel(path, channel):
     # Getting size for the numpy reshape
     isize = (dw.max.y - dw.min.y + 1, dw.max.x - dw.min.x + 1)
 
+    foundChannelList = []
+
+    for i in channelsRaw:
+        if i.startswith(channel) == True:
+            foundChannelList.append(i)
+
+    #print(foundChannelList)
+    # check for exception containing too many channels
+    if len(foundChannelList) >= 4:
+        #print("over 3")
+        foundChannelList = ["{}.R".format(channel),"{}.G".format(channel),"{}.B".format(channel)]
+
+    if len(foundChannelList) == 3:
+        channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
+        channelR = np.fromstring(channelR, dtype = np.float32)
+        channelR = np.reshape(channelR, isize)
+        channelG = exr.channel("{}".format(foundChannelList[1]), Imath.PixelType(Imath.PixelType.FLOAT))
+        channelG = np.fromstring(channelG, dtype = np.float32)
+        channelG = np.reshape(channelG, isize)
+        channelB = exr.channel("{}".format(foundChannelList[2]), Imath.PixelType(Imath.PixelType.FLOAT))
+        channelB = np.fromstring(channelB, dtype = np.float32)
+        channelB = np.reshape(channelB, isize) 
+    elif len(foundChannelList) == 2:
+        channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
+        channelR = np.fromstring(channelR, dtype = np.float32)
+        channelR = np.reshape(channelR, isize)
+        channelG = exr.channel("{}".format(foundChannelList[1]), Imath.PixelType(Imath.PixelType.FLOAT))
+        channelG = np.fromstring(channelG, dtype = np.float32)
+        channelG = np.reshape(channelG, isize)       
+        channelB = np.zeros((isize[1], isize[0], 1), dtype = np.float32)
+        channelB = np.reshape(channelB, isize)
+    elif len(foundChannelList) == 1:
+        channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
+        channelR = np.fromstring(channelR, dtype = np.float32)
+        channelR = np.reshape(channelR, isize)
+        channelG = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT))
+        channelG = np.fromstring(channelG, dtype = np.float32)
+        channelG = np.reshape(channelG, isize)       
+        channelB = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
+        channelB = np.fromstring(channelB, dtype = np.float32)
+        channelB = np.reshape(channelB, isize)
+
+    """
     # Test channel switch
     channelR = exr.channel("{}.R".format(channel), Imath.PixelType(Imath.PixelType.FLOAT)) 
     channelR = np.fromstring(channelR, dtype = np.float32)
@@ -205,7 +254,8 @@ def exrSwitchChannel(path, channel):
     channelB = exr.channel("{}.B".format(channel), Imath.PixelType(Imath.PixelType.FLOAT))
     channelB = np.fromstring(channelB, dtype = np.float32)
     channelB = np.reshape(channelB, isize) 
-    
+    """
+
     # Channels will be merged by the openCV function later on
     img = channelR, channelG, channelB
     

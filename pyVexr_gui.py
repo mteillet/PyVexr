@@ -218,7 +218,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["saturation"] = 1
         self.imgDict["flipX"] = False
         self.imgDict["flipY"] = False
-        self.imgDict["RGBA"] = "RGB"
+        self.imgDict["RGBA"] = "rgba"
 
         ####################################
         # Code for the PyVexr Main windows #
@@ -242,10 +242,16 @@ class MyWidget(QtWidgets.QWidget):
         self.exit = self.fileMenu.addAction("Exit PyVexr")
         # Mirror Action
         self.channelMenu = self.editMenu.addMenu("Current Channel")
-        self.channelR = self.channelMenu.addAction("R")
-        self.channelG = self.channelMenu.addAction("G")
-        self.channelB = self.channelMenu.addAction("B")
-        self.channelA = self.channelMenu.addAction("A")
+        self.channelRGBA = self.channelMenu.addAction("RGBA")
+        self.channelRGBA.triggered.connect(self.switchChannelRGBA)
+        self.channelR = self.channelMenu.addAction("Red")
+        self.channelR.triggered.connect(self.switchChannelR)
+        self.channelG = self.channelMenu.addAction("Green")
+        self.channelG.triggered.connect(self.switchChannelG)
+        self.channelB = self.channelMenu.addAction("Blue")
+        self.channelB.triggered.connect(self.switchChannelB)
+        self.channelA = self.channelMenu.addAction("Alpha")
+        self.channelA.triggered.connect(self.switchChannelA)
         self.mirror = self.editMenu.addMenu("Mirror/Flip image")
         self.mirrorX = self.mirror.addAction("Flip X              &-&S&h&i&f&t&+&X")
         self.mirrorX.triggered.connect(self.mirrorXToggle)
@@ -341,7 +347,7 @@ class MyWidget(QtWidgets.QWidget):
         self.saturationText.setScale(2)
         self.saturationText.setDefaultTextColor(QtGui.QColor("white"))
         self.saturationText.hide()
-
+        
         # Putting the objects in the scene
         self.image = QtWidgets.QGraphicsPixmapItem()
         self.imgZone.addItem(self.image)
@@ -511,6 +517,33 @@ class MyWidget(QtWidgets.QWidget):
         self.frameNumber.updateSlider(self.timeLineDict)
         #self.frameNumber.setTickInterval(1)
         self.frameNumber.setStyleSheet(sliderStyleSheet)
+
+    def switchChannelRGBA(self):
+        self.imgDict["RGBA"] = "rgba"
+        print(self.imgDict["RGBA"])
+        self.updateRGBA()
+
+    def switchChannelR(self):
+        self.imgDict["RGBA"] = "red"
+        print(self.imgDict["RGBA"])
+        self.updateRGBA()
+
+    def switchChannelG(self):
+        self.imgDict["RGBA"] = "green"
+        print(self.imgDict["RGBA"])
+
+    def switchChannelB(self):
+        self.imgDict["RGBA"] = "blue"
+        print(self.imgDict["RGBA"])
+
+    def switchChannelA(self):
+        self.imgDict["RGBA"] = "alpha"
+        print(self.imgDict["RGBA"])
+
+    def updateRGBA(self):
+        #print("updateRGBA using {}".format(self.imgDict["RGBA"]))
+        # Update display
+        self.frameNumber.channelLabel.setText("Channel : {}".format(self.imgDict["RGBA"].upper()))
 
     def mirrorXToggle(self):
         """

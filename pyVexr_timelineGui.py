@@ -116,6 +116,7 @@ class Timeline(QtWidgets.QWidget):
 
         self.label = QtWidgets.QLabel("ShotName")
         self.frameNumber = QtWidgets.QLabel("Frame : Number")
+        self.channelLabel = QtWidgets.QLabel("Channel : RGBA")
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self._timeline= _Timeline()
         self.slider.valueChanged.connect(self.refreshSliderInfos)
@@ -124,6 +125,8 @@ class Timeline(QtWidgets.QWidget):
         textLayout.addWidget(self.label)
         textLayout.addStretch()
         textLayout.addWidget(self.frameNumber)
+        textLayout.addStretch()
+        textLayout.addWidget(self.channelLabel)
         layout.addWidget(self._timeline)
         layout.addWidget(self.slider)
 

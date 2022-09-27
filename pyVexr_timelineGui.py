@@ -117,15 +117,17 @@ class Timeline(QtWidgets.QWidget):
         self.label = QtWidgets.QLabel("ShotName")
         self.frameNumber = QtWidgets.QLabel("Frame : Number")
         self.channelLabel = QtWidgets.QLabel("Channel : ")
-        styleRed = "QLabel {color : red; }"
-        styleGreen = "QLabel {color : green; }"
-        styleBlue = "QLabel {color : blue; }"
+        self.styleRed = "QLabel {color : red; }"
+        self.styleGreen = "QLabel {color : green; }"
+        self.styleBlue = "QLabel {color : blue; }"
+        self.styleBlack = "QLabel {color : black; }"
+        self.styleWhite = "QLabel {color : white; }"
         self.channelLabelR = QtWidgets.QLabel("R")
-        self.channelLabelR.setStyleSheet(styleRed)
+        self.channelLabelR.setStyleSheet(self.styleRed)
         self.channelLabelG = QtWidgets.QLabel("G")
-        self.channelLabelG.setStyleSheet(styleGreen)
+        self.channelLabelG.setStyleSheet(self.styleGreen)
         self.channelLabelB = QtWidgets.QLabel("B")
-        self.channelLabelB.setStyleSheet(styleBlue)
+        self.channelLabelB.setStyleSheet(self.styleBlue)
         self.channelLabelA = QtWidgets.QLabel("A")
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self._timeline= _Timeline()

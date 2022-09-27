@@ -568,30 +568,30 @@ class MyWidget(QtWidgets.QWidget):
     def updateRGBA(self):
         # Update display
         if self.imgDict["RGBA"] == "rgba":
-            self.frameNumber.channelLabelR.show()
-            self.frameNumber.channelLabelG.show()
-            self.frameNumber.channelLabelB.show()
-            self.frameNumber.channelLabelA.show()
+            self.frameNumber.channelLabelR.setStyleSheet(self.frameNumber.styleRed)
+            self.frameNumber.channelLabelG.setStyleSheet(self.frameNumber.styleGreen)
+            self.frameNumber.channelLabelB.setStyleSheet(self.frameNumber.styleBlue)
+            self.frameNumber.channelLabelA.setStyleSheet(self.frameNumber.styleWhite)
         if self.imgDict["RGBA"] == "red":
-            self.frameNumber.channelLabelR.show()
-            self.frameNumber.channelLabelG.hide()
-            self.frameNumber.channelLabelB.hide()
-            self.frameNumber.channelLabelA.hide()
+            self.frameNumber.channelLabelR.setStyleSheet(self.frameNumber.styleRed)
+            self.frameNumber.channelLabelG.setStyleSheet(self.frameNumber.styleBlack)
+            self.frameNumber.channelLabelB.setStyleSheet(self.frameNumber.styleBlack)
+            self.frameNumber.channelLabelA.setStyleSheet(self.frameNumber.styleBlack)
         if self.imgDict["RGBA"] == "green":
-            self.frameNumber.channelLabelR.hide()
-            self.frameNumber.channelLabelG.show()
-            self.frameNumber.channelLabelB.hide()
-            self.frameNumber.channelLabelA.hide()
+            self.frameNumber.channelLabelR.setStyleSheet(self.frameNumber.styleBlack)
+            self.frameNumber.channelLabelG.setStyleSheet(self.frameNumber.styleGreen)
+            self.frameNumber.channelLabelB.setStyleSheet(self.frameNumber.styleBlack)
+            self.frameNumber.channelLabelA.setStyleSheet(self.frameNumber.styleBlack)
         if self.imgDict["RGBA"] == "blue":
-            self.frameNumber.channelLabelR.hide()
-            self.frameNumber.channelLabelG.hide()
-            self.frameNumber.channelLabelB.show()
-            self.frameNumber.channelLabelA.hide()
+            self.frameNumber.channelLabelR.setStyleSheet(self.frameNumber.styleBlack)
+            self.frameNumber.channelLabelG.setStyleSheet(self.frameNumber.styleBlack)
+            self.frameNumber.channelLabelB.setStyleSheet(self.frameNumber.styleBlue)
+            self.frameNumber.channelLabelA.setStyleSheet(self.frameNumber.styleBlack)
         if self.imgDict["RGBA"] == "alpha":
-            self.frameNumber.channelLabelR.hide()
-            self.frameNumber.channelLabelG.hide()
-            self.frameNumber.channelLabelB.hide()
-            self.frameNumber.channelLabelA.show()
+            self.frameNumber.channelLabelR.setStyleSheet(self.frameNumber.styleBlack)
+            self.frameNumber.channelLabelG.setStyleSheet(self.frameNumber.styleBlack)
+            self.frameNumber.channelLabelB.setStyleSheet(self.frameNumber.styleBlack)
+            self.frameNumber.channelLabelA.setStyleSheet(self.frameNumber.styleWhite)
         self.refreshImg()
 
     def mirrorXToggle(self):

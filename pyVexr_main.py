@@ -202,6 +202,19 @@ def exrSwitchChannel(path, channel, channelRGBA):
     # Getting size for the numpy reshape
     isize = (dw.max.y - dw.min.y + 1, dw.max.x - dw.min.x + 1)
 
+    # In case of a change in the timeline, need to check if the channel exists in the new exr
+    # Otherwise, goes to None by default
+    channelExists = False
+    for i in channelsRaw:
+        if channel == None: 
+            pass
+        elif i.startswith(channel) == True:
+            channelExists = True
+
+    if (channel != None) & (channelExists != True):
+        print("{} not found, going back to RGB".format(channel))
+        channel = None
+
 
     foundChannelList = []
 

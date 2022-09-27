@@ -63,7 +63,7 @@ def autoRangeFromPath(pathList):
 
         
 
-def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure, saturation):
+def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure, saturation, channel, channelRGBA):
     #print("PyVexr Loading Button")
     temporaryImg = fileList[0]
     #temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
@@ -71,17 +71,17 @@ def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure, saturation):
     #temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
     #temporaryImg = "~/Documents/Downloads/Jonathan_bertin_09.jpg"
     #channelList = exrListChannels(temporaryImg)
-    convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook, exposure, saturation)
+    convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, channelRGBA)
     return (convertedImg)
 
-def updateImg(path, channel, ocioIn, ocioOut, ocioLook, exposure, saturation):
+def updateImg(path, channel, ocioIn, ocioOut, ocioLook, exposure, saturation, channelRGBA):
     # Checking if a channel switch will be needed or not
-    if (channel in [None, "RGB", "RGBA"]):
+    if (channel in [None, "RGB", "RGBA"]) & (channelRGBA == "rgba"):
         #print("No channel merge needed")
         img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
         #print("classic layer")
     else:
-        splitImg = exrSwitchChannel(path, channel)
+        splitImg = exrSwitchChannel(path, channel, channelRGBA)
         # Merging the splitted exr channel (in a different order a openCV expects BGR by default)
         img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
         #print("splittedLayer")
@@ -192,21 +192,54 @@ def exrListChannels(path):
     #print(channelList)
     return(channelList)
 
-def exrSwitchChannel(path, channel):
+def exrSwitchChannel(path, channel, channelRGBA):
     exr = EXR.InputFile(path[0])
     header = exr.header()
     channelsRaw = header["channels"]
     dw = header["dataWindow"]
+    #print(channelsRaw)
 
     # Getting size for the numpy reshape
     isize = (dw.max.y - dw.min.y + 1, dw.max.x - dw.min.x + 1)
 
+
     foundChannelList = []
 
-    for i in channelsRaw:
-        if i.startswith(channel) == True:
-            foundChannelList.append(i)
+    emptyAlpha = False
+    # Additionnal tests if R,G,B,A or all channels are selected
+    if (channel == "RGBA") | (channel == None):
+        if (channelRGBA == "rgba"):
+            foundChannelList = ["R","G","B"]
+        elif (channelRGBA == "red"):
+            foundChannelList = ["R"]
+        elif (channelRGBA == "green"):
+            foundChannelList = ["G"]
+        elif (channelRGBA == "blue"):
+            foundChannelList = ["B"]
+        elif (channelRGBA == "alpha"):
+            defaultAlpha = "{}.A".format(channel)
+            if defaultAlpha in channelsRaw:
+                foundChannelList = [defaultAlpha]
+            elif "A" in channelsRaw:
+                foundChannelList = ["A"]
+            else:
+                emptyAlpha = True
+    else:
+        for i in channelsRaw:
+            if i.startswith(channel) == True:
+                foundChannelList.append(i)
+            if (channelRGBA == "alpha"):
+                defaultAlpha = "{}.A".format(channel)
+                if defaultAlpha in channelsRaw:
+                    foundChannelList = [defaultAlpha]
+                elif "A" in channelsRaw:
+                    foundChannelList = ["A"]
+                else:
+                    print("empty Alpha")
+                    emptyAlpha = True
 
+    #print(channel)
+    #print(channelsRaw)
     #print(foundChannelList)
     # check for exception containing too many channels
     if len(foundChannelList) >= 4:
@@ -236,25 +269,25 @@ def exrSwitchChannel(path, channel):
         channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
         channelR = np.fromstring(channelR, dtype = np.float32)
         channelR = np.reshape(channelR, isize)
-        channelG = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT))
-        channelG = np.fromstring(channelG, dtype = np.float32)
-        channelG = np.reshape(channelG, isize)       
-        channelB = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
-        channelB = np.fromstring(channelB, dtype = np.float32)
-        channelB = np.reshape(channelB, isize)
+        channelG = channelR 
+        channelB = channelR
 
-    """
-    # Test channel switch
-    channelR = exr.channel("{}.R".format(channel), Imath.PixelType(Imath.PixelType.FLOAT)) 
-    channelR = np.fromstring(channelR, dtype = np.float32)
-    channelR = np.reshape(channelR, isize)
-    channelG = exr.channel("{}.G".format(channel), Imath.PixelType(Imath.PixelType.FLOAT))
-    channelG = np.fromstring(channelG, dtype = np.float32)
-    channelG = np.reshape(channelG, isize)
-    channelB = exr.channel("{}.B".format(channel), Imath.PixelType(Imath.PixelType.FLOAT))
-    channelB = np.fromstring(channelB, dtype = np.float32)
-    channelB = np.reshape(channelB, isize) 
-    """
+    if (channelRGBA == "rgba"):
+        pass
+    elif channelRGBA == "alpha":
+        if emptyAlpha == True:
+            print("empty")
+            channelA = np.zeros((isize[1], isize[0], 1), dtype = np.float32)
+            channelA = np.reshape(channelA, isize)
+    elif channelRGBA == "red":
+        channelB = channelR
+        channelG = channelR
+    elif channelRGBA == "green":
+        channelR = channelG
+        channelB = channelG
+    elif channelRGBA == "blue":
+        channelR = channelB
+        channelG = channelB
 
     # Channels will be merged by the openCV function later on
     img = channelR, channelG, channelB
@@ -298,9 +331,21 @@ def initOCIO():
 
 
 # Converting the Exr file with opencv to a readable image file for QtPixmap
-def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation):
+def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, channelRGBA):
+    path = [path]
+
+    if (channel in [None, "RGB", "RGBA"]) & (channelRGBA == "rgba"):
+        #print("No channel merge needed")
+        img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
+        #print("classic layer")
+    else:
+        splitImg = exrSwitchChannel(path, channel, channelRGBA)
+        # Merging the splitted exr channel (in a different order a openCV expects BGR by default)
+        img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
+        #print("splittedLayer")
+
     #img = cv.merge(path)
-    img = cv.imread(path, cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
+    #img = cv.imread(path, cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
     
     # For debugging purpose, if you need to display the image in open cv to compare
     '''

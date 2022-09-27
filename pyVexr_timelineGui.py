@@ -116,17 +116,32 @@ class Timeline(QtWidgets.QWidget):
 
         self.label = QtWidgets.QLabel("ShotName")
         self.frameNumber = QtWidgets.QLabel("Frame : Number")
-        self.channelLabel = QtWidgets.QLabel("Channel : RGBA")
+        self.channelLabel = QtWidgets.QLabel("Channel : ")
+        styleRed = "QLabel {color : red; }"
+        styleGreen = "QLabel {color : green; }"
+        styleBlue = "QLabel {color : blue; }"
+        self.channelLabelR = QtWidgets.QLabel("R")
+        self.channelLabelR.setStyleSheet(styleRed)
+        self.channelLabelG = QtWidgets.QLabel("G")
+        self.channelLabelG.setStyleSheet(styleGreen)
+        self.channelLabelB = QtWidgets.QLabel("B")
+        self.channelLabelB.setStyleSheet(styleBlue)
+        self.channelLabelA = QtWidgets.QLabel("A")
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self._timeline= _Timeline()
         self.slider.valueChanged.connect(self.refreshSliderInfos)
         self.slider.valueChanged.connect(self._timeline._trigger_refresh)
 
         textLayout.addWidget(self.label)
+        textLayout.setSpacing(0)
         textLayout.addStretch()
         textLayout.addWidget(self.frameNumber)
         textLayout.addStretch()
         textLayout.addWidget(self.channelLabel)
+        textLayout.addWidget(self.channelLabelR)
+        textLayout.addWidget(self.channelLabelG)
+        textLayout.addWidget(self.channelLabelB)
+        textLayout.addWidget(self.channelLabelA)
         layout.addWidget(self._timeline)
         layout.addWidget(self.slider)
 

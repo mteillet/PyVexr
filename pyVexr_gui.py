@@ -89,6 +89,19 @@ class graphicsView(QtWidgets.QGraphicsView):
             widget.mirrorXToggle()
         if ((self.activeKeys[16777248]) & (event.key() == 89)):
             widget.mirrorYToggle()
+        # RGBA switch channels
+        if (event.key() == 82):
+            widget.switchChannelR()
+        if (event.key() == 71):
+            widget.switchChannelG()
+        if (event.key() == 66):
+            widget.switchChannelB()
+        if (event.key() == 65):
+            widget.switchChannelA()
+
+
+
+
 
 
     def keyReleaseEvent(self, event):
@@ -449,7 +462,7 @@ class MyWidget(QtWidgets.QWidget):
             for i in seqDict[key]:
                 print(i)
         """
-        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"])
+        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
 
         # Set pixmap in self.image
@@ -467,7 +480,7 @@ class MyWidget(QtWidgets.QWidget):
 
     def changeFrame(self, frame):
         self.imgDict["path"][0] = frame
-        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"])
+        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
 
         # Set pixmap in self.image
@@ -520,30 +533,66 @@ class MyWidget(QtWidgets.QWidget):
 
     def switchChannelRGBA(self):
         self.imgDict["RGBA"] = "rgba"
-        print(self.imgDict["RGBA"])
+        #print(self.imgDict["RGBA"])
         self.updateRGBA()
 
     def switchChannelR(self):
-        self.imgDict["RGBA"] = "red"
-        print(self.imgDict["RGBA"])
-        self.updateRGBA()
+        if (self.imgDict["RGBA"] != "red"):
+            self.imgDict["RGBA"] = "red"
+            self.updateRGBA()
+        else:
+            self.switchChannelRGBA()
+        #print(self.imgDict["RGBA"])
 
     def switchChannelG(self):
-        self.imgDict["RGBA"] = "green"
-        print(self.imgDict["RGBA"])
+        if (self.imgDict["RGBA"] != "green"):
+            self.imgDict["RGBA"] = "green"
+            self.updateRGBA()
+        else:
+            self.switchChannelRGBA()
 
     def switchChannelB(self):
-        self.imgDict["RGBA"] = "blue"
-        print(self.imgDict["RGBA"])
+        if (self.imgDict["RGBA"] != "blue"):
+            self.imgDict["RGBA"] = "blue"
+            self.updateRGBA()
+        else:
+            self.switchChannelRGBA()
 
     def switchChannelA(self):
-        self.imgDict["RGBA"] = "alpha"
-        print(self.imgDict["RGBA"])
+        if (self.imgDict["RGBA"] != "alpha"):
+            self.imgDict["RGBA"] = "alpha"
+            self.updateRGBA()
+        else:
+            self.switchChannelRGBA()
 
     def updateRGBA(self):
-        #print("updateRGBA using {}".format(self.imgDict["RGBA"]))
         # Update display
-        self.frameNumber.channelLabel.setText("Channel : {}".format(self.imgDict["RGBA"].upper()))
+        if self.imgDict["RGBA"] == "rgba":
+            self.frameNumber.channelLabelR.show()
+            self.frameNumber.channelLabelG.show()
+            self.frameNumber.channelLabelB.show()
+            self.frameNumber.channelLabelA.show()
+        if self.imgDict["RGBA"] == "red":
+            self.frameNumber.channelLabelR.show()
+            self.frameNumber.channelLabelG.hide()
+            self.frameNumber.channelLabelB.hide()
+            self.frameNumber.channelLabelA.hide()
+        if self.imgDict["RGBA"] == "green":
+            self.frameNumber.channelLabelR.hide()
+            self.frameNumber.channelLabelG.show()
+            self.frameNumber.channelLabelB.hide()
+            self.frameNumber.channelLabelA.hide()
+        if self.imgDict["RGBA"] == "blue":
+            self.frameNumber.channelLabelR.hide()
+            self.frameNumber.channelLabelG.hide()
+            self.frameNumber.channelLabelB.show()
+            self.frameNumber.channelLabelA.hide()
+        if self.imgDict["RGBA"] == "alpha":
+            self.frameNumber.channelLabelR.hide()
+            self.frameNumber.channelLabelG.hide()
+            self.frameNumber.channelLabelB.hide()
+            self.frameNumber.channelLabelA.show()
+        self.refreshImg()
 
     def mirrorXToggle(self):
         """
@@ -680,7 +729,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imageUpdate()
 
     def refreshImg(self):
-        tempImg = updateImg(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"], self.imgDict["exposure"], self.imgDict["saturation"])
+        tempImg = updateImg(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["RGBA"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
         self.mirrorToggles()

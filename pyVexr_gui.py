@@ -232,7 +232,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["flipX"] = False
         self.imgDict["flipY"] = False
         self.imgDict["RGBA"] = "rgba"
-
+        self.imgDict["previousShot"] = None
         ####################################
         # Code for the PyVexr Main windows #
         ####################################
@@ -495,24 +495,23 @@ class MyWidget(QtWidgets.QWidget):
         currentPos = (self.frameNumber.slider.value())
         frame = self.frameNumber.returnFrame(currentPos)
         positionMax = (self.frameNumber.slider.maximum())
-        try:
-            currentRegisteredShot
-        except NameError:
-            currentRegisteredShot = None
+        isSameShot = True
 
         # Updating the layers on the new shot
-        #print(self.timeLineDict[currentPos]["shot"])
-        if (currentPos >= 1) & (currentPos != positionMax):
-            if (self.timeLineDict[currentPos]["shot"] != currentRegisteredShot):
-                self.imgDict["channel"] = None
-                self.listChannels()
-                currentRegisteredShot = self.timeLineDict[currentPos]["shot"]
-        else:
-            if (currentPos == positionMax):
-                self.listChannels()
+        if (self.timeLineDict[currentPos]["shot"] != self.imgDict["previousShot"]):
+            isSameShot = False
+            self.imgDict["channel"] = None
+            self.imgDict["previousShot"] = self.timeLineDict[currentPos]["shot"]
 
         self.changeFrame(frame)
         self.mirrorToggles()
+
+        if isSameShot != True:
+            self.listChannels()
+        # Fix as sometimes updates are not done 
+        #if (currentPos == positionMax):
+        #        self.listChannels()
+
 
 
 

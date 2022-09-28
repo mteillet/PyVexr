@@ -75,7 +75,10 @@ def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure, saturation, channel, 
     return (convertedImg)
 
 def updateImg(path, channel, ocioIn, ocioOut, ocioLook, exposure, saturation, channelRGBA):
-    # Checking if a channel switch will be needed or not
+    #Checking if a channel switch will be needed or not
+
+    channel = checkFirstExrChannel(path, channel, channelRGBA)
+
     if (channel in [None, "RGB", "RGBA"]) & (channelRGBA == "rgba"):
         #print("No channel merge needed")
         img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
@@ -193,11 +196,14 @@ def exrListChannels(path):
     return(channelList)
 
 def exrSwitchChannel(path, channel, channelRGBA):
+    """
+    def responsible for returning the R,G,B components of the image, in case 
+    a different channel of pass is selected
+    """
     exr = EXR.InputFile(path[0])
     header = exr.header()
     channelsRaw = header["channels"]
     dw = header["dataWindow"]
-    #print(channelsRaw)
 
     # Getting size for the numpy reshape
     isize = (dw.max.y - dw.min.y + 1, dw.max.x - dw.min.x + 1)
@@ -215,26 +221,31 @@ def exrSwitchChannel(path, channel, channelRGBA):
         print("{} not found, going back to RGB".format(channel))
         channel = None
 
+    # Check if the channel is lower or uppercased channel.R or channel.r
+    casing = ["R","G","B","A"]
+    if("{}.r".format(channel) in list(channelsRaw.keys())):
+        casing = ["r","g","b","a"]
 
+    #print(casing[:3])
     foundChannelList = []
 
     emptyAlpha = False
     # Additionnal tests if R,G,B,A or all channels are selected
     if (channel == "RGBA") | (channel == None):
         if (channelRGBA == "rgba"):
-            foundChannelList = ["R","G","B"]
+            foundChannelList = casing[:3]
         elif (channelRGBA == "red"):
-            foundChannelList = ["R"]
+            foundChannelList = casing[0]
         elif (channelRGBA == "green"):
-            foundChannelList = ["G"]
+            foundChannelList = casing[1]
         elif (channelRGBA == "blue"):
-            foundChannelList = ["B"]
+            foundChannelList = casing[2]
         elif (channelRGBA == "alpha"):
-            defaultAlpha = "{}.A".format(channel)
+            defaultAlpha = "{}.{}".format(channel, casing[3])
             if defaultAlpha in channelsRaw:
                 foundChannelList = [defaultAlpha]
-            elif "A" in channelsRaw:
-                foundChannelList = ["A"]
+            elif casing[3] in channelsRaw:
+                foundChannelList = casing[3]
             else:
                 emptyAlpha = True
     else:
@@ -242,14 +253,20 @@ def exrSwitchChannel(path, channel, channelRGBA):
             if i.startswith(channel) == True:
                 foundChannelList.append(i)
             if (channelRGBA == "alpha"):
-                defaultAlpha = "{}.A".format(channel)
+                defaultAlpha = "{}.{}".format(channel,casing[3])
                 if defaultAlpha in channelsRaw:
                     foundChannelList = [defaultAlpha]
-                elif "A" in channelsRaw:
-                    foundChannelList = ["A"]
+                elif casing[3] in channelsRaw:
+                    foundChannelList = [casing[3]]
                 else:
                     print("empty Alpha")
                     emptyAlpha = True
+
+    # Reorder channels in case the RGB exist but are not in the right order
+    if ("{}.{}".format(channel, casing[0]) in foundChannelList) & ("{}.{}".format(channel, casing[1]) in foundChannelList) & ("{}.{}".format(channel, casing[2]) in foundChannelList ) & (foundChannelList != ["{}.{}".format(channel, casing[0]),"{}.{}".format(channel, casing[1]),"{}.{}".format(channel, casing[2])]):
+        #print("reorder chans")
+        foundChannelList = ["{}.{}".format(channel, casing[0]),"{}.{}".format(channel, casing[1]),"{}.{}".format(channel, casing[2])]
+
 
     #print(channel)
     #print(channelsRaw)
@@ -257,7 +274,7 @@ def exrSwitchChannel(path, channel, channelRGBA):
     # check for exception containing too many channels
     if len(foundChannelList) >= 4:
         #print("over 3")
-        foundChannelList = ["{}.R".format(channel),"{}.G".format(channel),"{}.B".format(channel)]
+        foundChannelList = ["{}.{}".format(channel, casing[0]),"{}.{}".format(channel, casing[1]),"{}.{}".format(channel, casing[2])]
 
     if len(foundChannelList) == 3:
         channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
@@ -342,10 +359,26 @@ def initOCIO():
 
     return(colorSpacesDict,looksDict, viewsList)
 
+def checkFirstExrChannel(path, channel, channelRGBA):
+    """
+    Checks if the channel RGB exists in the exr, otherwise returns the first channel
+    """
+    exr = EXR.InputFile(path[0])
+    header = exr.header()
+    channelsRaw = header["channels"]
+
+    if channel in [None, "rgb", "rgba"]:
+        if "R" not in channelsRaw:
+            tempChan = ((list(channelsRaw.keys())[0]).split("."))[:-1]
+            channel = ".".join(tempChan)
+
+    return(channel)
 
 # Converting the Exr file with opencv to a readable image file for QtPixmap
 def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, channelRGBA):
     path = [path]
+
+    channel = checkFirstExrChannel(path, channel, channelRGBA)
 
     if (channel in [None, "RGB", "RGBA"]) & (channelRGBA == "rgba"):
         #print("No channel merge needed")

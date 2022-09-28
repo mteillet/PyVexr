@@ -658,6 +658,7 @@ class MyWidget(QtWidgets.QWidget):
 
     def updateImgDict(self, path):
         self.imgDict["path"] = path
+        self.imgDict["channel"] = None
         self.loadFile()
         self.listChannels()
 

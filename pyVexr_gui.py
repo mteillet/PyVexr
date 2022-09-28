@@ -495,17 +495,26 @@ class MyWidget(QtWidgets.QWidget):
         currentPos = (self.frameNumber.slider.value())
         frame = self.frameNumber.returnFrame(currentPos)
         positionMax = (self.frameNumber.slider.maximum())
-        self.changeFrame(frame)
-        self.mirrorToggles()
+        try:
+            currentRegisteredShot
+        except NameError:
+            currentRegisteredShot = None
 
         # Updating the layers on the new shot
         #print(self.timeLineDict[currentPos]["shot"])
         if (currentPos >= 1) & (currentPos != positionMax):
-            if ((self.timeLineDict[currentPos]["shot"] != self.timeLineDict[currentPos-1]["shot"]) | (self.timeLineDict[currentPos]["shot"] != self.timeLineDict[currentPos+1]["shot"])):
+            if (self.timeLineDict[currentPos]["shot"] != currentRegisteredShot):
+                self.imgDict["channel"] = None
                 self.listChannels()
+                currentRegisteredShot = self.timeLineDict[currentPos]["shot"]
         else:
             if (currentPos == positionMax):
                 self.listChannels()
+
+        self.changeFrame(frame)
+        self.mirrorToggles()
+
+
 
     def initSlider(self, seqDict):
         shotRange = {}

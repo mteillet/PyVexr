@@ -98,6 +98,21 @@ class graphicsView(QtWidgets.QGraphicsView):
             widget.switchChannelB()
         if (event.key() == 65):
             widget.switchChannelA()
+        # Play and frame jumps
+        if (event.key() == 16777236):
+            if (self.activeKeys[16777248]):
+                widget.jumpGapForward()
+            elif (self.activeKeys[16777249]):
+                print("jump end of shot")
+            else:
+                widget.jumpFrameForward()
+        if (event.key() == 16777234):
+            if (self.activeKeys[16777248]):
+                widget.jumpGapBackward()
+            elif (self.activeKeys[16777249]):
+                print("jump start of shot")
+            else:
+                widget.jumpFrameBack()
 
 
 
@@ -399,10 +414,12 @@ class MyWidget(QtWidgets.QWidget):
         self.previousBtn = QtWidgets.QPushButton("|<")
         self.previousBtn.clicked.connect(self.jumpFrameBack)
         self.playBackBtn = QtWidgets.QPushButton("<")
+        self.playBackBtn.clicked.connect(self.playBack)
         self.frameCurrent = QtWidgets.QLabel("101")
         currentPos = (self.frameNumber.slider.value())
         self.frameCurrent.setText(str(self.frameNumber.slider.value()).zfill(4))
         self.playBtn = QtWidgets.QPushButton(">")
+        self.playBtn.clicked.connect(self.playForward)
         self.nextBtn = QtWidgets.QPushButton(">|")
         self.nextBtn.clicked.connect(self.jumpFrameForward)
         self.jumpBack = QtWidgets.QPushButton("<<")
@@ -553,6 +570,12 @@ class MyWidget(QtWidgets.QWidget):
         # Fix as sometimes updates are not done 
         #if (currentPos == positionMax):
         #        self.listChannels()
+
+    def playForward(self):
+        print("Play forward -- need multithreading for it to work")
+
+    def playBack(self):
+        print("Play back -- need multithreading for it to work")
 
     def jumpFrameForward(self):
         self.frameNumber.slider.setValue(self.frameNumber.slider.value()+1)

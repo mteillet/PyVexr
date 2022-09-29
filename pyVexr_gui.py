@@ -193,6 +193,8 @@ class graphicsView(QtWidgets.QGraphicsView):
                     filenames.append("/home/martin/Documents/PYTHON/PyVexr/imgs/pyVexrSplashScreen_v002.exr")
         #print(filenames)
         widget.updateImgDict(filenames)
+        widget.totalFrameLabel.setText("{}".format(widget.frameNumber.slider.maximum()))
+
         event.accept()
 
     def openFilesShortcut(self):
@@ -390,8 +392,25 @@ class MyWidget(QtWidgets.QWidget):
         #self.frameNumber.setStyleSheet("color: white")
         
         # Player buttons area
-        self.player = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
-        self.player.setText("Player")
+        self.totalFrameLabel = QtWidgets.QLabel("Total")
+        self.totalFrameLabelNext = QtWidgets.QLabel(" frames")
+        self.totalFrameLabelNext.setStyleSheet("QLabel{color : grey;}")
+        self.totalFrameLabelNext.setFont(QtGui.QFont("Times", 10))
+        self.previousBtn = QtWidgets.QPushButton("|<")
+        self.previousBtn.clicked.connect(self.jumpFrameBack)
+        self.playBackBtn = QtWidgets.QPushButton("<")
+        self.frameCurrent = QtWidgets.QLabel("101")
+        currentPos = (self.frameNumber.slider.value())
+        self.frameCurrent.setText(str(self.frameNumber.slider.value()).zfill(4))
+        self.playBtn = QtWidgets.QPushButton(">")
+        self.nextBtn = QtWidgets.QPushButton(">|")
+        self.nextBtn.clicked.connect(self.jumpFrameForward)
+        self.jumpBack = QtWidgets.QPushButton("<<")
+        self.jumpBack.clicked.connect(self.jumpGapBackward)
+        self.jumpLabel = QtWidgets.QSpinBox()
+        self.jumpLabel.setValue(10)
+        self.jumpForward = QtWidgets.QPushButton(">>")
+        self.jumpForward.clicked.connect(self.jumpGapForward)
 
         #############################
         # Layout for the PyVexr GUI #
@@ -434,9 +453,31 @@ class MyWidget(QtWidgets.QWidget):
         self.frameNumLayout = QtWidgets.QHBoxLayout()
         self.frameNumLayout.addWidget(self.frameNumber, stretch = 1)
         
-        self.playerLayout = QtWidgets.QHBoxLayout()
-        self.playerLayout.addWidget(self.player)
+        self.totalFramesLayout = QtWidgets.QHBoxLayout()
+        self.totalFramesLayout.addWidget(self.totalFrameLabel)
+        self.totalFramesLayout.addWidget(self.totalFrameLabelNext)
 
+
+        self.playBtnsLayout = QtWidgets.QHBoxLayout()
+        self.playBtnsLayout.addWidget(self.previousBtn)
+        self.playBtnsLayout.addWidget(self.playBackBtn)
+        self.playBtnsLayout.addWidget(self.frameCurrent)
+        self.playBtnsLayout.addWidget(self.playBtn)
+        self.playBtnsLayout.addWidget(self.nextBtn)
+
+        self.jumpLayout = QtWidgets.QHBoxLayout()
+        self.jumpLayout.addWidget(self.jumpBack)
+        self.jumpLayout.addWidget(self.jumpLabel)
+        self.jumpLayout.addWidget(self.jumpForward)
+
+        self.playerLayout = QtWidgets.QHBoxLayout()
+        self.playerLayout.addLayout(self.totalFramesLayout)
+        self.playerLayout.addStretch(5)
+        self.playerLayout.addLayout(self.playBtnsLayout)
+        self.playerLayout.addStretch(4)
+        self.playerLayout.addLayout(self.jumpLayout)
+
+        # Main Layout
         self.mainLayout.addLayout(self.topBarLayout)
         self.mainLayout.addLayout(self.centerLayout, stretch = 1)
         self.mainLayout.addLayout(self.frameNumLayout)
@@ -504,6 +545,7 @@ class MyWidget(QtWidgets.QWidget):
             self.imgDict["previousShot"] = self.timeLineDict[currentPos]["shot"]
 
         self.changeFrame(frame)
+        self.frameCurrent.setText(str(self.frameNumber.slider.value()).zfill(4))
         self.mirrorToggles()
 
         if isSameShot != True:
@@ -512,7 +554,17 @@ class MyWidget(QtWidgets.QWidget):
         #if (currentPos == positionMax):
         #        self.listChannels()
 
+    def jumpFrameForward(self):
+        self.frameNumber.slider.setValue(self.frameNumber.slider.value()+1)
 
+    def jumpFrameBack(self):
+        self.frameNumber.slider.setValue(self.frameNumber.slider.value()-1)
+
+    def jumpGapForward(self):
+        self.frameNumber.slider.setValue(self.frameNumber.slider.value() + self.jumpLabel.value())
+
+    def jumpGapBackward(self):
+        self.frameNumber.slider.setValue(self.frameNumber.slider.value() - self.jumpLabel.value())
 
 
     def initSlider(self, seqDict):

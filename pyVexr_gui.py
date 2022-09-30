@@ -744,6 +744,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["channel"] = None
         self.loadFile()
         self.listChannels()
+        self.imgDict["previousShot"] = (self.frameNumber.label.text()[7:])
 
     def dragEnterEvent(self, event):
         #print("drag")

@@ -72,7 +72,7 @@ class graphicsView(QtWidgets.QGraphicsView):
         self.update()
 
     def keyPressEvent(self, event):
-        #print("GraphicsView " + str(event.key()))
+        print("GraphicsView " + str(event.key()))
         if event.key() in self.activeKeys:
                 self.activeKeys[event.key()] = True
         if event.key() == QtCore.Qt.Key_E:
@@ -98,6 +98,8 @@ class graphicsView(QtWidgets.QGraphicsView):
             widget.switchChannelB()
         if (event.key() == 65):
             widget.switchChannelA()
+        if (event.key() == 89):
+            widget.switchChannelY()
         # Play and frame jumps
         if (event.key() == 16777236):
             if (self.activeKeys[16777248]):
@@ -274,14 +276,16 @@ class MyWidget(QtWidgets.QWidget):
         self.channelMenu = self.editMenu.addMenu("Current Channel")
         self.channelRGBA = self.channelMenu.addAction("RGBA")
         self.channelRGBA.triggered.connect(self.switchChannelRGBA)
-        self.channelR = self.channelMenu.addAction("Red")
+        self.channelR = self.channelMenu.addAction("Red               &-&R")
         self.channelR.triggered.connect(self.switchChannelR)
-        self.channelG = self.channelMenu.addAction("Green")
+        self.channelG = self.channelMenu.addAction("Green           &-&G")
         self.channelG.triggered.connect(self.switchChannelG)
-        self.channelB = self.channelMenu.addAction("Blue")
+        self.channelB = self.channelMenu.addAction("Blue              &-&B")
         self.channelB.triggered.connect(self.switchChannelB)
-        self.channelA = self.channelMenu.addAction("Alpha")
+        self.channelA = self.channelMenu.addAction("Alpha            &-&A")
         self.channelA.triggered.connect(self.switchChannelA)
+        self.channelL = self.channelMenu.addAction("Luminance  &-&Y")
+        self.channelL.triggered.connect(self.switchChannelY)
         self.mirror = self.editMenu.addMenu("Mirror/Flip image")
         self.mirrorX = self.mirror.addAction("Flip X              &-&S&h&i&f&t&+&X")
         self.mirrorX.triggered.connect(self.mirrorXToggle)
@@ -648,6 +652,13 @@ class MyWidget(QtWidgets.QWidget):
         else:
             self.switchChannelRGBA()
 
+    def switchChannelY(self):
+        if (self.imgDict["RGBA"] != "luma"):
+            self.imgDict["RGBA"] = "luma"
+            self.updateRGBA()
+        else:
+            self.switchChannelRGBA()
+
     def updateRGBA(self):
         # Update display
         if self.imgDict["RGBA"] == "rgba":
@@ -675,6 +686,8 @@ class MyWidget(QtWidgets.QWidget):
             self.frameNumber.channelLabelG.setStyleSheet(self.frameNumber.styleBlack)
             self.frameNumber.channelLabelB.setStyleSheet(self.frameNumber.styleBlack)
             self.frameNumber.channelLabelA.setStyleSheet(self.frameNumber.styleWhite)
+        if self.imgDict["RGBA"] == "luma":
+            print("luma")
         self.refreshImg()
 
     def mirrorXToggle(self):

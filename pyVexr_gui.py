@@ -72,7 +72,7 @@ class graphicsView(QtWidgets.QGraphicsView):
         self.update()
 
     def keyPressEvent(self, event):
-        print("GraphicsView " + str(event.key()))
+        #print("GraphicsView " + str(event.key()))
         if event.key() in self.activeKeys:
                 self.activeKeys[event.key()] = True
         if event.key() == QtCore.Qt.Key_E:
@@ -687,7 +687,17 @@ class MyWidget(QtWidgets.QWidget):
             self.frameNumber.channelLabelB.setStyleSheet(self.frameNumber.styleBlack)
             self.frameNumber.channelLabelA.setStyleSheet(self.frameNumber.styleWhite)
         if self.imgDict["RGBA"] == "luma":
-            print("luma")
+            self.frameNumber.channelLabelLuma.show()
+            self.frameNumber.channelLabelR.hide()
+            self.frameNumber.channelLabelG.hide()
+            self.frameNumber.channelLabelB.hide()
+            self.frameNumber.channelLabelA.hide() 
+        if self.imgDict["RGBA"] != "luma":
+            self.frameNumber.channelLabelLuma.hide()
+            self.frameNumber.channelLabelR.show()
+            self.frameNumber.channelLabelG.show()
+            self.frameNumber.channelLabelB.show()
+            self.frameNumber.channelLabelA.show() 
         self.refreshImg()
 
     def mirrorXToggle(self):

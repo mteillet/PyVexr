@@ -232,7 +232,7 @@ def exrSwitchChannel(path, channel, channelRGBA):
     emptyAlpha = False
     # Additionnal tests if R,G,B,A or all channels are selected
     if (channel == "RGBA") | (channel == None):
-        if (channelRGBA == "rgba"):
+        if (channelRGBA == "rgba") | (channelRGBA == "luma"):
             foundChannelList = casing[:3]
         elif (channelRGBA == "red"):
             foundChannelList = casing[0]
@@ -318,6 +318,12 @@ def exrSwitchChannel(path, channel, channelRGBA):
     elif channelRGBA == "blue":
         channelR = channelB
         channelG = channelB
+
+    # Converting to luma if necessary
+    if (channelRGBA == "luma"):
+        channelR = (0.299 * channelR) + (0.587 * channelG) + (0.114 * channelB)
+        channelG = channelR
+        channelB = channelR
 
     # Channels will be merged by the openCV function later on
     img = channelR, channelG, channelB

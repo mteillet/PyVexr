@@ -129,6 +129,7 @@ class Timeline(QtWidgets.QWidget):
         self.channelLabelB = QtWidgets.QLabel("B")
         self.channelLabelB.setStyleSheet(self.styleBlue)
         self.channelLabelA = QtWidgets.QLabel("A")
+        self.channelLabelLuma = QtWidgets.QLabel("Luma")
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self._timeline= _Timeline()
         self.slider.valueChanged.connect(self.refreshSliderInfos)
@@ -144,6 +145,9 @@ class Timeline(QtWidgets.QWidget):
         textLayout.addWidget(self.channelLabelG)
         textLayout.addWidget(self.channelLabelB)
         textLayout.addWidget(self.channelLabelA)
+        textLayout.addWidget(self.channelLabelLuma)
+        # Hiding luma by default
+        self.channelLabelLuma.hide()
         layout.addWidget(self._timeline)
         layout.addWidget(self.slider)
 

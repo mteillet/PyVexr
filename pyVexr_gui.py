@@ -52,6 +52,10 @@ class graphicsView(QtWidgets.QGraphicsView):
         self.activeMouse[QtCore.Qt.LeftButton] = False
         self.activeMouse[QtCore.Qt.RightButton] = False
 
+        # Last Action dict
+        self.lastAction = {}
+        self.lastAction["click"] = None
+
         # Mouse Move list [x, y]
         self.mouseMove = [[],[]]
 
@@ -68,7 +72,14 @@ class graphicsView(QtWidgets.QGraphicsView):
     def mouseReleaseEvent(self, event):
         if event.button() in self.activeMouse:
             self.activeMouse[event.button()] = False
+        self.mouseMove[0] = []
+        self.mouseMove[1] = []
             
+        if (self.lastAction["click"] == "exposure") | (self.lastAction["click"] == "saturation"):
+            widget.refreshImg()
+            # Reset the last action
+            self.lastAction["click"] == None
+
         self.update()
 
     def keyPressEvent(self, event):
@@ -142,6 +153,30 @@ class graphicsView(QtWidgets.QGraphicsView):
             for val in temp:
                 self.defaultSceneRect.append(val)
             print(self.defaultSceneRect)
+
+        # Slide values
+        if (self.activeKeys[16777251] == False) & (self.activeMouse[QtCore.Qt.LeftButton] == True):
+            self.mouseMove[0].append(event.x())
+            if (len(self.mouseMove[0]) >= 2):
+                mouseMoveX = (self.mouseMove[0][1] - self.mouseMove[0][0])
+                # Exposure slide
+                if (widget.exposureText.isVisible() == True):
+                    widget.imgDict["exposure"] = widget.imgDict["exposure"] + (mouseMoveX * 0.01)
+                    widget.updateExposure()
+                    # Setting last action as exposure
+                    self.lastAction["click"] = "exposure"
+                # Saturation slide
+                elif (widget.saturationText.isVisible() == True):
+                    widget.imgDict["saturation"] = widget.imgDict["saturation"] + (mouseMoveX * 0.01)
+                    widget.updateSaturation()
+                    # Setting last action as exposure
+                    self.lastAction["click"] = "saturation"
+                # Frame slide
+                else:
+                    widget.frameNumber.slider.setValue(widget.frameNumber.slider.value() + mouseMoveX)
+                # Reset mouse move X
+                self.mouseMove[0] = []
+                #print(mouseMoveX)
 
         # Translate view
         sceneCoordinates = interpretRectangle(str(self.sceneRect()))
@@ -899,20 +934,17 @@ class MyWidget(QtWidgets.QWidget):
             if key == 43:
                 #print("Boost expo")
                 self.imgDict["exposure"] += 0.1
-                self.updateExposure()
-                self.refreshImg()
 
             if key == 45:
                 #print("Lower expo")
                 self.imgDict["exposure"] -= 0.1
-                self.updateExposure()
-                self.refreshImg()
 
             if key == 48:
                 #print("Reset Exposure")
                 self.imgDict["exposure"] = 0
-                self.updateExposure()
-                self.refreshImg()
+
+            self.updateExposure()
+            self.refreshImg()
 
     def exposureMenu(self):
         menuSent = (self.sender().text())

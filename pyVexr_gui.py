@@ -59,10 +59,28 @@ class graphicsView(QtWidgets.QGraphicsView):
         # Mouse Move list [x, y]
         self.mouseMove = [[],[]]
 
+        self.installEventFilter(self)
+
     ###############################
     # Code for the Slot functions #
     ###############################
     @QtCore.pyqtSlot()
+    def eventFilter(self, object, event):
+        '''
+        Forcing focus on itself if it is lost in order to avoid press and release of the Alt Key 2 in times
+        '''
+        if event.type() == QtCore.QEvent.FocusIn:
+            pass
+        elif (event.type() == QtCore.QEvent.FocusOut) & (self.activeKeys[16777251] == True):
+            #print("Focus is lost")
+            self.setFocus()
+            self.activeKeys[16777251] = False
+            #print(app.focusWidget().objectName())
+
+        return(False)
+
+
+
     def mousePressEvent(self, event):
         if event.button() in self.activeMouse:
             self.activeMouse[event.button()] = True
@@ -85,7 +103,8 @@ class graphicsView(QtWidgets.QGraphicsView):
     def keyPressEvent(self, event):
         #print("GraphicsView " + str(event.key()))
         if event.key() in self.activeKeys:
-                self.activeKeys[event.key()] = True
+            self.activeKeys[event.key()] = True
+        #print("pressed {}".format(event.key()))
         if event.key() == QtCore.Qt.Key_E:
             widget.showExposureText()
         if event.key() == QtCore.Qt.Key_S:
@@ -109,7 +128,7 @@ class graphicsView(QtWidgets.QGraphicsView):
             widget.switchChannelB()
         if (event.key() == 65):
             widget.switchChannelA()
-        if (event.key() == 89):
+        if (event.key() == 76):
             widget.switchChannelY()
         # Play and frame jumps
         if (event.key() == 16777236):
@@ -128,13 +147,10 @@ class graphicsView(QtWidgets.QGraphicsView):
                 widget.jumpFrameBack()
 
 
-
-
-
-
     def keyReleaseEvent(self, event):
         if event.key() in self.activeKeys:
             self.activeKeys[event.key()] = False   
+        #print("released {}".format(event.key()))
 
         # F for recenter
         if str(event.key()) == str(70):
@@ -155,7 +171,7 @@ class graphicsView(QtWidgets.QGraphicsView):
             print(self.defaultSceneRect)
 
         # Slide values
-        if (self.activeKeys[16777251] == False) & (self.activeMouse[QtCore.Qt.LeftButton] == True):
+        if (self.activeKeys[16777251] == False) & (self.activeMouse[QtCore.Qt.LeftButton] == True) & (self.activeKeys[16777249] == False):
             self.mouseMove[0].append(event.x())
             if (len(self.mouseMove[0]) >= 2):
                 mouseMoveX = (self.mouseMove[0][1] - self.mouseMove[0][0])
@@ -181,34 +197,33 @@ class graphicsView(QtWidgets.QGraphicsView):
         # Translate view
         sceneCoordinates = interpretRectangle(str(self.sceneRect()))
         if (self.activeKeys[16777251] == True) & (self.activeMouse[QtCore.Qt.LeftButton] == True):
+            #print("translate {} - {}".format(event.x(), event.y()))
             sceneCoordinates = interpretRectangle(str(self.sceneRect()))
             position = QtCore.QPointF(event.pos())
-            self.mouseMove[0].append(position.x())
-            self.mouseMove[1].append(position.y())
+            self.mouseMove[0].append(event.x())
+            self.mouseMove[1].append(event.y())
             #print(self.mouseMove)
             if ((len(self.mouseMove[0]) >= 2) & (len(self.mouseMove[1]) >= 2) ):
+                #print("SHOULD MOVE")
                 mouseMoveX =  (self.mouseMove[0][1] - self.mouseMove[0][0])
                 mouseMoveY =  (self.mouseMove[1][1] - self.mouseMove[1][0]) 
-                # If exceptions for mouse move
-                if (mouseMoveX > 10) | (mouseMoveX < -10):
-                    mouseMoveX = 0
-                if (mouseMoveY > 10) | (mouseMoveY < -10):
-                    mouseMoveY = 0
                 # Moving the Graphics view adding the mousemov vars to the current coordinates of the scene rect
                 sceneCoordinates = interpretRectangle(str(self.sceneRect()))
-                self.setSceneRect(sceneCoordinates[0]-mouseMoveX,sceneCoordinates[1]-mouseMoveY,sceneCoordinates[2]-mouseMoveX,sceneCoordinates[3]-mouseMoveY)
+                self.setSceneRect(sceneCoordinates[0]-mouseMoveX,sceneCoordinates[1]-mouseMoveY,
+                                  sceneCoordinates[2]-mouseMoveX,sceneCoordinates[3]-mouseMoveY)
                 self.mouseMove[0] = []
                 self.mouseMove[1] = []
 
         # Zoom view
         if (self.activeKeys[16777249] == True) & (self.activeMouse[QtCore.Qt.LeftButton] == True):
+            #print("zoom ! {} - {}".format(event.x(), event.y()))
             # Storing the mouse moves in a declared list
             position = QtCore.QPointF(event.pos())
             
-            self.mouseMove[0].append(position.x())
-            self.mouseMove[1].append(position.y())
+            self.mouseMove[0].append(event.x())
+            self.mouseMove[1].append(event.y())
 
-            if(len(self.mouseMove[1]) >= 2):
+            if(len(self.mouseMove[0]) >= 2) & (len(self.mouseMove[1]) >= 2):
                 #print("Mouse Moved")
                 direction = (self.mouseMove[1][1] - self.mouseMove[1][0]) + (self.mouseMove[0][1] - self.mouseMove[0][0])
                 sceneCoordinates = interpretRectangle(str(self.sceneRect()))
@@ -291,6 +306,9 @@ class MyWidget(QtWidgets.QWidget):
         # Code for the PyVexr Main windows #
         ####################################
 
+        # Focus Tracking
+        app.focusChanged.connect(self.on_focusChanged)
+
         # Menu bar area
         self.file = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
         self.menuBar = QtWidgets.QMenuBar()
@@ -319,7 +337,7 @@ class MyWidget(QtWidgets.QWidget):
         self.channelB.triggered.connect(self.switchChannelB)
         self.channelA = self.channelMenu.addAction("Alpha            &-&A")
         self.channelA.triggered.connect(self.switchChannelA)
-        self.channelL = self.channelMenu.addAction("Luminance  &-&Y")
+        self.channelL = self.channelMenu.addAction("Luminance  &-&L")
         self.channelL.triggered.connect(self.switchChannelY)
         self.mirror = self.editMenu.addMenu("Mirror/Flip image")
         self.mirrorX = self.mirror.addAction("Flip X              &-&S&h&i&f&t&+&X")
@@ -543,6 +561,10 @@ class MyWidget(QtWidgets.QWidget):
     # Code for the Slot functions #
     ###############################
     @QtCore.pyqtSlot()
+    def on_focusChanged(self):
+        #print(app.focusWidget().objectName())
+        pass
+
     def loadFile(self):
         #print(self.imgDict["path"])
         # OCIO DATA
@@ -595,10 +617,19 @@ class MyWidget(QtWidgets.QWidget):
         isSameShot = True
 
         # Updating the layers on the new shot
-        if (self.timeLineDict[currentPos]["shot"] != self.imgDict["previousShot"]):
+        # Adding exception in case first drag and drop and the timeLineDict has not been created yet (avoid errors on splashcreen)
+        try :
+            if (self.timeLineDict[currentPos]["shot"] != self.imgDict["previousShot"]):
+                isSameShot = False
+                self.imgDict["channel"] = None
+                self.imgDict["previousShot"] = self.timeLineDict[currentPos]["shot"]
+                #print("DifferentShot")
+
+        except KeyError:
             isSameShot = False
             self.imgDict["channel"] = None
-            self.imgDict["previousShot"] = self.timeLineDict[currentPos]["shot"]
+            self.imgDict["previousShot"] = None
+
 
         self.changeFrame(frame)
         self.frameCurrent.setText(str(self.frameNumber.slider.value()).zfill(4))
@@ -983,7 +1014,6 @@ class MyWidget(QtWidgets.QWidget):
         self.updateSaturation()
         self.refreshImg()
 
-
     def saturationMenu(self):
         menuSent = self.sender().text()
 
@@ -997,8 +1027,6 @@ class MyWidget(QtWidgets.QWidget):
         elif menuSent.startswith("Reset Sat") == True:
             key = 48
         self.satChange(key)
-
-
 
     def updateExposure(self):
         self.exposureText.setPlainText("Exposure : {}".format(round(self.imgDict["exposure"], 2)))

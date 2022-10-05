@@ -60,6 +60,7 @@ class graphicsView(QtWidgets.QGraphicsView):
         self.mouseMove = [[],[]]
 
         self.installEventFilter(self)
+        self.setSceneRect(-1000, -1000, 11000, 11000)
 
     ###############################
     # Code for the Slot functions #
@@ -154,21 +155,21 @@ class graphicsView(QtWidgets.QGraphicsView):
 
         # F for recenter
         if str(event.key()) == str(70):
-            # Issue need to reset the zoom index too, otherwise won't work
-            print("Key is F")
+            #print("Key is F")
             # Reset zoom
             self.resetTransform()
             # Reset position
-            self.setSceneRect(0, 0, self.defaultSceneRect[2], self.defaultSceneRect[3])
-            #print(interpretRectangle(str(self.sceneRect())))
+            widget.FrameInView()
+
     
     def mouseMoveEvent(self, event):
         # Storing the initial scene rect
         if len(self.defaultSceneRect) == 0:
             temp = interpretRectangle(str(self.sceneRect()))
+            #print(self.sceneRect())
             for val in temp:
                 self.defaultSceneRect.append(val)
-            print(self.defaultSceneRect)
+            #print(self.defaultSceneRect)
 
         # Slide values
         if (self.activeKeys[16777251] == False) & (self.activeMouse[QtCore.Qt.LeftButton] == True) & (self.activeKeys[16777249] == False):
@@ -209,8 +210,9 @@ class graphicsView(QtWidgets.QGraphicsView):
                 mouseMoveY =  (self.mouseMove[1][1] - self.mouseMove[1][0]) 
                 # Moving the Graphics view adding the mousemov vars to the current coordinates of the scene rect
                 sceneCoordinates = interpretRectangle(str(self.sceneRect()))
-                self.setSceneRect(sceneCoordinates[0]-mouseMoveX,sceneCoordinates[1]-mouseMoveY,
-                                  sceneCoordinates[2]-mouseMoveX,sceneCoordinates[3]-mouseMoveY)
+                #self.setSceneRect(sceneCoordinates[0]-mouseMoveX,sceneCoordinates[1]-mouseMoveY,sceneCoordinates[2]-mouseMoveX,sceneCoordinates[3]-mouseMoveY)
+                self.horizontalScrollBar().setSliderPosition(self.horizontalScrollBar().sliderPosition() - mouseMoveX)
+                self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() - mouseMoveY)
                 self.mouseMove[0] = []
                 self.mouseMove[1] = []
 
@@ -423,6 +425,11 @@ class MyWidget(QtWidgets.QWidget):
         self.viewArea.setAcceptDrops(True)
         # Giving a color to the default rect -- only for debugging purposes
         #self.viewArea.setBrush(QtGui.QColor(255, 0, 0, 30))
+
+        # Margins
+        self.margins = QtWidgets.QGraphicsRectItem(-1000, -1000, 11000, 11000)
+        #self.margins.setBrush(QtGui.QColor(0,255,0,30))
+
         # Exposure text, hidden by default
         self.exposureText = QtWidgets.QGraphicsTextItem("Exposure : ")
         self.exposureText.setScale(2)
@@ -437,13 +444,13 @@ class MyWidget(QtWidgets.QWidget):
         
         # Putting the objects in the scene
         self.image = QtWidgets.QGraphicsPixmapItem()
+        self.imgZone.addItem(self.margins)
         self.imgZone.addItem(self.image)
         self.imgZone.addItem(self.viewArea)
         self.imgZone.addItem(self.exposureText)
         self.imgZone.addItem(self.saturationText)
         
         self.imgViewer = graphicsView(self)
-        #self.imgViewer.setMouseTracking(True)
         self.imgViewer.setScene(self.imgZone)
         self.imgViewer.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.imgViewer.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -589,13 +596,17 @@ class MyWidget(QtWidgets.QWidget):
 
         # Give the rectangle view area the coordinates of the pixmap image after the image has been loaded
         imgCoordinates = interpretRectangle(str(self.image.boundingRect()))
-        self.viewArea.setRect(imgCoordinates[0],imgCoordinates[1],imgCoordinates[2],imgCoordinates[3])
+        self.margins.setRect(imgCoordinates[0]-imgCoordinates[2],imgCoordinates[1]-imgCoordinates[3],imgCoordinates[2] * 3,imgCoordinates[3]*3)
+        self.viewArea.setRect(imgCoordinates[0]-(imgCoordinates[2]/3),imgCoordinates[1]-(imgCoordinates[3]/3),imgCoordinates[2] * 1.66,imgCoordinates[3]*1.66)
 
         # Fit in view after first load
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
 
         # Check mirror state
         self.mirrorToggles()
+
+    def FrameInView(self):
+        self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
 
     def changeFrame(self, frame):
         self.imgDict["path"][0] = frame

@@ -131,6 +131,7 @@ class Timeline(QtWidgets.QWidget):
         self.channelLabelA = QtWidgets.QLabel("A")
         self.channelLabelLuma = QtWidgets.QLabel("Luma")
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider.hide()
         self._timeline= _Timeline()
         self.slider.valueChanged.connect(self.refreshSliderInfos)
         self.slider.valueChanged.connect(self._timeline._trigger_refresh)
@@ -154,6 +155,9 @@ class Timeline(QtWidgets.QWidget):
         mainLayout.addLayout(textLayout)
         mainLayout.addLayout(layout)
 
+        # Left btn clicked toggle
+        self.leftBtnClicked = False
+
         self.setLayout(mainLayout)
 
     def refreshSliderInfos(self):
@@ -165,6 +169,31 @@ class Timeline(QtWidgets.QWidget):
             self.frameNumber.setText("Frame : {}".format(timelineDictInfos["slider"][self.slider.value()]["frame"]))
         except KeyError:
             pass
+
+    def mousePressEvent(self, event):
+        if(event.button() == QtCore.Qt.LeftButton):
+            #print("clicked left")
+            self.leftBtnClicked = True
+            val = self.pixelPosToRangeValue(event.pos())
+            self.slider.setValue(val)
+
+    def mouseReleaseEvent(self, event):
+        if(event.button() == QtCore.Qt.LeftButton):
+            self.leftBtnClicked = False
+
+    def mouseMoveEvent(self, event):
+        if(self.leftBtnClicked == True):
+            val = self.pixelPosToRangeValue(event.pos())
+            self.slider.setValue(val)
+
+    def pixelPosToRangeValue(self, pos):
+        val = round(pos.x() / self._timeline.size().width() * self.slider.maximum())
+        if (val > self.slider.maximum()):
+            val = self.slider.maximum()
+        elif (val < self.slider.maximum()-1):
+            val -= 1
+
+        return(val)
 
     def returnFrame(self, number):
         #print(number)

@@ -372,11 +372,23 @@ def checkFirstExrChannel(path, channel, channelRGBA):
     exr = EXR.InputFile(path[0])
     header = exr.header()
     channelsRaw = header["channels"]
+    #print(channelsRaw)
 
+    current = 0
     if channel in [None, "rgb", "rgba"]:
         if "R" not in channelsRaw:
-            tempChan = ((list(channelsRaw.keys())[0]).split("."))[:-1]
-            channel = ".".join(tempChan)
+            if ((list(channelsRaw.keys())[current]) == "Z"):
+                current += 1
+                tempChan = ((list(channelsRaw.keys())[current]).split("."))[:-1]
+                channel = ".".join(tempChan)
+            elif (len(list(channelsRaw.keys())[current]).split(".")) >> 0:
+                tempChan = ((list(channelsRaw.keys())[current]).split("."))[:-1]
+                channel = ".".join(tempChan)
+            elif (len(list(channelsRaw.keys())[current]).split(".")) == 0 :
+                print("Channel Length is not long enough to be read")
+                print("Check checkFirstExrChannel in main to fix")
+
+    #print("channel will be {}".format(channel))
 
     return(channel)
 

@@ -441,12 +441,17 @@ class MyWidget(QtWidgets.QWidget):
         self.saturationText.setScale(2)
         self.saturationText.setDefaultTextColor(QtGui.QColor("white"))
         self.saturationText.hide()
+
+        self.textCard = QtWidgets.QGraphicsRectItem(0,0,250,50)
+        self.textCard.setBrush(QtGui.QColor(0,0,0,225))
+        self.textCard.hide()
         
         # Putting the objects in the scene
         self.image = QtWidgets.QGraphicsPixmapItem()
         self.imgZone.addItem(self.margins)
         self.imgZone.addItem(self.image)
         self.imgZone.addItem(self.viewArea)
+        self.imgZone.addItem(self.textCard)
         self.imgZone.addItem(self.exposureText)
         self.imgZone.addItem(self.saturationText)
         
@@ -1048,9 +1053,11 @@ class MyWidget(QtWidgets.QWidget):
     def showExposureText(self):
         if (self.exposureText.isVisible() == False):
             self.exposureText.show()
+            self.textCard.show()
             self.updateExposure()
         else:
             self.exposureText.hide()
+            self.textCard.hide()
 
     def updateSaturation(self):
         self.saturationText.setPlainText("Saturation : {}".format(round(self.imgDict["saturation"], 2)))
@@ -1058,9 +1065,11 @@ class MyWidget(QtWidgets.QWidget):
     def showSaturationText(self):
         if (self.saturationText.isVisible() == False):
             self.saturationText.show()
+            self.textCard.show()
             self.updateSaturation()
         else:
             self.saturationText.hide()
+            self.textCard.hide()
 
 class ExposurePopup(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):

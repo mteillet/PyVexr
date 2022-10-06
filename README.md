@@ -15,16 +15,17 @@ Its main goal is to have a simple application for viewing your OpenExr files, wi
 
 - [x] Load multiple shots in the same timeline
 	- [x] Scroll through multiple shots easily
-- [x] Visualize independently R/G/B 
+- [x] Easily Pan, Zoom, Mirror the image
+- [x] Visualize independently R/G/B/A channels 
 	- [x] Luminance view
 	- [ ] Layer contact sheet
-- [x] Easily Pan, Zoom, Mirror the image
 - [x] Switch and visualize other channels in multilayered exrs
 - [x] Tweak exposition and saturation on the fly
-- [x] OCIIO v2 support
+- [x] Easily accessible OCIIO v2 menu
 	- [ ] OCIIO menu GUI v2
 - [x] Full Python code available
 	- [ ] Compiled versions
+- [ ] Config.json to remember your favourite OCIIO settings
 - [ ] Picker to get values from specific pixels
 - [ ] Direct .mp4 export from PyVexr, baking in your exposure / saturation tweaks, and your chosen OCIIO
 - [ ] Buffer 

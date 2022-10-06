@@ -959,12 +959,12 @@ class MyWidget(QtWidgets.QWidget):
         if (self.saturationText.isVisible() == True):
             #print("saturation change {}".format(key))
             if key == 43:
-                self.imgDict["saturation"] += 0.01
+                self.imgDict["saturation"] += 0.1
                 self.updateSaturation()
                 self.refreshImg()
 
             if key == 45:
-                self.imgDict["saturation"] -= 0.01
+                self.imgDict["saturation"] -= 0.1
                 self.updateSaturation()
                 self.refreshImg()
 

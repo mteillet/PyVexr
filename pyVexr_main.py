@@ -381,13 +381,12 @@ def checkFirstExrChannel(path, channel, channelRGBA):
                 current += 1
                 tempChan = ((list(channelsRaw.keys())[current]).split("."))[:-1]
                 channel = ".".join(tempChan)
-            elif (len(list(channelsRaw.keys())[current]).split(".")) >> 0:
-                tempChan = ((list(channelsRaw.keys())[current]).split("."))[:-1]
-                channel = ".".join(tempChan)
-            elif (len(list(channelsRaw.keys())[current]).split(".")) == 0 :
+            elif (len((list(channelsRaw.keys())[current]).split(".")) == 0) :
                 print("Channel Length is not long enough to be read")
                 print("Check checkFirstExrChannel in main to fix")
-
+            elif (len((list(channelsRaw.keys())[current]).split(".")) >> 0) :
+                tempChan = ((list(channelsRaw.keys())[current]).split("."))[:-1]
+                channel = ".".join(tempChan)
     #print("channel will be {}".format(channel))
 
     return(channel)

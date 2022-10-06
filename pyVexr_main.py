@@ -149,23 +149,23 @@ def hsvToRgb(hsv):
 
     return(rgb)
 
+def saturationKernel(img, saturation, coefRGB):
+    imgB, imgG, imgR = cv.split(img)
+    luma = imgR * coefRGB[0] + imgG * coefRGB[1] + imgB * coefRGB[2]
+    luma3d = np.repeat(luma[:,:, np.newaxis], 3, axis = 2)
+    saturated = np.clip(((img - luma3d) * saturation + luma3d), 0, 255)
+    
+
+    return(saturated)
+
+
 def saturationTweak(img, saturation):
     if saturation != 1:
-        #rgb = cv.cvtColor(img, cv.COLOR_BGR2RGB)
-        hsv = rgbToHsv(img)
-        (h,s,v) = cv.split(hsv)
-        # lin2log
-        #s = np.log(s)
-        # sat Mul
-        s = s * saturation
-        # log2lin
-        #s = pow(2, s)
-        # Clipping to avoid out of boundaries values
-        s = np.clip(s,0,255)
-        # Re-merging the hue and value with modified saturation
-        mergedhsv = cv.merge([h,s,v])
-        #rgb = hsvToRgb(mergedhsv)
-        rgb = cv.cvtColor(mergedhsv, cv.COLOR_HSV2RGB)
+        # Settings for the luma calculations
+        coefRGB = [0.2126, 0.7152, 0.0722]
+        rgb = saturationKernel(img,saturation, coefRGB)
+    else:
+        rgb = img
 
     return(rgb)
 

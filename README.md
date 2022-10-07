@@ -1,6 +1,6 @@
 <br />
 <div align="center">
-	<h3 align="center">PyVexr</h3>
+	<h1 align="center">PyVexr</h1>
 	
 	Open Exr Viewer
 </div>

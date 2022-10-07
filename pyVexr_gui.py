@@ -318,6 +318,7 @@ class MyWidget(QtWidgets.QWidget):
         self.editMenu = self.menuBar.addMenu('&Edit')
         self.windowsMenu = self.menuBar.addMenu('&Windows')
         self.expoSatMenu = self.menuBar.addMenu('&Expo/Sat')
+        self.ociioMenu = self.menuBar.addMenu('&OCIO')
         # File Menu & Action
         self.openAction = self.fileMenu.addAction("Open        &-&C&t&r&l&+&O")
         self.openAction.triggered.connect(self.openFiles)
@@ -374,6 +375,8 @@ class MyWidget(QtWidgets.QWidget):
         self.channelsAction.triggered.connect(self.channelsClicked)
         self.versionsAction.triggered.connect(self.versionsClicked)
         #self.colorspaceMenu = self.menuBar.addMenu('&Colorspace')
+        self.openColorIoAction = self.ociioMenu.addAction("OpenColorIO Settings")
+        self.openColorIoAction.triggered.connect(self.ocioMenu)
 
         # OCIO dropdown
         ocioViews, looksDict, viewsList= initOCIO()
@@ -387,6 +390,7 @@ class MyWidget(QtWidgets.QWidget):
         self.ocioOut.activated.connect(self.ocioOutChange)
         self.ocioLooks = QtWidgets.QComboBox()
         self.ocioLooks.activated.connect(self.ocioLookChange)
+        self.ocioToggle = QtWidgets.QPushButton("OCIO")
 
         if "sRGB" in ocioViews and "Linear" in ocioViews:
             self.ocioIn.addItem("Linear")
@@ -508,12 +512,13 @@ class MyWidget(QtWidgets.QWidget):
         self.topBarLayout = QtWidgets.QHBoxLayout()
         self.topBarLayout.addWidget(self.menuBar)
         self.topBarLayout.addStretch()
-        self.topBarLayout.addWidget(self.ocioInLabel)
-        self.topBarLayout.addWidget(self.ocioIn)
-        self.topBarLayout.addWidget(self.ocioOutLabel)
-        self.topBarLayout.addWidget(self.ocioOut)
-        self.topBarLayout.addWidget(self.ocioLooksLabel)
-        self.topBarLayout.addWidget(self.ocioLooks)
+        #self.topBarLayout.addWidget(self.ocioInLabel)
+        #self.topBarLayout.addWidget(self.ocioIn)
+        #self.topBarLayout.addWidget(self.ocioOutLabel)
+        #self.topBarLayout.addWidget(self.ocioOut)
+        #self.topBarLayout.addWidget(self.ocioLooksLabel)
+        #self.topBarLayout.addWidget(self.ocioLooks)
+        self.topBarLayout.addWidget(self.ocioToggle)
 
         # Main Center layout #
         self.centerLayout = QtWidgets.QHBoxLayout()
@@ -1030,6 +1035,11 @@ class MyWidget(QtWidgets.QWidget):
         self.updateSaturation()
         self.refreshImg()
 
+    def ocioMenu(self):
+        self.ocioPop = OcioPopup()
+        self.ocioPop.resize(500, 220)
+        self.ocioPop.show()
+
     def saturationMenu(self):
         menuSent = self.sender().text()
 
@@ -1123,6 +1133,63 @@ class SaturationPopup(QtWidgets.QWidget):
         textLayout.addWidget(self.spin)
         
         layout.addLayout(textLayout)
+
+        self.setLayout(layout)
+
+class OcioPopup(QtWidgets.QWidget):
+    def __init__(self, *args, **kwargs):
+        super(OcioPopup, self).__init__(*args, **kwargs)
+        self.setWindowTitle("OpenColorIO Settings")
+
+        self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
+
+        layout = QtWidgets.QVBoxLayout()
+        self.dropDownLayout = QtWidgets.QVBoxLayout()
+        self.csLayout = QtWidgets.QHBoxLayout()
+        self.inputLayout = QtWidgets.QHBoxLayout()
+        self.displayLayout = QtWidgets.QHBoxLayout()
+        self.viewLayout = QtWidgets.QHBoxLayout()
+        self.btnsLayout = QtWidgets.QHBoxLayout()
+
+        self.labelCS = QtWidgets.QLabel("Color Space")
+        self.comboCS = QtWidgets.QComboBox()
+        self.labelInput = QtWidgets.QLabel("Input Interpreation")
+        self.comboInput = QtWidgets.QComboBox()
+        self.labelDisplay = QtWidgets.QLabel("Display")
+        self.comboDisplay = QtWidgets.QComboBox()
+        self.labelView = QtWidgets.QLabel("View")
+        self.comboView = QtWidgets.QComboBox()
+
+        self.okBtn = QtWidgets.QPushButton("Ok")
+        self.cancelBtn = QtWidgets.QPushButton("Cancel")
+        self.saveBtn = QtWidgets.QPushButton("Save Config")
+
+        self.csLayout.addWidget(self.labelCS)
+        self.csLayout.addStretch()
+        self.csLayout.addWidget(self.comboCS)
+        self.inputLayout.addWidget(self.labelInput)
+        self.inputLayout.addStretch()
+        self.inputLayout.addWidget(self.comboInput)
+        self.displayLayout.addWidget(self.labelDisplay) 
+        self.displayLayout.addStretch()
+        self.displayLayout.addWidget(self.comboDisplay)
+        self.viewLayout.addWidget(self.labelView)
+        self.viewLayout.addStretch()
+        self.viewLayout.addWidget(self.comboView)
+        self.btnsLayout.addWidget(self.okBtn)
+        self.btnsLayout.addStretch()
+        self.btnsLayout.addWidget(self.saveBtn)
+        self.btnsLayout.addStretch()
+        self.btnsLayout.addWidget(self.cancelBtn)
+
+        self.dropDownLayout.addLayout(self.csLayout)
+        self.dropDownLayout.addLayout(self.inputLayout)
+        self.dropDownLayout.addLayout(self.displayLayout)
+        self.dropDownLayout.addLayout(self.viewLayout)
+        self.dropDownLayout.addStretch()
+        self.dropDownLayout.addLayout(self.btnsLayout)
+
+        layout.addLayout(self.dropDownLayout)
 
         self.setLayout(layout)
 

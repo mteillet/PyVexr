@@ -34,7 +34,7 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 - [ ] Multiple versions on each shot in order to compare them easily
 
 
-### Prerequisites
+## Prerequisites
 If you want to build the python version in order to modify or plug it in and existing pipe, here's what you need:
 ```sh
 	* Python 3.7 + 
@@ -45,7 +45,7 @@ If you want to build the python version in order to modify or plug it in and exi
 ```
 An executable release for Windows and Linux will soon be released.
 
-### License
+## License
 Distributed under the MIT License. See `LICENSE.txt` for more information
 
 ## Contact

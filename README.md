@@ -2,14 +2,12 @@
 <div align="center">
 	<h3 align="center">PyVexr</h3>
 	
-	<p align="center">
-	Open Exr Viewer
-	</p>
+	<p align="center">Open Exr Viewer</p>
 </div>
 
-# OpenExrViewer
-Simple Python ,PyQt5, OpenCV, OpenEXR, and OCIO version 2 application to display open Exr files
-Its main goal is to have a simple application for viewing your OpenExr files, without having to open nuke, with an easy to use OCIO access, in order to preview your EXRs with AgX or Filmic (Legacy)
+# About The Project
+PyVexr is intended to be a lightweight, simple GUI application to preview your EXR files easily using the OCIO you want.
+Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 
 ## Roadmap
 
@@ -29,7 +27,7 @@ Its main goal is to have a simple application for viewing your OpenExr files, wi
 - [ ] Picker to get values from specific pixels
 - [ ] Direct .mp4 export from PyVexr, baking in your exposure / saturation tweaks, and your chosen OCIIO
 - [ ] Buffer 
-	- [] MultiThreading
+	- [ ] MultiThreading
 - [ ] Load and save the PyVexr playlist directly in order to save viewing sessions containing multiple shots
 - [ ] Option to add neighbouring shots even after the first ones have been loaded
 - [ ] Multiple versions on each shot in order to compare them easily

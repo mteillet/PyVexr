@@ -2,7 +2,7 @@
 <div align="center">
 	<h3 align="center">PyVexr</h3>
 	
-	<p align="center">Open Exr Viewer</p>
+	<h1 align="center">Open Exr Viewer</p>
 </div>
 
 # About The Project

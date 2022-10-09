@@ -63,7 +63,7 @@ def autoRangeFromPath(pathList):
 
         
 
-def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure, saturation, channel, channelRGBA):
+def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure, saturation, channel, channelRGBA, ocioVar, ocioDisplay, ocioToggle):
     #print("PyVexr Loading Button")
     temporaryImg = fileList[0]
     #temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
@@ -71,10 +71,10 @@ def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure, saturation, channel, 
     #temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
     #temporaryImg = "~/Documents/Downloads/Jonathan_bertin_09.jpg"
     #channelList = exrListChannels(temporaryImg)
-    convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, channelRGBA)
+    convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, channelRGBA, ocioVar, ocioDisplay, ocioToggle)
     return (convertedImg)
 
-def updateImg(path, channel, ocioIn, ocioOut, ocioLook, exposure, saturation, channelRGBA):
+def updateImg(path, channel, ocioIn, ocioOut, ocioLook, exposure, saturation, channelRGBA, ocioVar, ocioDisplay, ocioToggle):
     #Checking if a channel switch will be needed or not
 
     channel = checkFirstExrChannel(path, channel, channelRGBA)
@@ -99,7 +99,8 @@ def updateImg(path, channel, ocioIn, ocioOut, ocioLook, exposure, saturation, ch
 
     if(img.dtype == "float32"):
         # Making the actual OCIO Transform
-        ocioTransform(img, ocioIn, ocioOut, ocioLook)
+        if ocioToggle == True:
+            ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay)
         img *= 255
         # Clamping the values to avoid artifacts if values go over 255
         img = clampImg(img)
@@ -330,7 +331,41 @@ def exrSwitchChannel(path, channel, channelRGBA):
     
     return(img)
 
-        
+def initOcio2(ocioVar):
+    config = OCIO.Config.CreateFromFile(ocioVar)
+
+    colorSpaces = config.getActiveViews().split(", ")
+
+    color = config.getColorSpaces()
+
+    inputInterp = []
+    displays = []
+    for i in color:
+        if (i.getFamily().lower() in ["linear", "log", "Log"]):
+            #print(i.getFamily(),i.getName())
+            inputInterp.append(i.getName())
+        if (i.getFamily().lower() in ["display", ""]):
+            #print(i.getFamily(), i.getName())
+            displays.append(i.getName())
+
+    return(colorSpaces,inputInterp,displays)
+
+def getLooks(ocioVar, colorSpace):
+    config = OCIO.Config.CreateFromFile(ocioVar)
+
+    looks = config.getLooks()
+    looksList = []
+    looksList.append("None")
+
+    for i in looks:
+        #print("{} - {}".format(i.getProcessSpace(), i.getName()))
+        if colorSpace in i.getProcessSpace():
+            #print("MATCH !! - {}".format(i.getName()))
+            looksList.append(i.getName())
+
+
+    return(looksList)
+
 
 def initOCIO():
     print("Init OCIO version 2")
@@ -392,7 +427,7 @@ def checkFirstExrChannel(path, channel, channelRGBA):
     return(channel)
 
 # Converting the Exr file with opencv to a readable image file for QtPixmap
-def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, channelRGBA):
+def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, channelRGBA, ocioVar, ocioDisplay, ocioToggle):
     path = [path]
 
     channel = checkFirstExrChannel(path, channel, channelRGBA)
@@ -429,7 +464,9 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
 
     if(img.dtype == "float32"):
         # Making the actual OCIO Transform
-        ocioTransform(img, ocioIn, ocioOut, ocioLook)
+        if ocioToggle == True:
+            ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay)
+        #ocioTransform(img, ocioIn, ocioOut, ocioLook)
         img *= 255
         # Clamping the values to avoid artifacts if values go over 255
         img = clampImg(img)
@@ -442,6 +479,39 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
     convertedImg = rgb_image.data, w, h, bytes_per_line
     return(convertedImg)
 
+def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
+    config = OCIO.Config.CreateFromFile(ocioVar)
+    #print(ocioIn)
+    #print(ocioOut)
+    #print(ocioLook)
+    #print(ocioDisplay)
+
+    transform = OCIO.DisplayViewTransform()
+    transform.setSrc(ocioIn)
+    transform.setDisplay("sRGB")
+    transform.setView(ocioOut)
+
+    viewer = OCIO.LegacyViewingPipeline()
+    viewer.setDisplayViewTransform(transform)
+    if ocioLook != "None":
+        viewer.setLooksOverrideEnabled(True)
+        viewer.setLooksOverride(ocioLook)
+
+
+    view = config.getDefaultView(ocioDisplay)
+
+    processor = viewer.getProcessor(config, config.getCurrentContext())
+
+    cpu = processor.getDefaultCPUProcessor()
+
+    #displays = transform.getDisplays()
+    img = cpu.applyRGB(img)
+
+    #print(dir(transform))
+    #for i in displays:
+    #    print(i)
+
+    return(img)
 
 def ocioTransform(img, ocioIn, ocioOut, ocioLook):
     #print("Using PyOpenColorIO version 2")

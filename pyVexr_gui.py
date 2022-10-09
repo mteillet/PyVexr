@@ -4,8 +4,9 @@
 
 import sys
 import os
+import json
 from PyQt5 import QtWidgets, QtCore, QtGui
-from pyVexr_main import loadImg, interpretRectangle, initOCIO, ocioLooksFromView, exrListChannels, updateImg, seqFromPath 
+from pyVexr_main import loadImg, interpretRectangle, initOCIO, ocioLooksFromView, exrListChannels, updateImg, seqFromPath, getLooks, initOcio2
 from pyVexr_timelineGui import Timeline
 from math import sqrt
 
@@ -293,10 +294,13 @@ class MyWidget(QtWidgets.QWidget):
         # Global dict image related:
         self.imgDict = {}
         self.imgDict["path"] = []
+        self.imgDict["ocioVar"] = "ocio/config.ocio"
         self.imgDict["ocio"] = {}
-        self.imgDict["ocio"]["ocioIn"] = None
-        self.imgDict["ocio"]["ocioOut"] = None
-        self.imgDict["ocio"]["ocioLook"] = None
+        self.imgDict["ocio"]["ocioIn"] = "Linear"
+        self.imgDict["ocio"]["ocioOut"] = "Standard"
+        self.imgDict["ocio"]["ocioLook"] = "None"
+        self.imgDict["ocio"]["ocioDisplay"] = None
+        self.imgDict["ocioToggle"] = False
         self.imgDict["channel"] = None
         self.imgDict["exposure"] = 0
         self.imgDict["saturation"] = 1
@@ -304,6 +308,9 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["flipY"] = False
         self.imgDict["RGBA"] = "rgba"
         self.imgDict["previousShot"] = None
+
+        self.checkIfJsonExists()
+
         ####################################
         # Code for the PyVexr Main windows #
         ####################################
@@ -380,26 +387,15 @@ class MyWidget(QtWidgets.QWidget):
 
         # OCIO dropdown
         ocioViews, looksDict, viewsList= initOCIO()
+        #print(ocioViews)
         # Setup dict in order to retrieve selected items
-        self.ocioInLabel = QtWidgets.QLabel("Source Input:")
-        self.ocioOutLabel = QtWidgets.QLabel("Output sRGB:")
-        self.ocioLooksLabel = QtWidgets.QLabel("Look :")
-        self.ocioIn = QtWidgets.QComboBox()
-        self.ocioIn.activated.connect(self.ocioInChange)
-        self.ocioOut = QtWidgets.QComboBox()
-        self.ocioOut.activated.connect(self.ocioOutChange)
-        self.ocioLooks = QtWidgets.QComboBox()
-        self.ocioLooks.activated.connect(self.ocioLookChange)
         self.ocioToggle = QtWidgets.QPushButton("OCIO")
+        self.ocioToggle.setCheckable(True)
+        self.ocioToggle.clicked.connect(self.ocioToggleClicked)
+        # init it with a click at the beginning
+        self.ocioToggle.setChecked(True)
+        self.ocioToggle.setStyleSheet("background-color : blue")
 
-        if "sRGB" in ocioViews and "Linear" in ocioViews:
-            self.ocioIn.addItem("Linear")
-        for i in ocioViews:
-            if i != "Linear":
-                self.ocioIn.addItem(i)
-        for view in viewsList:
-            self.ocioOut.addItem(view)
-        self.ocioLooks.addItem("None")
 
 
         # Channel area 
@@ -512,12 +508,6 @@ class MyWidget(QtWidgets.QWidget):
         self.topBarLayout = QtWidgets.QHBoxLayout()
         self.topBarLayout.addWidget(self.menuBar)
         self.topBarLayout.addStretch()
-        #self.topBarLayout.addWidget(self.ocioInLabel)
-        #self.topBarLayout.addWidget(self.ocioIn)
-        #self.topBarLayout.addWidget(self.ocioOutLabel)
-        #self.topBarLayout.addWidget(self.ocioOut)
-        #self.topBarLayout.addWidget(self.ocioLooksLabel)
-        #self.topBarLayout.addWidget(self.ocioLooks)
         self.topBarLayout.addWidget(self.ocioToggle)
 
         # Main Center layout #
@@ -585,9 +575,6 @@ class MyWidget(QtWidgets.QWidget):
     def loadFile(self):
         #print(self.imgDict["path"])
         # OCIO DATA
-        self.imgDict["ocio"]["ocioIn"] = self.ocioIn.currentText()
-        self.imgDict["ocio"]["ocioOut"] = self.ocioOut.currentText()
-        self.imgDict["ocio"]["ocioLook"] = self.ocioLooks.currentText()
         #Loading frames from same nomenclature
         seqDict = seqFromPath(self.imgDict["path"])
         #Init the slider
@@ -598,7 +585,7 @@ class MyWidget(QtWidgets.QWidget):
             for i in seqDict[key]:
                 print(i)
         """
-        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"])
+        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
 
         # Set pixmap in self.image
@@ -620,7 +607,7 @@ class MyWidget(QtWidgets.QWidget):
 
     def changeFrame(self, frame):
         self.imgDict["path"][0] = frame
-        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"])
+        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
 
         # Set pixmap in self.image
@@ -924,7 +911,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imageUpdate()
 
     def refreshImg(self):
-        tempImg = updateImg(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["RGBA"])
+        tempImg = updateImg(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
         self.mirrorToggles()
@@ -938,27 +925,6 @@ class MyWidget(QtWidgets.QWidget):
         # Fit image in view based on resize of the window
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
 
-    def ocioInChange(self):
-        sender = self.sender()
-        self.imgDict["ocio"]["ocioIn"] = self.ocioIn.currentText()
-        self.imageUpdate()
-
-    def ocioOutChange(self):
-        sender = self.sender()
-        #print("Changed The View to : {}".format(sender.currentText()))
-        looks = ocioLooksFromView(sender.currentText())
-        self.ocioLooks.clear()
-        self.ocioLooks.addItems(looks)
-        # Updating the imgDict
-        self.imgDict["ocio"]["ocioIn"] = self.ocioIn.currentText()
-        self.imgDict["ocio"]["ocioOut"] = self.ocioOut.currentText()
-        self.imgDict["ocio"]["ocioLook"] = self.ocioLooks.currentText()
-        self.imageUpdate()
-
-    def ocioLookChange(self):
-        sender = self.sender()
-        self.imgDict["ocio"]["ocioLook"] = self.ocioLooks.currentText()
-        self.imageUpdate()
 
     def satChange(self, key):
         if (self.saturationText.isVisible() == True):
@@ -1081,6 +1047,33 @@ class MyWidget(QtWidgets.QWidget):
             self.saturationText.hide()
             self.textCard.hide()
 
+    def checkIfJsonExists(self):
+        jsonPath = "config.json"
+        if (os.path.exists(jsonPath) == True):
+            print("Loading ocio saved config !! ")
+            with open(jsonPath, "r") as file:
+                config = json.load(file)
+            file.close()
+            self.imgDict["ocioVar"] = (config["ocioVar"])
+            self.imgDict["ocio"]["ocioIn"] = (config["ocioIn"])
+            self.imgDict["ocio"]["ocioOut"] = (config["ocioOut"])
+            self.imgDict["ocio"]["ocioDisplay"] = (config["ocioDisplay"])
+            self.imgDict["ocio"]["ocioLook"] = (config["ocioLook"])
+        else:
+            pass
+
+    def ocioToggleClicked(self):
+        if (self.ocioToggle.isChecked() == True):
+            self.ocioToggle.setStyleSheet("background-color : blue")
+            self.imgDict["ocioToggle"] = True
+        else:
+            self.ocioToggle.setStyleSheet("background-color : red")
+            self.imgDict["ocioToggle"] = False
+
+        self.refreshImg()
+
+
+
 class ExposurePopup(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(ExposurePopup, self).__init__(*args, **kwargs)
@@ -1145,25 +1138,53 @@ class OcioPopup(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout()
         self.dropDownLayout = QtWidgets.QVBoxLayout()
+        self.ocioLayout = QtWidgets.QHBoxLayout()
         self.csLayout = QtWidgets.QHBoxLayout()
         self.inputLayout = QtWidgets.QHBoxLayout()
         self.displayLayout = QtWidgets.QHBoxLayout()
         self.viewLayout = QtWidgets.QHBoxLayout()
         self.btnsLayout = QtWidgets.QHBoxLayout()
 
+        self.ocioLabel = QtWidgets.QLabel("Ocio Path")
+        self.ocioPath = QtWidgets.QLineEdit("ocio/config.ocio")
+        self.ocioPath.textChanged.connect(self.pathChanged)
         self.labelCS = QtWidgets.QLabel("Color Space")
         self.comboCS = QtWidgets.QComboBox()
+        self.comboCS.currentIndexChanged.connect(self.onCsChanged)
         self.labelInput = QtWidgets.QLabel("Input Interpreation")
         self.comboInput = QtWidgets.QComboBox()
+        self.comboInput.currentIndexChanged.connect(self.onAnyChanged)
         self.labelDisplay = QtWidgets.QLabel("Display")
         self.comboDisplay = QtWidgets.QComboBox()
-        self.labelView = QtWidgets.QLabel("View")
+        self.comboDisplay.currentIndexChanged.connect(self.onAnyChanged)
+        self.labelView = QtWidgets.QLabel("Look")
         self.comboView = QtWidgets.QComboBox()
+        self.comboView.currentIndexChanged.connect(self.onAnyChanged)
+
+        self.pathChanged()
+        self.checkIfJsonExists()
+
+        colorSpaces,inputInterp,displays = initOcio2(widget.imgDict["ocioVar"])
+        for i in colorSpaces:
+            self.comboCS.addItem(i)
+        for i in inputInterp:
+            self.comboInput.addItem(i)
+        for i in displays:
+            self.comboDisplay.addItem(i)
+
 
         self.okBtn = QtWidgets.QPushButton("Ok")
+        self.okBtn.clicked.connect(self.okClicked)
         self.cancelBtn = QtWidgets.QPushButton("Cancel")
+        self.cancelBtn.clicked.connect(self.cancelClicked)
         self.saveBtn = QtWidgets.QPushButton("Save Config")
+        self.saveBtn.clicked.connect(self.saveConfigClicked)
+        self.okBtn.setFocus()
 
+
+        self.ocioLayout.addWidget(self.ocioLabel)
+        self.ocioLayout.addStretch()
+        self.ocioLayout.addWidget(self.ocioPath)
         self.csLayout.addWidget(self.labelCS)
         self.csLayout.addStretch()
         self.csLayout.addWidget(self.comboCS)
@@ -1182,6 +1203,8 @@ class OcioPopup(QtWidgets.QWidget):
         self.btnsLayout.addStretch()
         self.btnsLayout.addWidget(self.cancelBtn)
 
+        self.dropDownLayout.addLayout(self.ocioLayout)
+        self.dropDownLayout.addStretch()
         self.dropDownLayout.addLayout(self.csLayout)
         self.dropDownLayout.addLayout(self.inputLayout)
         self.dropDownLayout.addLayout(self.displayLayout)
@@ -1193,7 +1216,82 @@ class OcioPopup(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
+    ###############################
+    # Code for the Slot functions #
+    ###############################
+    @QtCore.pyqtSlot()
+    def pathChanged(self):
+        widget.imgDict["ocioVar"] = self.ocioPath.text()
+        self.comboCS.clear()
+        self.comboInput.clear()
+        self.comboDisplay.clear()
+        self.comboView.clear()
 
+        colorSpaces,inputInterp,displays = initOcio2(widget.imgDict["ocioVar"])
+        for i in colorSpaces:
+            self.comboCS.addItem(i)
+        for i in inputInterp:
+            self.comboInput.addItem(i)
+        for i in displays:
+            self.comboDisplay.addItem(i)
+
+        self.onCsChanged()
+        self.onAnyChanged()
+
+    def onCsChanged(self):
+        cs = (self.comboCS.currentText())
+        looks = getLooks(widget.imgDict["ocioVar"], cs)
+        self.comboView.clear()
+        
+        for i in looks:
+            self.comboView.addItem(i)
+
+    def onAnyChanged(self):
+        #print(self.comboInput.currentText())
+        widget.imgDict["ocio"]["ocioIn"] = self.comboInput.currentText()
+        widget.imgDict["ocio"]["ocioOut"] = self.comboCS.currentText()
+        widget.imgDict["ocio"]["ocioDisplay"] = self.comboDisplay.currentText()
+        widget.imgDict["ocio"]["ocioLook"] = self.comboView.currentText()
+
+    def okClicked(self):
+        widget.refreshImg()
+
+    def saveConfigClicked(self):
+        # Check if a config.json exists 
+        jsonPath = "config.json"
+        if (os.path.exists(jsonPath) == True):
+            print("Config exists, overriding")
+        else:
+            print("Creating new config")
+        jsonData = {}
+        jsonData["ocioVar"] = self.ocioPath.text()
+        jsonData["ocioIn"] = self.comboInput.currentText()
+        jsonData["ocioOut"] = self.comboCS.currentText()
+        jsonData["ocioDisplay"] = self.comboDisplay.currentText()
+        jsonData["ocioLook"] = self.comboView.currentText()
+        #print(jsonData)
+        with open(jsonPath, "w") as file:
+            json.dump(jsonData, file)
+        file.close()
+
+    def checkIfJsonExists(self):
+        jsonPath = "config.json"
+        if (os.path.exists(jsonPath) == True):
+            print("Loading ocio saved config")
+            with open(jsonPath, "r") as file:
+                config = json.load(file)
+            file.close()
+            self.ocioPath.setText(config["ocioVar"])
+            self.comboInput.setCurrentText(config["ocioIn"])
+            self.comboCS.setCurrentText(config["ocioOut"])
+            self.comboDisplay.setCurrentText(config["ocioDisplay"])
+            self.comboView.setCurrentText(config["ocioLook"])
+        else:
+            pass
+
+
+    def cancelClicked(self):
+        self.close()
 
 
 

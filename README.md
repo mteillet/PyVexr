@@ -20,13 +20,13 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 	- [ ] Layer contact sheet
 - [x] Switch and visualize other channels in multilayered exrs
 - [x] Tweak exposition and saturation on the fly
-- [x] Easily accessible OCIIO v2 menu
-	- [ ] OCIIO menu GUI v2
+- [x] Easily accessible OCIO v2 menu
+	- [x] OCIO menu GUI v2
+	- [x] Config.json to remember your favourite OCIO settings
 - [x] Full Python code available
 	- [ ] Compiled versions
-- [ ] Config.json to remember your favourite OCIIO settings
 - [ ] Picker to get values from specific pixels
-- [ ] Direct .mp4 export from PyVexr, baking in your exposure / saturation tweaks, and your chosen OCIIO
+- [ ] Direct .mp4 export from PyVexr, baking in your exposure / saturation tweaks, and your chosen OCIO
 - [ ] Buffer 
 	- [ ] MultiThreading
 - [ ] Load and save the PyVexr playlist directly in order to save viewing sessions containing multiple shots

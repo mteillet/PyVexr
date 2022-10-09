@@ -300,7 +300,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["ocio"]["ocioOut"] = "Standard"
         self.imgDict["ocio"]["ocioLook"] = "None"
         self.imgDict["ocio"]["ocioDisplay"] = None
-        self.imgDict["ocioToggle"] = False
+        self.imgDict["ocioToggle"] = True
         self.imgDict["channel"] = None
         self.imgDict["exposure"] = 0
         self.imgDict["saturation"] = 1
@@ -1050,7 +1050,7 @@ class MyWidget(QtWidgets.QWidget):
     def checkIfJsonExists(self):
         jsonPath = "config.json"
         if (os.path.exists(jsonPath) == True):
-            print("Loading ocio saved config !! ")
+            print("Loaded ocio config and preferences")
             with open(jsonPath, "r") as file:
                 config = json.load(file)
             file.close()
@@ -1151,7 +1151,7 @@ class OcioPopup(QtWidgets.QWidget):
         self.labelCS = QtWidgets.QLabel("Color Space")
         self.comboCS = QtWidgets.QComboBox()
         self.comboCS.currentIndexChanged.connect(self.onCsChanged)
-        self.labelInput = QtWidgets.QLabel("Input Interpreation")
+        self.labelInput = QtWidgets.QLabel("Input Interpretation")
         self.comboInput = QtWidgets.QComboBox()
         self.comboInput.currentIndexChanged.connect(self.onAnyChanged)
         self.labelDisplay = QtWidgets.QLabel("Display")
@@ -1277,7 +1277,6 @@ class OcioPopup(QtWidgets.QWidget):
     def checkIfJsonExists(self):
         jsonPath = "config.json"
         if (os.path.exists(jsonPath) == True):
-            print("Loading ocio saved config")
             with open(jsonPath, "r") as file:
                 config = json.load(file)
             file.close()

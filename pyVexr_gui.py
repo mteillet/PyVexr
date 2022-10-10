@@ -6,12 +6,15 @@ import sys
 import os
 import json
 from PyQt5 import QtWidgets, QtCore, QtGui
-from pyVexr_main import loadImg, interpretRectangle, initOCIO, ocioLooksFromView, exrListChannels, updateImg, seqFromPath, getLooks, initOcio2
+from pyVexr_main import loadImg, interpretRectangle, exrListChannels, seqFromPath, initOcio2, getLooks
 from pyVexr_timelineGui import Timeline
 from math import sqrt
 
 # Subclassing graphicsView in order to be able to track mouse movements in the scene
 class graphicsView(QtWidgets.QGraphicsView):
+    '''
+    Graphics view, window displaying the actual image
+    '''
     def __init__ (self, parent=None):
         super(graphicsView, self).__init__ (parent)
         #self.setAcceptDrops(True)
@@ -280,6 +283,9 @@ class graphicsView(QtWidgets.QGraphicsView):
         widget.versionsClicked()
 
 class MyWidget(QtWidgets.QWidget):
+    '''
+    Main UI part, responsible for assembly and menus
+    '''
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PyVexr -- OpenExr Viewer") 
@@ -385,9 +391,6 @@ class MyWidget(QtWidgets.QWidget):
         self.openColorIoAction = self.ociioMenu.addAction("OpenColorIO Settings")
         self.openColorIoAction.triggered.connect(self.ocioMenu)
 
-        # OCIO dropdown
-        ocioViews, looksDict, viewsList= initOCIO()
-        #print(ocioViews)
         # Setup dict in order to retrieve selected items
         self.ocioToggle = QtWidgets.QPushButton("OCIO")
         self.ocioToggle.setCheckable(True)
@@ -911,7 +914,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imageUpdate()
 
     def refreshImg(self):
-        tempImg = updateImg(self.imgDict["path"],self.imgDict["channel"],self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"])
+        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"],self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
         self.mirrorToggles()

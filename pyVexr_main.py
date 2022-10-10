@@ -64,93 +64,19 @@ def autoRangeFromPath(pathList):
         
 
 def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure, saturation, channel, channelRGBA, ocioVar, ocioDisplay, ocioToggle):
-    #print("PyVexr Loading Button")
+    '''
+    Main function responsible for the loading of IMGs
+    '''
     temporaryImg = fileList[0]
-    #temporaryImg = "exrExamples/RenderPass_LPE_1.0100.exr"
-    #temporaryImg = "exrExamples/RenderPass_UTILS_1.0100.exr"
-    #temporaryImg = "exrExamples/RenderPass_Beauty_1.0100.exr"
-    #temporaryImg = "~/Documents/Downloads/Jonathan_bertin_09.jpg"
-    #channelList = exrListChannels(temporaryImg)
+    
     convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, channelRGBA, ocioVar, ocioDisplay, ocioToggle)
     return (convertedImg)
 
-def updateImg(path, channel, ocioIn, ocioOut, ocioLook, exposure, saturation, channelRGBA, ocioVar, ocioDisplay, ocioToggle):
-    #Checking if a channel switch will be needed or not
-
-    channel = checkFirstExrChannel(path, channel, channelRGBA)
-
-    if (channel in [None, "RGB", "RGBA"]) & (channelRGBA == "rgba"):
-        #print("No channel merge needed")
-        img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
-        #print("classic layer")
-    else:
-        splitImg = exrSwitchChannel(path, channel, channelRGBA)
-        # Merging the splitted exr channel (in a different order a openCV expects BGR by default)
-        img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
-        #print("splittedLayer")
-
-    # SaturationChange
-    if (saturation != 1):
-        img = saturationTweak(img, saturation)
-
-    # ExposureChange
-    if (exposure != 0):
-        img = img * pow(2,float(exposure))
-
-    if(img.dtype == "float32"):
-        # Making the actual OCIO Transform
-        if ocioToggle == True:
-            ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay)
-        img *= 255
-        # Clamping the values to avoid artifacts if values go over 255
-        img = clampImg(img)
-        # Conversion to the QPixmap format
-        img = img.astype(np.uint8)
-
-    rgb_image = cv.cvtColor(img, cv.COLOR_BGR2RGB)
-    h,w,ch = rgb_image.shape
-    bytes_per_line = ch * w
-    convertedImg = rgb_image.data, w, h, bytes_per_line
-    return(convertedImg)
-
-def rgbToHsv(rgb):
-    maxv = np.amax(rgb, axis=2)
-    maxc = np.argmax(rgb, axis=2)
-    minv = np.amin(rgb, axis=2)
-    minc = np.argmin(rgb, axis=2)
-
-    hsv = np.zeros(rgb.shape, dtype='float32')
-
-    hsv[maxc == minc, 0] = np.zeros(hsv[maxc == minc, 0].shape)
-    hsv[maxc == 0, 0] = (((rgb[..., 1] - rgb[..., 2]) * 60.0 / (maxv - minv + np.spacing(1))) % 360.0)[maxc == 0]
-    hsv[maxc == 1, 0] = (((rgb[..., 2] - rgb[..., 0]) * 60.0 / (maxv - minv + np.spacing(1))) + 120.0)[maxc == 1]
-    hsv[maxc == 2, 0] = (((rgb[..., 0] - rgb[..., 1]) * 60.0 / (maxv - minv + np.spacing(1))) + 240.0)[maxc == 2]
-    hsv[maxv == 0, 1] = np.zeros(hsv[maxv == 0, 1].shape)
-    hsv[maxv != 0, 1] = (1 - minv / (maxv + np.spacing(1)))[maxv != 0]
-    hsv[..., 2] = maxv
-
-    return(hsv)
-
-def hsvToRgb(hsv):
-    hi = np.floor(hsv[..., 0] / 60.0) % 6
-    hi = hi.astype('uint8')
-    v = hsv[..., 2].astype('float32')
-    f = (hsv[..., 0] / 60.0) - np.floor(hsv[..., 0] / 60.0)
-    p = v * (1.0 - hsv[..., 1])
-    q = v * (1.0 - (f * hsv[..., 1]))
-    t = v * (1.0 - ((1.0 - f) * hsv[..., 1]))
-
-    rgb = np.zeros(hsv.shape)
-    rgb[hi == 0, :] = np.dstack((v, t, p))[hi == 0, :]
-    rgb[hi == 1, :] = np.dstack((q, v, p))[hi == 1, :]
-    rgb[hi == 2, :] = np.dstack((p, v, t))[hi == 2, :]
-    rgb[hi == 3, :] = np.dstack((p, q, v))[hi == 3, :]
-    rgb[hi == 4, :] = np.dstack((t, p, v))[hi == 4, :]
-    rgb[hi == 5, :] = np.dstack((v, p, q))[hi == 5, :]
-
-    return(rgb)
 
 def saturationKernel(img, saturation, coefRGB):
+    '''
+    Saturation calculations based on luma coefficients
+    '''
     imgB, imgG, imgR = cv.split(img)
     luma = imgR * coefRGB[0] + imgG * coefRGB[1] + imgB * coefRGB[2]
     luma3d = np.repeat(luma[:,:, np.newaxis], 3, axis = 2)
@@ -161,6 +87,9 @@ def saturationKernel(img, saturation, coefRGB):
 
 
 def saturationTweak(img, saturation):
+    '''
+    Check and setup of saturation luma values before actual saturation is applied
+    '''
     if saturation != 1:
         # Settings for the luma calculations
         coefRGB = [0.2126, 0.7152, 0.0722]
@@ -171,6 +100,9 @@ def saturationTweak(img, saturation):
     return(rgb)
 
 def exrListChannels(path):
+    '''
+    Function responsible for returning the EXR Channels to the channel pannel
+    '''
     exr = EXR.InputFile(path[0])
     # Getting the RAW list of channels
     header = exr.header()
@@ -197,10 +129,10 @@ def exrListChannels(path):
     return(channelList)
 
 def exrSwitchChannel(path, channel, channelRGBA):
-    """
+    '''
     def responsible for returning the R,G,B components of the image, in case 
     a different channel of pass is selected
-    """
+    '''
     exr = EXR.InputFile(path[0])
     header = exr.header()
     channelsRaw = header["channels"]
@@ -332,6 +264,9 @@ def exrSwitchChannel(path, channel, channelRGBA):
     return(img)
 
 def initOcio2(ocioVar):
+    '''
+    Def responsible for populating the ocio menus if no config file is found
+    '''
     config = OCIO.Config.CreateFromFile(ocioVar)
 
     colorSpaces = config.getActiveViews().split(", ")
@@ -351,6 +286,9 @@ def initOcio2(ocioVar):
     return(colorSpaces,inputInterp,displays)
 
 def getLooks(ocioVar, colorSpace):
+    '''
+    Def updating looks in ocio menu based on what colorspace is chosen
+    '''
     config = OCIO.Config.CreateFromFile(ocioVar)
 
     looks = config.getLooks()
@@ -367,43 +305,10 @@ def getLooks(ocioVar, colorSpace):
     return(looksList)
 
 
-def initOCIO():
-    print("Init OCIO version 2")
-    ocioVar = "ocio/config.ocio"
-    config = OCIO.Config.CreateFromFile(ocioVar)
-    #print(config)
-
-    # Getting displays list from ocio setup
-    displays = config.getActiveDisplays()
-    #print(displays)
-
-    displayList = config.getDisplays()
-    views= config.getViews(displayList[0])
-    viewsList = []
-    for view in views:
-        viewsList.append(view)
-    #print(viewsList)
-    # Getting ocio colorspaces from config
-    colorSpaces = config.getColorSpaces()
-    # Building a dictionnary of the colorspaces we get from the ocio
-    colorSpacesDict = {}
-    for c in colorSpaces:
-        # print(dir(c))
-        colorSpacesDict[c.getName()] = c
-
-    looks = config.getLooks()
-    # Building dict of the looks
-    looksDict = {}
-    for look in looks:
-        looksDict[look.getName()] = look
-
-
-    return(colorSpacesDict,looksDict, viewsList)
-
 def checkFirstExrChannel(path, channel, channelRGBA):
-    """
+    '''
     Checks if the channel RGB exists in the exr, otherwise returns the first channel
-    """
+    '''
     exr = EXR.InputFile(path[0])
     header = exr.header()
     channelsRaw = header["channels"]
@@ -428,23 +333,22 @@ def checkFirstExrChannel(path, channel, channelRGBA):
 
 # Converting the Exr file with opencv to a readable image file for QtPixmap
 def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, channelRGBA, ocioVar, ocioDisplay, ocioToggle):
+    '''
+    Main core code
+    '''
     path = [path]
 
+    # Checking if a switch back to RGB / default channel will be needed
     channel = checkFirstExrChannel(path, channel, channelRGBA)
 
     if (channel in [None, "RGB", "RGBA"]) & (channelRGBA == "rgba"):
-        #print("No channel merge needed")
+        # No channel merge will be needed
         img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
-        #print("classic layer")
     else:
         splitImg = exrSwitchChannel(path, channel, channelRGBA)
         # Merging the splitted exr channel (in a different order a openCV expects BGR by default)
         img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
-        #print("splittedLayer")
 
-    #img = cv.merge(path)
-    #img = cv.imread(path, cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
-    
     # For debugging purpose, if you need to display the image in open cv to compare
     '''
     img=img*65535
@@ -453,6 +357,7 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
     cv.imshow("Display window", img)
     k = cv.waitKey(0)
     '''
+
     # SaturationChange
     if (saturation != 1):
         img = saturationTweak(img, saturation)
@@ -512,73 +417,6 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     #    print(i)
 
     return(img)
-
-def ocioTransform(img, ocioIn, ocioOut, ocioLook):
-    #print("Using PyOpenColorIO version 2")
-    #print("Attempting convesion from {0} to {1} using look {2}".format(ocioIn, ocioOut, ocioLook))
-
-    ocioVar = "ocio/config.ocio"
-    config = OCIO.Config.CreateFromFile(ocioVar)
-    displays = config.getDisplays()
-    views = config.getViews(displays[0])
-    # views = [Standard,Filmic,Filmic Log, Raw, False Color]
-    looks = config.getLooks()
-
-    # Trying to set a display view transform
-    transform = OCIO.DisplayViewTransform()
-    transform.setSrc(ocioIn)
-    # Defaulting to SRGB here as displays selection has not been set up in the gui
-    transform.setDisplay(displays[0])
-    transform.setView(ocioOut)
-
-    viewer = OCIO.LegacyViewingPipeline()
-    viewer.setDisplayViewTransform(transform)
-    if ((ocioOut == "Filmic") | (ocioOut == "AgX")):
-        if ocioLook != "None":
-            viewer.setLooksOverrideEnabled(True)
-            viewer.setLooksOverride(ocioLook)
-
-    view = config.getDefaultView(displays[0])
-    
-
-    processor = viewer.getProcessor(config, config.getCurrentContext())
-    #processor = config.getProcessor(transform)
-    #processor = config.getProcessor(ocioIn, ocioOut)
-    cpu = processor.getDefaultCPUProcessor()
-
-    img = cpu.applyRGB(img)
-
-    return(img)
-
-def ocioLooksFromView(view):
-    ocioVar = "ocio/config.ocio"
-    config = OCIO.Config.CreateFromFile(ocioVar)
-    displays = config.getDisplays()
-    
-    looksObj = config.getLooks()
-
-    # Exception for other views, otherwise the filmic views will be in every views
-    if ((view == "Filmic") | (view == "AgX")):
-        looks = []
-        for i in looksObj:
-            looks.append(i.getName())
-        if ((view == "Filmic") & ("Medium Contrast" in looks)):
-            looks.pop(looks.index("Medium Contrast"))
-            looks.insert(0, "Medium Contrast")
-            # Removing the AgX Golden look
-            looks.pop(looks.index("Golden"))
-        if ((view == "AgX") & ("Punchy" in looks)):
-            looks.insert(0, "None")
-            looks.pop(looks.index("Punchy"))
-            looks.insert(1, "Punchy")
-
-            # Removing Filmic Looks 
-            #looks.pop(looks.index("Medium contrast"))
-        looks.append("None")
-    else:
-        looks = ["None"]
-    return(looks)
-
 
 
 def clampImg(img):

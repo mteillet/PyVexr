@@ -7,11 +7,25 @@ import cv2 as cv
 import numpy as np
 import PyOpenColorIO as OCIO
 import OpenEXR as EXR
+import threading
+import time
 import Imath
 import glob
 
+class MyThread(threading.Thread):
+    def run(self):
+        print("{} started !".format(self.getName()))
+        time.sleep(10)
+        print("{} finished !".format(self.getName()))
+
+def testThread(count):
+    for i in range(count):
+        myThread = MyThread(name = count, daemon = True)
+        myThread.start()
+
 def main():
     print("PyVexr pre alpha version")
+    print(threading.currentThread().name)
 
 def seqFromPath(path):
     '''

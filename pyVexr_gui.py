@@ -6,7 +6,7 @@ import sys
 import os
 import json
 from PyQt5 import QtWidgets, QtCore, QtGui
-from pyVexr_main import loadImg, interpretRectangle, exrListChannels, seqFromPath, initOcio2, getLooks
+from pyVexr_main import loadImg, interpretRectangle, exrListChannels, seqFromPath, initOcio2, getLooks, testThread
 from pyVexr_timelineGui import Timeline
 from math import sqrt
 
@@ -299,6 +299,7 @@ class MyWidget(QtWidgets.QWidget):
         
         # Global dict image related:
         self.imgDict = {}
+        self.imgDict["buffer"] = []
         self.imgDict["path"] = []
         self.imgDict["ocioVar"] = "ocio/config.ocio"
         self.imgDict["ocio"] = {}
@@ -575,11 +576,28 @@ class MyWidget(QtWidgets.QWidget):
         #print(app.focusWidget().objectName())
         pass
 
+    def bufferInit(self, seqDict):
+        '''
+        Init buffer size using the seqDict length
+        '''
+        for shot in seqDict:
+            #print(len(seqDict[shot]))
+            for frame in seqDict[shot]:
+                self.imgDict["buffer"].append(None)
+
+        #print(len(self.imgDict["buffer"]))
+
+    def bufferLoad(self):
+        print("bufferload")
+        
+        
+
     def loadFile(self):
-        #print(self.imgDict["path"])
-        # OCIO DATA
         #Loading frames from same nomenclature
         seqDict = seqFromPath(self.imgDict["path"])
+
+        self.bufferInit(seqDict)
+
         #Init the slider
         self.initSlider(seqDict)
         """
@@ -589,10 +607,16 @@ class MyWidget(QtWidgets.QWidget):
                 print(i)
         """
         tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"])
+
+        if len(self.imgDict["buffer"]) >> 0:
+            self.imgDict["buffer"][(self.frameNumber.slider.value())] = tempImg
+            #print(len(self.imgDict["buffer"]))
+
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
 
         # Set pixmap in self.image
         self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+
 
         # Give the rectangle view area the coordinates of the pixmap image after the image has been loaded
         imgCoordinates = interpretRectangle(str(self.image.boundingRect()))
@@ -604,6 +628,11 @@ class MyWidget(QtWidgets.QWidget):
 
         # Check mirror state
         self.mirrorToggles()
+
+        # Sart to fill buffer
+        self.bufferLoad()
+
+        #testThread(4)
 
     def FrameInView(self):
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
@@ -624,6 +653,7 @@ class MyWidget(QtWidgets.QWidget):
     def sliderChanged(self):
         currentPos = (self.frameNumber.slider.value())
         frame = self.frameNumber.returnFrame(currentPos)
+        print(self.frameNumber)
         positionMax = (self.frameNumber.slider.maximum())
         isSameShot = True
 

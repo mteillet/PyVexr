@@ -13,28 +13,58 @@ import Imath
 import glob
 
 class MyThread(threading.Thread):
+    '''
+    Thread function
+    Receives a dict containing the img infos and the buffer, creates the image
+    And stores it in the actual buffer, before returning it
+    '''
     def __init__(self, name, daemon, **kwargs):
         super(MyThread, self).__init__()
         # Can setup other things before the thread starts
         self.name = name
-        self.kwargs = kwargs
+        self.kwargs = kwargs["kwargs"]
+        self.threadData = {}
+
     def run(self, **kwargs):
+        t0 = time.time()
         print("{} started !".format(self.getName()))
-        #ocioIn = (kwargs.get("test"))
-        #print(ocioIn)
-        #print(dir(kwargs))
-        time.sleep(4)
-        print(self.kwargs)
-        print(self.kwargs.keys())
+        #time.sleep(4)
+        #print(self.kwargs["kwargs"].keys())
+
+        #print("current index = {}".format(self.kwargs["current"]))
+        #print(self.kwargs["buffer"][self.kwargs["current"]])
+        if (self.kwargs["buffer"][self.kwargs["current"]] == None):
+            print("Converting ----> {}".format(self.kwargs["frameCurrent"]))
+            #convertExr(temporaryImg, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, channelRGBA, ocioVar, ocioDisplay, ocioToggle)
+            tempImg = convertExr(self.kwargs["frameCurrent"], self.kwargs["ocio"]["ocioIn"],self.kwargs["ocio"]["ocioOut"], self.kwargs["ocio"]["ocioLook"], self.kwargs["exposure"], self.kwargs["saturation"], self.kwargs["channel"], self.kwargs["RGBA"], self.kwargs["ocioVar"], self.kwargs["ocio"]["ocioDisplay"], self.kwargs["ocioToggle"])
+            return(tempImg)
+        else:
+            print("---->    Current buffer not empty : index {} = {}".format(self.kwargs["current"], self.kwargs["buffer"][self.kwargs["current"]]))
+        #print(self.kwargs["buffer"])
+        #main()
 
         #time.sleep(10)
-        print("{} finished !".format(self.getName()))
+        t1 = time.time()
+        print("{} finished in {}!".format(self.getName(), t1-t0))
 
-def testThread(count, condition1):
-    print(condition1)
-    for i in range(count):
-        myThread = MyThread(name = i, daemon = True, kwargs = {"test":"COUCOU", "test2":"COUCOU2"})
-        myThread.start()
+def testThread(count, imgDict, frameList, current):
+    #print(imgDict["buffer"])
+    if len(imgDict["buffer"]) >> 0:
+        for i in range(count):
+            imgDict["frameCurrent"] = frameList[current]
+            #print(imgDict["frameCurrent"])
+            imgDict["current"] = current
+            #imgDict["seqDict"] = seqDict[current]
+            #print(current)
+            myThread = MyThread(name = i, daemon = True, kwargs = imgDict) 
+            test = myThread.start()
+            if (current < len(imgDict["buffer"])):
+                current += 1
+    else:
+        print("No buffer needed for range")
+
+    return(test)
+
 
 def main():
     print("PyVexr pre alpha version")

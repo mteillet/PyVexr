@@ -589,7 +589,8 @@ class MyWidget(QtWidgets.QWidget):
 
     def bufferLoad(self):
         print("bufferload")
-        
+        testThread(4, self.imgDict["ocio"]["ocioIn"])
+
         
 
     def loadFile(self):

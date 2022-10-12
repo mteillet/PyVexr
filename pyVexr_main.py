@@ -13,19 +13,31 @@ import Imath
 import glob
 
 class MyThread(threading.Thread):
-    def run(self):
+    def __init__(self, name, daemon, **kwargs):
+        super(MyThread, self).__init__()
+        # Can setup other things before the thread starts
+        self.name = name
+        self.kwargs = kwargs
+    def run(self, **kwargs):
         print("{} started !".format(self.getName()))
-        time.sleep(10)
+        #ocioIn = (kwargs.get("test"))
+        #print(ocioIn)
+        #print(dir(kwargs))
+        time.sleep(4)
+        print(self.kwargs)
+        print(self.kwargs.keys())
+
+        #time.sleep(10)
         print("{} finished !".format(self.getName()))
 
-def testThread(count):
+def testThread(count, condition1):
+    print(condition1)
     for i in range(count):
-        myThread = MyThread(name = count, daemon = True)
+        myThread = MyThread(name = i, daemon = True, kwargs = {"test":"COUCOU", "test2":"COUCOU2"})
         myThread.start()
 
 def main():
     print("PyVexr pre alpha version")
-    print(threading.currentThread().name)
 
 def seqFromPath(path):
     '''

@@ -587,9 +587,16 @@ class MyWidget(QtWidgets.QWidget):
 
         #print(len(self.imgDict["buffer"]))
 
-    def bufferLoad(self):
-        print("bufferload")
-        testThread(4, self.imgDict["ocio"]["ocioIn"])
+    def bufferLoad(self, seqDict):
+        #print("bufferload")
+        # Frame path list from seqDict
+        frameList = []
+        for shot in seqDict:
+            for frame in seqDict[shot]:
+                frameList.append(frame)
+        current = self.frameNumber.slider.value()
+        test = testThread(4, self.imgDict, frameList, current)
+        print(test)
 
         
 
@@ -631,7 +638,7 @@ class MyWidget(QtWidgets.QWidget):
         self.mirrorToggles()
 
         # Sart to fill buffer
-        self.bufferLoad()
+        self.bufferLoad(seqDict)
 
         #testThread(4)
 

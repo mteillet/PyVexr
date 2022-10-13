@@ -7,67 +7,36 @@ import cv2 as cv
 import numpy as np
 import PyOpenColorIO as OCIO
 import OpenEXR as EXR
-import threading
 import time
 import Imath
 import glob
 
-class MyThread(threading.Thread):
-    '''
-    Thread function
-    Receives a dict containing the img infos and the buffer, creates the image
-    And stores it in the actual buffer, before returning it
-    '''
-    def __init__(self, name, daemon, **kwargs):
-        super(MyThread, self).__init__()
-        # Can setup other things before the thread starts
-        self.name = name
-        self.kwargs = kwargs["kwargs"]
-        self.threadData = {}
-
-    def run(self, **kwargs):
-        t0 = time.time()
-        print("{} started !".format(self.getName()))
-        #time.sleep(4)
-        #print(self.kwargs["kwargs"].keys())
-
-        #print("current index = {}".format(self.kwargs["current"]))
-        #print(self.kwargs["buffer"][self.kwargs["current"]])
-        if (self.kwargs["buffer"][self.kwargs["current"]] == None):
-            print("Converting ----> {}".format(self.kwargs["frameCurrent"]))
-            #convertExr(temporaryImg, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, channelRGBA, ocioVar, ocioDisplay, ocioToggle)
-            tempImg = convertExr(self.kwargs["frameCurrent"], self.kwargs["ocio"]["ocioIn"],self.kwargs["ocio"]["ocioOut"], self.kwargs["ocio"]["ocioLook"], self.kwargs["exposure"], self.kwargs["saturation"], self.kwargs["channel"], self.kwargs["RGBA"], self.kwargs["ocioVar"], self.kwargs["ocio"]["ocioDisplay"], self.kwargs["ocioToggle"])
-            return(tempImg)
-        else:
-            print("---->    Current buffer not empty : index {} = {}".format(self.kwargs["current"], self.kwargs["buffer"][self.kwargs["current"]]))
-        #print(self.kwargs["buffer"])
-        #main()
-
-        #time.sleep(10)
-        t1 = time.time()
-        print("{} finished in {}!".format(self.getName(), t1-t0))
-
-def testThread(count, imgDict, frameList, current):
-    #print(imgDict["buffer"])
+def bufferBackEnd(imgDict, frameList, current):
+    """
+    Checks if the buffer corresponding to the index is empty
+    If it is empty, calculates the image and sends it back in order to assign it to the
+    buffer
+    """
+    # Check buffer len is ok
     if len(imgDict["buffer"]) >> 0:
-        for i in range(count):
-            imgDict["frameCurrent"] = frameList[current]
-            #print(imgDict["frameCurrent"])
-            imgDict["current"] = current
-            #imgDict["seqDict"] = seqDict[current]
-            #print(current)
-            myThread = MyThread(name = i, daemon = True, kwargs = imgDict) 
-            test = myThread.start()
-            if (current < len(imgDict["buffer"])):
-                current += 1
+        # Check current buffer address is not already computed
+        if (imgDict["buffer"][current] == None):
+            #t0 = time.time()
+            convertedImg = convertExr(frameList[current], imgDict["ocio"]["ocioIn"], imgDict["ocio"]["ocioOut"], imgDict["ocio"]["ocioLook"], imgDict["exposure"], imgDict["saturation"], imgDict["channel"], imgDict["RGBA"], imgDict["ocioVar"], imgDict["ocio"]["ocioDisplay"], imgDict["ocioToggle"])
+            #t1 = time.time()
+            #print("executed in {} seconds".format(t1 - t0))
+            return(convertedImg, current)
+        else:
+            #print("buffer not empty")
+            pass
+        if (current < len(imgDict["buffer"])):
+            current += 1
     else:
-        print("No buffer needed for range")
+        #print("No buffer needed for range")
+        pass
 
-    return(test)
+    #return(test)
 
-
-def main():
-    print("PyVexr pre alpha version")
 
 def seqFromPath(path):
     '''

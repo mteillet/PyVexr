@@ -602,6 +602,8 @@ class MyWidget(QtWidgets.QWidget):
         #thread.result.connect(self.bufferResult)
         #thread.run(frameList, current , kwargs = self.imgDict)
 
+        # TODO :
+        # NEED TO REPLACE THIS WITH QTHREADPOOL method
         queue = QueueThread()
         queue.queueResult.connect(self.queueResult)
         queue.run(frameList, current, kwargs = self.imgDict)

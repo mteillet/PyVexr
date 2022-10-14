@@ -20,17 +20,21 @@ def bufferBackEnd(imgDict, frameList, current):
     # Check buffer len is ok
     if len(imgDict["buffer"]) >> 0:
         # Check current buffer address is not already computed
-        if (imgDict["buffer"][current] == None):
-            #t0 = time.time()
-            convertedImg = convertExr(frameList[current], imgDict["ocio"]["ocioIn"], imgDict["ocio"]["ocioOut"], imgDict["ocio"]["ocioLook"], imgDict["exposure"], imgDict["saturation"], imgDict["channel"], imgDict["RGBA"], imgDict["ocioVar"], imgDict["ocio"]["ocioDisplay"], imgDict["ocioToggle"])
-            #t1 = time.time()
-            #print("executed in {} seconds".format(t1 - t0))
-            return(convertedImg, current)
-        else:
-            #print("buffer not empty")
+        try:
+            if (imgDict["buffer"][current] == None):
+                #t0 = time.time()
+                convertedImg = convertExr(frameList[current], imgDict["ocio"]["ocioIn"], imgDict["ocio"]["ocioOut"], imgDict["ocio"]["ocioLook"], imgDict["exposure"], imgDict["saturation"], imgDict["channel"], imgDict["RGBA"], imgDict["ocioVar"], imgDict["ocio"]["ocioDisplay"], imgDict["ocioToggle"])
+                #t1 = time.time()
+                #print("executed in {} seconds".format(t1 - t0))
+                return(convertedImg, current)
+            else:
+                #print("buffer not empty")
+                pass
+            if (current < len(imgDict["buffer"])):
+                current += 1
+        except IndexError:
+            #print("Fame Buffer index out of range")
             pass
-        if (current < len(imgDict["buffer"])):
-            current += 1
     else:
         #print("No buffer needed for range")
         pass

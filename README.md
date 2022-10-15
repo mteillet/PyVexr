@@ -50,3 +50,6 @@ Distributed under the MIT License. See `LICENSE.txt` for more information
 
 ## Contact
 Teillet Martin - martin.teillet@hotmail.fr
+
+
+### Thanks

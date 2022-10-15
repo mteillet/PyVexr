@@ -25,13 +25,13 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 	- [x] Config.json to remember your favourite OCIO settings
 - [x] Full Python code available
 	- [ ] Compiled versions
-- [ ] Picker to get values from specific pixels
 - [ ] Direct .mp4 export from PyVexr, baking in your exposure / saturation tweaks, and your chosen OCIO
-- [ ] Buffer 
-	- [ ] MultiThreading
+- [-] Buffer 
+	- [x] MultiThreading
 - [ ] Load and save the PyVexr playlist directly in order to save viewing sessions containing multiple shots
 - [ ] Option to add neighbouring shots even after the first ones have been loaded
 - [ ] Multiple versions on each shot in order to compare them easily
+- [ ] Picker to get values from specific pixels
 
 
 ## Prerequisites

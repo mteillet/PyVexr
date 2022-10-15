@@ -295,7 +295,8 @@ class MyWidget(QtWidgets.QWidget):
 
         # ThreadPool
         self.threadpool = QtCore.QThreadPool()
-        self.threadpool.setMaxThreadCount(self.threadpool.maxThreadCount() - 2)
+        #self.threadpool.setMaxThreadCount(self.threadpool.maxThreadCount() - 2)
+        self.threadpool.setMaxThreadCount(2)
         #print(("Multithreading with maximum {} threads").format(self.threadpool.maxThreadCount()))
 
         # StyleSheet settings
@@ -589,7 +590,7 @@ class MyWidget(QtWidgets.QWidget):
         '''
         # Reinitialize buffer
         if (len(self.imgDict["buffer"]) >> 0):
-            print("Reset Buffer")
+            #print("Reset Buffer")
             self.imgDict["buffer"] = []
 
         # Create empty buffer slots
@@ -601,6 +602,8 @@ class MyWidget(QtWidgets.QWidget):
 
     def bufferLoad(self, seqDict):
         #print("bufferload")
+        # Clear the queue if any workers have not been created yet
+        self.threadpool.clear()
         # Frame path list from seqDict
         frameList = []
         for shot in seqDict:
@@ -610,6 +613,7 @@ class MyWidget(QtWidgets.QWidget):
 
         count = 0
         if (len(frameList) >> 0):
+            #for i in range(10):
             for i in frameList:
                 # Reset the curent + count to not get out of list range
                 if (current+count >> self.frameNumber.slider.maximum()):
@@ -623,6 +627,7 @@ class MyWidget(QtWidgets.QWidget):
 
     def queueResult(self, resultA, resultB):
         self.imgDict["buffer"][resultB] = resultA
+        self.frameNumber._timeline.paintBuffer(resultB, len(self.imgDict["buffer"]))
         #print("Finished loading buffer at pos {}".format(resultB))
         
 

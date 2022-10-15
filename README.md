@@ -23,7 +23,8 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 - [x] Easily accessible OCIO v2 menu
 	- [x] OCIO menu GUI v2
 	- [x] Config.json to remember your favourite OCIO settings
-- [-] Buffer 
+- [ ] Buffer
+	- [x] Wip concerning the reset of buffer and timeline when settings are changed
 	- [x] MultiThreading
 - [x] Full Python code available
 	- [ ] Compiled versions
@@ -53,3 +54,5 @@ Teillet Martin - martin.teillet@hotmail.fr
 
 
 ### Thanks
+Thanks to Elsksa for his help and advices concerning OCIO handling
+Thanks to Sacha Duru for his help regarding pyQt

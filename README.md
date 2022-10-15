@@ -23,8 +23,8 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 - [x] Easily accessible OCIO v2 menu
 	- [x] OCIO menu GUI v2
 	- [x] Config.json to remember your favourite OCIO settings
-- [ ] Buffer 
-	- [ ] MultiThreading
+- [-] Buffer 
+	- [x] MultiThreading
 - [x] Full Python code available
 	- [ ] Compiled versions
 - [ ] Option to add neighbouring shots even after the first ones have been loaded

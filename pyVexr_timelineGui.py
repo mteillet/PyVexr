@@ -15,7 +15,8 @@ class _Timeline(QtWidgets.QWidget):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
+        self.cachePos = []
+        self.maxBuffer = 1
         self.setSizePolicy(
             QtWidgets.QSizePolicy.MinimumExpanding,
             QtWidgets.QSizePolicy.MinimumExpanding
@@ -40,7 +41,19 @@ class _Timeline(QtWidgets.QWidget):
         brush.setColor(QtGui.QColor(225,225,225))
         rect = QtCore.QRect(0 ,painter.device().height()-0.5 , painter.device().width(), painter.device().height())
         painter.fillRect(rect, brush)
+        #print(self.cachePos)
+        #tempList = [QtGui.QColor(10, 125, 10), QtGui.QColor(10, 255,10)]
+        brush.setColor(QtGui.QColor(10,125,10))
+        lenMax = self.maxBuffer - 1
+        for i in self.cachePos :
+            #brush.setColor(tempList[i%2])
+            xStart = ( (i-1) * painter.device().width() / lenMax )
+            xEnd = (painter.device().width() / lenMax + 1)
+            rect = QtCore.QRect(xStart, painter.device().height() - 0.5, xEnd, painter.device().height())
+            painter.fillRect(rect, brush)
 
+        # Color back to white
+        brush.setColor(QtGui.QColor(225,225,225))
         # Get Values from the slider
         slider = self.parent().slider
         vmin, vmax = slider.minimum(), slider.maximum()
@@ -101,6 +114,10 @@ class _Timeline(QtWidgets.QWidget):
 
         painter.end()
 
+    def paintBuffer(self, position, maxBuffer):
+        self.cachePos.append(position)
+        self.maxBuffer = maxBuffer
+        self._trigger_refresh()
 
 class Timeline(QtWidgets.QWidget):
     """

@@ -295,9 +295,9 @@ class MyWidget(QtWidgets.QWidget):
 
         # ThreadPool
         self.threadpool = QtCore.QThreadPool()
-        #self.threadpool.setMaxThreadCount(self.threadpool.maxThreadCount() - 2)
-        self.threadpool.setMaxThreadCount(2)
-        #print(("Multithreading with maximum {} threads").format(self.threadpool.maxThreadCount()))
+        self.threadpool.setMaxThreadCount(self.threadpool.maxThreadCount() - 4)
+        #self.threadpool.setMaxThreadCount(2)
+        print(("Multithreading with maximum {} threads").format(self.threadpool.maxThreadCount()))
 
         # StyleSheet settings
         self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
@@ -598,6 +598,8 @@ class MyWidget(QtWidgets.QWidget):
             #print(len(seqDict[shot]))
             for frame in seqDict[shot]:
                 self.imgDict["buffer"].append(None)
+
+        self.frameNumber._timeline.resetCacheDraw()
 
 
     def bufferLoad(self, seqDict):

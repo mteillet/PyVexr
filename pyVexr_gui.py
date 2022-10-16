@@ -989,6 +989,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imageUpdate()
 
     def refreshImg(self):
+        # TODO
         # NEED TO CORRECT BUG
         # REFRESH IMG IS CALLED ON FRAME CHANGE IF EXPO != 0 and if SAT != 1
         #print("refreshIMG")

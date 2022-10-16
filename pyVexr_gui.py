@@ -5,10 +5,11 @@
 import sys
 import os
 import json
-from PyQt5 import QtWidgets, QtCore, QtGui
-from pyVexr_main import loadImg, interpretRectangle, exrListChannels, seqFromPath, initOcio2, getLooks
-from pyVexr_timelineGui import Timeline
+import time
 from math import sqrt
+from PyQt5 import QtWidgets, QtCore, QtGui
+from pyVexr_main import loadImg, interpretRectangle, exrListChannels, seqFromPath, initOcio2, getLooks, bufferBackEnd 
+from pyVexr_timelineGui import Timeline
 
 # Subclassing graphicsView in order to be able to track mouse movements in the scene
 class graphicsView(QtWidgets.QGraphicsView):
@@ -292,6 +293,12 @@ class MyWidget(QtWidgets.QWidget):
         self.setWindowIcon(QtGui.QIcon("/home/martin/Documents/PYTHON/PyVexr/imgs/pyVexr_Icon_512.jpeg"))
         self.setAcceptDrops(True)
 
+        # ThreadPool
+        self.threadpool = QtCore.QThreadPool()
+        self.threadpool.setMaxThreadCount(self.threadpool.maxThreadCount() - 4)
+        #self.threadpool.setMaxThreadCount(2)
+        print(("Multithreading with maximum {} threads").format(self.threadpool.maxThreadCount()))
+
         # StyleSheet settings
         self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
         self.setMouseTracking(True)
@@ -299,6 +306,7 @@ class MyWidget(QtWidgets.QWidget):
         
         # Global dict image related:
         self.imgDict = {}
+        self.imgDict["buffer"] = []
         self.imgDict["path"] = []
         self.imgDict["ocioVar"] = "ocio/config.ocio"
         self.imgDict["ocio"] = {}
@@ -314,6 +322,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["flipY"] = False
         self.imgDict["RGBA"] = "rgba"
         self.imgDict["previousShot"] = None
+        self.p = None
 
         self.checkIfJsonExists()
 
@@ -575,24 +584,78 @@ class MyWidget(QtWidgets.QWidget):
         #print(app.focusWidget().objectName())
         pass
 
+    def bufferInit(self, seqDict):
+        '''
+        Init buffer size using the seqDict length
+        '''
+        # Reinitialize buffer
+        if (len(self.imgDict["buffer"]) >> 0):
+            #print("Reset Buffer")
+            self.imgDict["buffer"] = []
+
+        # Create empty buffer slots
+        for shot in seqDict:
+            #print(len(seqDict[shot]))
+            for frame in seqDict[shot]:
+                self.imgDict["buffer"].append(None)
+
+        self.frameNumber._timeline.resetCacheDraw()
+
+
+    def bufferLoad(self, seqDict):
+        #print("bufferload")
+        # Clear the queue if any workers have not been created yet
+        self.threadpool.clear()
+        # Frame path list from seqDict
+        frameList = []
+        for shot in seqDict:
+            for frame in seqDict[shot]:
+                frameList.append(frame)
+        current = self.frameNumber.slider.value()
+
+        count = 0
+        if (len(frameList) >> 0):
+            #for i in range(10):
+            for i in frameList:
+                # Reset the curent + count to not get out of list range
+                if (current+count >> self.frameNumber.slider.maximum()):
+                    print("NEED TO RESET THE CURRENT + COUNT")
+                    current = self.frameNumber.slider.minimum()
+                    count = 0
+                worker = Worker(frameList, current+count, **self.imgDict)
+                worker.signals.result.connect(self.queueResult)
+                self.threadpool.start(worker)
+                count += 1
+
+    def queueResult(self, resultA, resultB):
+        self.imgDict["buffer"][resultB] = resultA
+        self.frameNumber._timeline.paintBuffer(resultB, len(self.imgDict["buffer"]))
+        #print("Finished loading buffer at pos {}".format(resultB))
+        
+
     def loadFile(self):
-        #print(self.imgDict["path"])
-        # OCIO DATA
         #Loading frames from same nomenclature
         seqDict = seqFromPath(self.imgDict["path"])
+        self.seqDict = seqDict
+
+        self.bufferInit(seqDict)
+
         #Init the slider
         self.initSlider(seqDict)
-        """
-        for key in seqDict:
-            print("Sequence : {} has the following files :".format(key))
-            for i in seqDict[key]:
-                print(i)
-        """
+
+        # Calculating the actual image from the backend
         tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"])
+
+        if len(self.imgDict["buffer"]) >> 0:
+            self.imgDict["buffer"][(self.frameNumber.slider.value())] = tempImg
+            #print(len(self.imgDict["buffer"]))
+
+        #print(type(tempImg))
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
 
         # Set pixmap in self.image
         self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+
 
         # Give the rectangle view area the coordinates of the pixmap image after the image has been loaded
         imgCoordinates = interpretRectangle(str(self.image.boundingRect()))
@@ -605,16 +668,30 @@ class MyWidget(QtWidgets.QWidget):
         # Check mirror state
         self.mirrorToggles()
 
+        # Sart to fill buffer
+        self.bufferLoad(seqDict)
+
+
     def FrameInView(self):
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
 
-    def changeFrame(self, frame):
-        self.imgDict["path"][0] = frame
-        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"])
+    def changeFrame(self, frame, currentPos):
+        t0 = (time.time())
+        #print(self.imgDict["buffer"][currentPos])
+        if (self.imgDict["buffer"][currentPos] != None):
+            tempImg = self.imgDict["buffer"][currentPos]
+        else:
+            self.imgDict["path"][0] = frame
+            self.bufferLoad(self.seqDict)
+            #tempImg = self.imgDict["buffer"][currentPos]
+            tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
 
         # Set pixmap in self.image
         self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+
+        t1 = time.time()
+        #print(t1 - t0)
 
         # Give the rectangle view area the coordinates of the pixmap image after the image has been loaded
         imgCoordinates = interpretRectangle(str(self.image.boundingRect()))
@@ -624,6 +701,7 @@ class MyWidget(QtWidgets.QWidget):
     def sliderChanged(self):
         currentPos = (self.frameNumber.slider.value())
         frame = self.frameNumber.returnFrame(currentPos)
+        #print(self.frameNumber)
         positionMax = (self.frameNumber.slider.maximum())
         isSameShot = True
 
@@ -642,16 +720,13 @@ class MyWidget(QtWidgets.QWidget):
             self.imgDict["previousShot"] = None
 
 
-        self.changeFrame(frame)
+        self.changeFrame(frame, currentPos)
         self.frameCurrent.setText(str(self.frameNumber.slider.value()).zfill(4))
         self.mirrorToggles()
 
         if isSameShot != True:
             self.listChannels()
-        # Fix as sometimes updates are not done 
-        #if (currentPos == positionMax):
-        #        self.listChannels()
-
+        
     def playForward(self):
         print("Play forward -- need multithreading for it to work")
 
@@ -914,6 +989,18 @@ class MyWidget(QtWidgets.QWidget):
         self.imageUpdate()
 
     def refreshImg(self):
+        # NEED TO CORRECT BUG
+        # REFRESH IMG IS CALLED ON FRAME CHANGE IF EXPO != 0 and if SAT != 1
+        #print("refreshIMG")
+        # Stop threadpool in case a buffer is in progress
+        self.threadpool.clear()
+        self.bufferInit(self.seqDict)
+        # Need to send the correct buffer frame to tempImg function instead of self.imgDict["path"]
+        currentPos = (self.frameNumber.slider.value())
+        frame = self.frameNumber.returnFrame(currentPos)
+
+        self.imgDict["path"] = [frame]
+
         tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"],self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
@@ -1074,6 +1161,90 @@ class MyWidget(QtWidgets.QWidget):
             self.imgDict["ocioToggle"] = False
 
         self.refreshImg()
+
+
+class WorkerSignals(QtCore.QObject):
+    '''
+    Defines signals available from running worker thread
+
+    finished
+        No data
+
+    result
+        tuple, int (img and its buffer index)
+    '''
+    finished = QtCore.pyqtSignal()
+    result = QtCore.pyqtSignal(tuple, object)
+
+class Worker(QtCore.QRunnable):
+    '''
+    Worker thread
+
+    :param args: Arguments containing the current and framelist
+    :param kwargs: Keywords arguments containing the imgDict
+    '''
+
+    #result = QtCore.pyqtSignal(tuple, int)
+
+    def __init__(self, *args, **kwargs):
+        super(Worker, self).__init__()
+        self.args = args
+        self.kwargs = kwargs
+        self.signals = WorkerSignals()
+
+    def run(self, *args, **kwargs):
+        #print(self.args)
+        #print(self.kwargs)
+        t0 = time.time()
+        img= bufferBackEnd(self.kwargs, self.args[0], self.args[1])
+        t1 = time.time()
+        #print("img obtained in {}".format(t1-t0))
+
+        self.signals.finished.emit()
+        if (type(img) == tuple):
+            self.signals.result.emit(img[0], img[1])
+
+
+
+class QueueThread(QtCore.QThread):
+    '''
+    Thread class responsible for dispatching data to the BufferThread
+    '''
+    queueResult = QtCore.pyqtSignal(tuple, int)
+
+    def __init__(self, *args, **kwargs):
+        super(QueueThread, self).__init__(*args, **kwargs)
+
+    def run(self, *args, **kwargs):
+        thread = BufferThread()
+        thread.result.connect(self.bufferResult)
+        temp = 0
+        for i in range(5):
+            thread.run(args[0], args[1]+temp, kwargs = kwargs["kwargs"])
+            temp += 1
+
+    def bufferResult(self, resultA, resultB):
+        #print("got something")
+        self.queueResult.emit(resultA, resultB)
+
+
+
+
+class BufferThread(QtCore.QThread):
+    '''
+    Thread class responsible for image calculation
+    '''
+    result = QtCore.pyqtSignal(tuple, int)
+
+    def __init__(self, *args, **kwargs):
+        super(BufferThread, self).__init__(*args, **kwargs)
+
+    def run(self,*args, **kwargs):
+        #time.sleep(1)
+        #img = None
+        img= bufferBackEnd(kwargs["kwargs"], args[0], args[1])
+        if (type(img) == tuple):
+            self.result.emit(img[0], img[1])
 
 
 

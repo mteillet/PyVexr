@@ -726,10 +726,7 @@ class MyWidget(QtWidgets.QWidget):
 
         if isSameShot != True:
             self.listChannels()
-        # Fix as sometimes updates are not done 
-        #if (currentPos == positionMax):
-        #        self.listChannels()
-
+        
     def playForward(self):
         print("Play forward -- need multithreading for it to work")
 
@@ -992,6 +989,9 @@ class MyWidget(QtWidgets.QWidget):
         self.imageUpdate()
 
     def refreshImg(self):
+        #print("refreshIMG")
+        self.bufferInit(self.seqDict)
+        # Need to send the correct buffer frame to tempImg function instead of self.imgDict["path"]
         tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"],self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))

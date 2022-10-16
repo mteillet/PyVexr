@@ -989,9 +989,18 @@ class MyWidget(QtWidgets.QWidget):
         self.imageUpdate()
 
     def refreshImg(self):
+        # NEED TO CORRECT BUG
+        # REFRESH IMG IS CALLED ON FRAME CHANGE IF EXPO != 0 and if SAT != 1
         #print("refreshIMG")
+        # Stop threadpool in case a buffer is in progress
+        self.threadpool.clear()
         self.bufferInit(self.seqDict)
         # Need to send the correct buffer frame to tempImg function instead of self.imgDict["path"]
+        currentPos = (self.frameNumber.slider.value())
+        frame = self.frameNumber.returnFrame(currentPos)
+
+        self.imgDict["path"] = [frame]
+
         tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"],self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"])
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))

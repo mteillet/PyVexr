@@ -119,6 +119,10 @@ class _Timeline(QtWidgets.QWidget):
         self.maxBuffer = maxBuffer
         self._trigger_refresh()
 
+    def resetCacheDraw(self):
+        self.cachePos = []
+        self._trigger_refresh()
+
 class Timeline(QtWidgets.QWidget):
     """
     Custom Qt Widget to show a timeline supporting multiple shots

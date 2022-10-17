@@ -601,6 +601,35 @@ class MyWidget(QtWidgets.QWidget):
 
         self.frameNumber._timeline.resetCacheDraw()
 
+    def createBufferState(self):
+        '''
+        Creating a buffer state that will be used to compare
+        Buffer settings and know if it needs to be reset
+        '''
+        # Check if there are frames in the seqDict
+        if (len(self.seqDict) >> 0):
+            self.bufferState = {}
+            self.bufferState["frame"] = (self.seqDict.keys())
+            self.bufferState["ocioIn"] = self.imgDict["ocio"]["ocioIn"]
+            self.bufferState["ocioOut"] = self.imgDict["ocio"]["ocioOut"]
+            self.bufferState["ocioLook"] = self.imgDict["ocio"]["ocioLook"] 
+            self.bufferState["ocioDisplay"] = self.imgDict["ocio"]["ocioDisplay"]
+            self.bufferState["ocioToggle"] = self.imgDict["ocioToggle"]
+            self.bufferState["channel"] = self.imgDict["channel"]
+            self.bufferState["exposure"] = self.imgDict["exposure"]
+            self.bufferState["saturation"] = self.imgDict["saturation"]
+            self.bufferState["RGBA"] = self.imgDict["RGBA"]
+
+            #print(self.bufferState)
+
+    def checkIfBufferStateChanged(self):
+        '''
+        Compares the self.bufferState with the current buffer settings
+        in order to see if buffer needs to be reset or not
+        '''
+        #TODO
+        pass
+
 
     def bufferLoad(self, seqDict):
         #print("bufferload")
@@ -639,6 +668,7 @@ class MyWidget(QtWidgets.QWidget):
         self.seqDict = seqDict
 
         self.bufferInit(seqDict)
+        self.createBufferState()
 
         #Init the slider
         self.initSlider(seqDict)

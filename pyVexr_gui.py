@@ -601,6 +601,60 @@ class MyWidget(QtWidgets.QWidget):
 
         self.frameNumber._timeline.resetCacheDraw()
 
+    def createBufferState(self):
+        '''
+        Creating a buffer state that will be used to compare
+        Buffer settings and know if it needs to be reset
+        '''
+        # Check if there are frames in the seqDict
+        if (len(self.seqDict) >> 0):
+            self.bufferState = {}
+            self.bufferState["frame"] = (self.seqDict.keys())
+            self.bufferState["ocioIn"] = self.imgDict["ocio"]["ocioIn"]
+            self.bufferState["ocioOut"] = self.imgDict["ocio"]["ocioOut"]
+            self.bufferState["ocioLook"] = self.imgDict["ocio"]["ocioLook"] 
+            self.bufferState["ocioDisplay"] = self.imgDict["ocio"]["ocioDisplay"]
+            self.bufferState["ocioToggle"] = self.imgDict["ocioToggle"]
+            self.bufferState["channel"] = self.imgDict["channel"]
+            self.bufferState["exposure"] = self.imgDict["exposure"]
+            self.bufferState["saturation"] = self.imgDict["saturation"]
+            self.bufferState["RGBA"] = self.imgDict["RGBA"]
+
+            #print(self.bufferState)
+
+    def checkIfBufferStateChanged(self):
+        '''
+        Compares the self.bufferState with the current buffer settings
+        in order to see if buffer needs to be reset or not
+        '''
+        # Compare bufferState
+        if (len(self.seqDict) >> 0):
+            currentState = {}
+            currentState["frame"] = (self.seqDict.keys())
+            currentState["ocioIn"] = self.imgDict["ocio"]["ocioIn"]
+            currentState["ocioOut"] = self.imgDict["ocio"]["ocioOut"]
+            currentState["ocioLook"] = self.imgDict["ocio"]["ocioLook"] 
+            currentState["ocioDisplay"] = self.imgDict["ocio"]["ocioDisplay"]
+            currentState["ocioToggle"] = self.imgDict["ocioToggle"]
+            currentState["channel"] = self.imgDict["channel"]
+            currentState["exposure"] = self.imgDict["exposure"]
+            currentState["saturation"] = self.imgDict["saturation"]
+            currentState["RGBA"] = self.imgDict["RGBA"]
+
+            if (currentState == self.bufferState):
+                #print("No change in buffer state")
+                pass
+            else:
+                #print("Change in buffer !")
+                self.bufferState = currentState
+                # Stop threadpool in case a buffer is in progress
+                self.threadpool.clear()
+                self.bufferInit(self.seqDict)
+
+                #print(self.bufferState)
+                #print(currentState)
+
+
 
     def bufferLoad(self, seqDict):
         #print("bufferload")
@@ -639,6 +693,7 @@ class MyWidget(QtWidgets.QWidget):
         self.seqDict = seqDict
 
         self.bufferInit(seqDict)
+        self.createBufferState()
 
         #Init the slider
         self.initSlider(seqDict)
@@ -989,13 +1044,12 @@ class MyWidget(QtWidgets.QWidget):
         self.imageUpdate()
 
     def refreshImg(self):
+        # TODO
         # NEED TO CORRECT BUG
         # REFRESH IMG IS CALLED ON FRAME CHANGE IF EXPO != 0 and if SAT != 1
+        self.checkIfBufferStateChanged()
         #print("refreshIMG")
-        # Stop threadpool in case a buffer is in progress
-        self.threadpool.clear()
-        self.bufferInit(self.seqDict)
-        # Need to send the correct buffer frame to tempImg function instead of self.imgDict["path"]
+                # Need to send the correct buffer frame to tempImg function instead of self.imgDict["path"]
         currentPos = (self.frameNumber.slider.value())
         frame = self.frameNumber.returnFrame(currentPos)
 

@@ -627,8 +627,32 @@ class MyWidget(QtWidgets.QWidget):
         Compares the self.bufferState with the current buffer settings
         in order to see if buffer needs to be reset or not
         '''
-        #TODO
-        pass
+        # Compare bufferState
+        if (len(self.seqDict) >> 0):
+            currentState = {}
+            currentState["frame"] = (self.seqDict.keys())
+            currentState["ocioIn"] = self.imgDict["ocio"]["ocioIn"]
+            currentState["ocioOut"] = self.imgDict["ocio"]["ocioOut"]
+            currentState["ocioLook"] = self.imgDict["ocio"]["ocioLook"] 
+            currentState["ocioDisplay"] = self.imgDict["ocio"]["ocioDisplay"]
+            currentState["ocioToggle"] = self.imgDict["ocioToggle"]
+            currentState["channel"] = self.imgDict["channel"]
+            currentState["exposure"] = self.imgDict["exposure"]
+            currentState["saturation"] = self.imgDict["saturation"]
+            currentState["RGBA"] = self.imgDict["RGBA"]
+
+            if (currentState == self.bufferState):
+                #print("No change in buffer state")
+            else:
+                #print("Change in buffer !")
+                self.bufferState = currentState
+                # Stop threadpool in case a buffer is in progress
+                self.threadpool.clear()
+                self.bufferInit(self.seqDict)
+
+                #print(self.bufferState)
+                #print(currentState)
+
 
 
     def bufferLoad(self, seqDict):
@@ -1022,11 +1046,9 @@ class MyWidget(QtWidgets.QWidget):
         # TODO
         # NEED TO CORRECT BUG
         # REFRESH IMG IS CALLED ON FRAME CHANGE IF EXPO != 0 and if SAT != 1
+        self.checkIfBufferStateChanged()
         #print("refreshIMG")
-        # Stop threadpool in case a buffer is in progress
-        self.threadpool.clear()
-        self.bufferInit(self.seqDict)
-        # Need to send the correct buffer frame to tempImg function instead of self.imgDict["path"]
+                # Need to send the correct buffer frame to tempImg function instead of self.imgDict["path"]
         currentPos = (self.frameNumber.slider.value())
         frame = self.frameNumber.returnFrame(currentPos)
 

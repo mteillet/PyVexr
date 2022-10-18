@@ -643,6 +643,7 @@ class MyWidget(QtWidgets.QWidget):
 
             if (currentState == self.bufferState):
                 #print("No change in buffer state")
+                pass
             else:
                 #print("Change in buffer !")
                 self.bufferState = currentState

@@ -297,6 +297,7 @@ class MyWidget(QtWidgets.QWidget):
         self.threadpool = QtCore.QThreadPool()
         self.maxThreads = self.threadpool.maxThreadCount()
         self.threadpool.setMaxThreadCount(self.maxThreads - 4)
+        self.playThreadpool = QtCore.QThreadPool()
         #self.threadpool.setMaxThreadCount(2)
         #print(("Multithreading with maximum {} threads").format(self.threadpool.maxThreadCount()))
 
@@ -497,11 +498,13 @@ class MyWidget(QtWidgets.QWidget):
         self.previousBtn = QtWidgets.QPushButton("|<")
         self.previousBtn.clicked.connect(self.jumpFrameBack)
         self.playBackBtn = QtWidgets.QPushButton("<")
+        self.playBackBtn.setCheckable(True)
         self.playBackBtn.clicked.connect(self.playBack)
         self.frameCurrent = QtWidgets.QLabel("101")
         currentPos = (self.frameNumber.slider.value())
         self.frameCurrent.setText(str(self.frameNumber.slider.value()).zfill(4))
         self.playBtn = QtWidgets.QPushButton(">")
+        self.playBtn.setCheckable(True)
         self.playBtn.clicked.connect(self.playForward)
         self.nextBtn = QtWidgets.QPushButton(">|")
         self.nextBtn.clicked.connect(self.jumpFrameForward)
@@ -837,16 +840,75 @@ class MyWidget(QtWidgets.QWidget):
             self.listChannels()
         
     def playForward(self):
-        print("Play forward -- need multithreading for it to work")
+        if (self.playBtn.isChecked() == True):
+            if (self.playBackBtn.isChecked() == True):
+                self.playBackBtn.click()
+            self.playCount = []
+            self.playBtn.setText("||")
+            self.playThreadpool.clear()
+            self.playThreadpool.setMaxThreadCount(1)
+            for i in range(self.frameNumber.slider.maximum() - self.frameNumber.slider.minimum()):
+                nextWorker = NextWorker()
+                nextWorker.signals.result.connect(self.jumpFrameForward)
+                self.playThreadpool.start(nextWorker)
+        else:
+            self.playBtn.setText(">")
+            self.playThreadpool.clear()
 
     def playBack(self):
-        print("Play back -- need multithreading for it to work")
+        if (self.playBackBtn.isChecked() == True):
+            if (self.playBtn.isChecked() == True):
+                self.playBtn.click()
+            self.playCount = []
+            self.playBackBtn.setText("||")
+            self.playThreadpool.clear()
+            self.playThreadpool.setMaxThreadCount(1)
+            for i in range(self.frameNumber.slider.maximum() - self.frameNumber.slider.minimum()):
+                nextWorker = NextWorker()
+                nextWorker.signals.result.connect(self.jumpFrameBack)
+                self.playThreadpool.start(nextWorker)
+        else:
+            self.playBackBtn.setText("<")
+            self.playThreadpool.clear()
+
 
     def jumpFrameForward(self):
-        self.frameNumber.slider.setValue(self.frameNumber.slider.value()+1)
+        self.playCount.append(True)
+        # Add this in case buffer needs to go back to first frame
+        toCheckBuffer = self.frameNumber.slider.value()+1
+        if toCheckBuffer > self.frameNumber.slider.maximum():
+            toCheckBuffer = self.frameNumber.slider.minimum()
 
+        if self.imgDict["buffer"][toCheckBuffer] != None:
+            #print("buffer ok")
+            if ((self.frameNumber.slider.value() + 1) > self.frameNumber.slider.maximum()):
+                self.frameNumber.slider.setValue(self.frameNumber.slider.minimum())
+            else:
+                self.frameNumber.slider.setValue(self.frameNumber.slider.value()+1)
+        else:
+            #print("Nothing in buffer !")
+            self.bufferLoad(self.seqDict)
+
+        if len(self.playCount) == (self.frameNumber.slider.maximum() - self.frameNumber.slider.minimum()):
+            self.playForward()
+        
     def jumpFrameBack(self):
-        self.frameNumber.slider.setValue(self.frameNumber.slider.value()-1)
+        self.playCount.append(True)
+        # Add this in case going back on first frame with no buffer on last frame
+        toCheckBuffer = self.frameNumber.slider.value()-1
+        if toCheckBuffer < self.frameNumber.slider.minimum():
+            toCheckBuffer = self.frameNumber.slider.maximum()
+        if self.imgDict["buffer"][toCheckBuffer] != None:
+            if ((self.frameNumber.slider.value() - 1) < self.frameNumber.slider.minimum()):
+                self.frameNumber.slider.setValue(self.frameNumber.slider.maximum())
+            else:
+                self.frameNumber.slider.setValue(self.frameNumber.slider.value()-1)
+        else:
+            self.bufferLoad(self.seqDict)
+
+        if len(self.playCount) == (self.frameNumber.slider.maximum() - self.frameNumber.slider.minimum()):
+            self.playBack()
+
 
     def jumpGapForward(self):
         self.frameNumber.slider.setValue(self.frameNumber.slider.value() + self.jumpLabel.value())
@@ -1103,12 +1165,8 @@ class MyWidget(QtWidgets.QWidget):
         self.imageUpdate()
 
     def refreshImg(self):
-        # TODO
-        # NEED TO CORRECT BUG
-        # REFRESH IMG IS CALLED ON FRAME CHANGE IF EXPO != 0 and if SAT != 1
         self.checkIfBufferStateChanged()
-        #print("refreshIMG")
-                # Need to send the correct buffer frame to tempImg function instead of self.imgDict["path"]
+
         currentPos = (self.frameNumber.slider.value())
         frame = self.frameNumber.returnFrame(currentPos)
 
@@ -1317,6 +1375,28 @@ class Worker(QtCore.QRunnable):
         if (type(img) == tuple):
             self.signals.result.emit(img[0], img[1])
 
+class NextWorkerSignals(QtCore.QObject):
+    '''
+    Defines signals available from running NextWorker Thread
+    
+    result
+        string
+    '''
+    finished = QtCore.pyqtSignal()
+    result = QtCore.pyqtSignal(str)
+
+class NextWorker(QtCore.QRunnable):
+    '''
+    Worker Thread emitting signal every 1/24th of a second
+    '''
+    def __init__(self):
+        super(NextWorker, self).__init__()
+        self.signals = NextWorkerSignals()
+
+    def run(self):
+        time.sleep(1/24)
+
+        self.signals.result.emit("Ok")
 
 
 class QueueThread(QtCore.QThread):

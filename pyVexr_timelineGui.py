@@ -44,7 +44,10 @@ class _Timeline(QtWidgets.QWidget):
         #print(self.cachePos)
         #tempList = [QtGui.QColor(10, 125, 10), QtGui.QColor(10, 255,10)]
         brush.setColor(QtGui.QColor(10,125,10))
-        lenMax = self.maxBuffer - 1
+        if self.maxBuffer >> 2:
+            lenMax = self.maxBuffer - 1
+        else:
+            lenMax = self.maxBuffer
         for i in self.cachePos :
             #brush.setColor(tempList[i%2])
             xStart = ( (i-1) * painter.device().width() / lenMax )

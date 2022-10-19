@@ -295,9 +295,10 @@ class MyWidget(QtWidgets.QWidget):
 
         # ThreadPool
         self.threadpool = QtCore.QThreadPool()
-        self.threadpool.setMaxThreadCount(self.threadpool.maxThreadCount() - 4)
+        self.maxThreads = self.threadpool.maxThreadCount()
+        self.threadpool.setMaxThreadCount(self.maxThreads - 4)
         #self.threadpool.setMaxThreadCount(2)
-        print(("Multithreading with maximum {} threads").format(self.threadpool.maxThreadCount()))
+        #print(("Multithreading with maximum {} threads").format(self.threadpool.maxThreadCount()))
 
         # StyleSheet settings
         self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
@@ -323,6 +324,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["RGBA"] = "rgba"
         self.imgDict["previousShot"] = None
         self.p = None
+        self.diagnostic = False
 
         self.checkIfJsonExists()
 
@@ -601,6 +603,28 @@ class MyWidget(QtWidgets.QWidget):
 
         self.frameNumber._timeline.resetCacheDraw()
 
+        # Sending One frame to check the time
+        frameList = []
+        for shot in seqDict:
+            for frame in seqDict[shot]:
+                frameList.append(frame)
+        current = self.frameNumber.slider.value()
+
+        count = 0
+        self.threadpool.setMaxThreadCount(self.maxThreads - 6)
+        if (len(frameList) >> 0):
+            # First check to see how much time a thread takes to finish
+            for i in range(1):
+                if (current+count >> self.frameNumber.slider.maximum()):
+                    #print("NEED TO RESET THE CURRENT + COUNT")
+                    current = self.frameNumber.slider.minimum()
+                    count = 0
+                self.t0 = time.time()
+                worker = Worker(frameList, current+count, **self.imgDict)
+                worker.signals.result.connect(self.queueStart)
+                self.threadpool.start(worker)
+                count += 1
+
     def createBufferState(self):
         '''
         Creating a buffer state that will be used to compare
@@ -669,22 +693,51 @@ class MyWidget(QtWidgets.QWidget):
 
         count = 0
         if (len(frameList) >> 0):
-            #for i in range(10):
-            for i in frameList:
-                # Reset the curent + count to not get out of list range
-                if (current+count >> self.frameNumber.slider.maximum()):
-                    print("NEED TO RESET THE CURRENT + COUNT")
-                    current = self.frameNumber.slider.minimum()
-                    count = 0
-                worker = Worker(frameList, current+count, **self.imgDict)
-                worker.signals.result.connect(self.queueResult)
-                self.threadpool.start(worker)
-                count += 1
+            # First check to see how much time a thread takes to finish
+            if (self.diagnostic == False):
+                #print("buffer launch limited")
+                for i in range(5):
+                    # Reset the curent + count to not get out of list range
+                    if (current+count >> self.frameNumber.slider.maximum()):
+                        print("NEED TO RESET THE CURRENT + COUNT")
+                        current = self.frameNumber.slider.minimum()
+                        count = 0
+                    worker = Worker(frameList, current+count, **self.imgDict)
+                    worker.signals.result.connect(self.queueResult)
+                    self.threadpool.start(worker)
+                    count += 1
+            else:
+                #print("buffer launch full")
+                for i in frameList:
+                    # Reset the curent + count to not get out of list range
+                    if (current+count >> self.frameNumber.slider.maximum()):
+                        print("NEED TO RESET THE CURRENT + COUNT")
+                        current = self.frameNumber.slider.minimum()
+                        count = 0
+                    worker = Worker(frameList, current+count, **self.imgDict)
+                    worker.signals.result.connect(self.queueResult)
+                    self.threadpool.start(worker)
+                    count += 1
 
     def queueResult(self, resultA, resultB):
         self.imgDict["buffer"][resultB] = resultA
         self.frameNumber._timeline.paintBuffer(resultB, len(self.imgDict["buffer"]))
+        #print(("Multithreading with maximum {} threads").format(self.threadpool.maxThreadCount()))
         #print("Finished loading buffer at pos {}".format(resultB))
+
+    def queueStart(self, resultA, resultB):
+        self.imgDict["buffer"][resultB] = resultA
+        self.frameNumber._timeline.paintBuffer(resultB, len(self.imgDict["buffer"]))
+        t1 = time.time()
+        #print(t1 - self.t0)
+        if (t1 - self.t0) < 0.3:
+            self.threadpool.setMaxThreadCount(self.maxThreads - 2)
+            self.diagnostic = True
+        else:
+            self.threadpool.setMaxThreadCount(self.maxThreads - 6)
+            self.diagnostic = False
+
+
         
 
     def loadFile(self):

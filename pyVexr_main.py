@@ -7,6 +7,7 @@ import cv2 as cv
 import numpy as np
 import PyOpenColorIO as OCIO
 import OpenEXR as EXR
+import array
 import time
 import Imath
 import glob
@@ -152,8 +153,8 @@ def exrListChannels(path):
         elif (channel) == "A":
             channelList.insert(0,"RGBA")
     # If RGBA is not in the channel list, then insert RGB, as it means the alpha channel was never found
-    if "RGBA" not in channelList:
-        channelList.insert(0, "RGB")
+    #if "RGBA" not in channelList:
+    #    channelList.insert(0, "RGB")
     #print(channelList)
     return(channelList)
 
@@ -166,6 +167,7 @@ def exrSwitchChannel(path, channel, channelRGBA):
     header = exr.header()
     channelsRaw = header["channels"]
     dw = header["dataWindow"]
+
 
     # Getting size for the numpy reshape
     isize = (dw.max.y - dw.min.y + 1, dw.max.x - dw.min.x + 1)
@@ -230,13 +232,13 @@ def exrSwitchChannel(path, channel, channelRGBA):
         foundChannelList = ["{}.{}".format(channel, casing[0]),"{}.{}".format(channel, casing[1]),"{}.{}".format(channel, casing[2])]
 
 
-    #print(channel)
     #print(channelsRaw)
     #print(foundChannelList)
     # check for exception containing too many channels
     if len(foundChannelList) >= 4:
         #print("over 3")
         foundChannelList = ["{}.{}".format(channel, casing[0]),"{}.{}".format(channel, casing[1]),"{}.{}".format(channel, casing[2])]
+
 
     if len(foundChannelList) == 3:
         channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
@@ -263,6 +265,9 @@ def exrSwitchChannel(path, channel, channelRGBA):
         channelR = np.reshape(channelR, isize)
         channelG = channelR 
         channelB = channelR
+
+    #t1 = time.time()
+    #print(t1 - t0)
 
     if (channelRGBA == "rgba"):
         pass

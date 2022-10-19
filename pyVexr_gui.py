@@ -699,7 +699,7 @@ class MyWidget(QtWidgets.QWidget):
                 for i in range(5):
                     # Reset the curent + count to not get out of list range
                     if (current+count >> self.frameNumber.slider.maximum()):
-                        print("NEED TO RESET THE CURRENT + COUNT")
+                        #print("NEED TO RESET THE CURRENT + COUNT")
                         current = self.frameNumber.slider.minimum()
                         count = 0
                     worker = Worker(frameList, current+count, **self.imgDict)
@@ -711,7 +711,7 @@ class MyWidget(QtWidgets.QWidget):
                 for i in frameList:
                     # Reset the curent + count to not get out of list range
                     if (current+count >> self.frameNumber.slider.maximum()):
-                        print("NEED TO RESET THE CURRENT + COUNT")
+                        #print("NEED TO RESET THE CURRENT + COUNT")
                         current = self.frameNumber.slider.minimum()
                         count = 0
                     worker = Worker(frameList, current+count, **self.imgDict)
@@ -831,6 +831,7 @@ class MyWidget(QtWidgets.QWidget):
         self.changeFrame(frame, currentPos)
         self.frameCurrent.setText(str(self.frameNumber.slider.value()).zfill(4))
         self.mirrorToggles()
+
 
         if isSameShot != True:
             self.listChannels()
@@ -1066,6 +1067,11 @@ class MyWidget(QtWidgets.QWidget):
             self.versionsDock.hide()
 
     def listChannels(self):
+        currentPos = (self.frameNumber.slider.value())
+        frame = self.frameNumber.returnFrame(currentPos)
+
+        self.imgDict["path"] = [frame]
+
         channels = exrListChannels(self.imgDict["path"])
         #print(channels)
 

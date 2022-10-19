@@ -326,6 +326,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["previousShot"] = None
         self.p = None
         self.diagnostic = False
+        self.playCount = []
 
         self.checkIfJsonExists()
 

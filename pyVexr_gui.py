@@ -373,6 +373,7 @@ class MyWidget(QtWidgets.QWidget):
         self.mirrorX.triggered.connect(self.mirrorXToggle)
         self.mirrorY = self.mirror.addAction("Flip Y              &-&S&h&i&f&t&+&Y")
         self.contactSheet = self.editMenu.addAction("Contact Sheet")
+        self.contactSheet.triggered.connect(self.contactSheetWindow)
         self.mirrorY.triggered.connect(self.mirrorYToggle)
         self.fileMenu.addSeparator()
         self.infosAction = self.editMenu.addAction("Help")
@@ -1263,6 +1264,11 @@ class MyWidget(QtWidgets.QWidget):
         self.updateSaturation()
         self.refreshImg()
 
+    def contactSheetWindow(self):
+        self.contactSheetPop = ContactSheetPopup()
+        self.contactSheetPop.resize(600,300)
+        self.contactSheetPop.show()
+
     def ocioMenu(self):
         self.ocioPop = OcioPopup()
         self.ocioPop.resize(500, 220)
@@ -1497,6 +1503,95 @@ class SaturationPopup(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
+class ContactSheetPopup(QtWidgets.QWidget):
+    def __init__(self, *args, **kwargs):
+        super(ContactSheetPopup, self).__init__()
+        self.setWindowTitle("Layer Contact Sheet Menu")
+
+        self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
+
+        self.channelSelection = []
+
+        layout = QtWidgets.QVBoxLayout()
+
+        self.titleLayout = QtWidgets.QHBoxLayout()
+        self.channelsLayout = QtWidgets.QGridLayout()
+        self.okLayout = QtWidgets.QHBoxLayout()
+
+        self.titleLabel = QtWidgets.QLabel("Select layers you want to have for contact sheet \n Warning, the more layers you select, the slower it will be to compute")
+        #self.hintLabel = QtWidgets.QLabel("Warning, the more layers you select, the slower it will be to compute")
+
+        # Listing the channels
+        currentPos = (widget.frameNumber.slider.value())
+        frame = widget.frameNumber.returnFrame(currentPos)
+        investigate = [frame]
+        channelList = exrListChannels(investigate)
+        #print(channels)
+        channelBtns = []
+        for chan in channelList:
+            currentBtn = QtWidgets.QPushButton(chan)
+            currentBtn.setCheckable(True)
+            currentBtn.clicked.connect(self.chanBtnClicked)
+            channelBtns.append(currentBtn)
+
+        self.okBtn = QtWidgets.QPushButton("Ok")
+        self.okBtn.clicked.connect(self.okBtnClicked)
+
+        
+        # LAYOUT
+        self.titleLayout.addStretch()
+        self.titleLayout.addWidget(self.titleLabel)
+        #self.titleLayout.addWidget(self.hintLabel)
+        self.titleLayout.addStretch()
+
+        #self.channelsLayout.addStretch()
+        for i in channelBtns:
+            self.channelsLayout.addWidget(i)
+        #self.channelsLayout.addStretch()
+        
+        self.okLayout.addStretch()
+        self.okLayout.addWidget(self.okBtn)
+        self.okLayout.addStretch()
+
+        layout.addStretch()
+        layout.addLayout(self.titleLayout)
+        layout.addStretch()
+        layout.addLayout(self.channelsLayout)
+        layout.addStretch()
+        layout.addLayout(self.okLayout)
+
+
+        self.setLayout(layout)
+
+    ###############################
+    # Code for the Slot functions #
+    ###############################
+    @QtCore.pyqtSlot()
+    def chanBtnClicked(self):
+        '''
+        Responsible for adding the selected channels to the self.channelSelection list
+        Also changes the btns color depending on their pressed state
+        '''
+        #self.channelSelection
+        sender = self.sender()
+        chanClicked = sender.text()
+
+        #print(sender.isChecked())
+        if (sender.isChecked() == True):
+            sender.setStyleSheet("background-color: rgb(1,1,221)")
+        else:
+            sender.setStyleSheet("background-color: rgb(11,11,11)")
+
+
+        if (chanClicked in self.channelSelection):
+            self.channelSelection.remove(chanClicked)
+        else:
+            self.channelSelection.append(chanClicked)
+
+    def okBtnClicked(self):
+        print(self.channelSelection)
+
+ 
 class OcioPopup(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(OcioPopup, self).__init__(*args, **kwargs)

@@ -490,6 +490,157 @@ def interpretRectangle(str):
     lenY = float(temp[3])
     return(offsetX, offsetY, lenX, lenY)
 
+def layerContactSheetBackend(chanList, imgDict):
+    #print(chanList)
+    #print(imgDict)
+
+    # Getting casing and size of EXR
+
+    exr = EXR.InputFile(imgDict["path"][0])
+    header = exr.header()
+    channelsRaw = header["channels"]
+    dw = header["dataWindow"]
+
+
+    # Getting size for the numpy reshape
+    isize = (dw.max.y - dw.min.y + 1, dw.max.x - dw.min.x + 1)
+
+
+    foundChannelList = []
+    allChannelList = []
+    for i in channelsRaw:
+        allChannelList.append(i)
+    
+    # Check if the channel is lower or uppercased channel.R or channel.r
+    casing = ["R","G","B","A"]
+    if("{}.r".format(chanList[0]) in list(channelsRaw.keys())):
+        casing = ["r","g","b","a"]
+
+    redChannels = []
+    blueChannels = []
+    greenChannels = []
+
+    #print(casing)
+    counter = 0
+    for channel in chanList:
+        foundChannelList = [allChannelList[counter], allChannelList[counter+1], allChannelList[counter+2]]
+
+        #print("test for channel : {}".format(channel))
+        # Reorder channels in case the RGB exist but are not in the right order
+        if ("{}.{}".format(channel, casing[0]) in allChannelList) & ("{}.{}".format(channel, casing[1]) in allChannelList) & ("{}.{}".format(channel, casing[2]) in allChannelList ) & (foundChannelList != ["{}.{}".format(channel, casing[0]),"{}.{}".format(channel, casing[1]),"{}.{}".format(channel, casing[2])]):
+            #print("reorder chans")
+            foundChannelList = ["{}.{}".format(channel, casing[0]),"{}.{}".format(channel, casing[1]),"{}.{}".format(channel, casing[2])]
+
+        #print(foundChannelList)
+
+
+
+
+        #print(channelsRaw)
+        #print(foundChannelList)
+        # check for exception containing too many channels
+        if len(foundChannelList) >= 4:
+            #print("over 3")
+            foundChannelList = ["{}.{}".format(channel, casing[0]),"{}.{}".format(channel, casing[1]),"{}.{}".format(channel, casing[2])]
+
+
+        if len(foundChannelList) == 3:
+            channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
+            channelR = np.fromstring(channelR, dtype = np.float32)
+            channelR = np.reshape(channelR, isize)
+            channelG = exr.channel("{}".format(foundChannelList[1]), Imath.PixelType(Imath.PixelType.FLOAT))
+            channelG = np.fromstring(channelG, dtype = np.float32)
+            channelG = np.reshape(channelG, isize)
+            channelB = exr.channel("{}".format(foundChannelList[2]), Imath.PixelType(Imath.PixelType.FLOAT))
+            channelB = np.fromstring(channelB, dtype = np.float32)
+            channelB = np.reshape(channelB, isize) 
+        elif len(foundChannelList) == 2:
+            channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
+            channelR = np.fromstring(channelR, dtype = np.float32)
+            channelR = np.reshape(channelR, isize)
+            channelG = exr.channel("{}".format(foundChannelList[1]), Imath.PixelType(Imath.PixelType.FLOAT))
+            channelG = np.fromstring(channelG, dtype = np.float32)
+            channelG = np.reshape(channelG, isize)       
+            channelB = np.zeros((isize[1], isize[0], 1), dtype = np.float32)
+            channelB = np.reshape(channelB, isize)
+        elif len(foundChannelList) == 1:
+            channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
+            channelR = np.fromstring(channelR, dtype = np.float32)
+            channelR = np.reshape(channelR, isize)
+            channelG = channelR 
+            channelB = channelR
+
+        redChannels.append(channelR)
+        greenChannels.append(channelG)
+        blueChannels.append(channelB)
+
+        #print("Found channels - {}".format(channel))
+        print("Computed channel : {}".format(channel))
+
+        counter += 3
+
+
+    # Check the number of channels returned after the loop
+    #print(len(redChannels))
+    #print(len(greenChannels))
+    #print(len(blueChannels))
+
+    # Merge the different channel returned as images
+    imgList = []
+    current = 0
+    for image in redChannels:
+        imgList.append(cv.merge([blueChannels[current], greenChannels[current], redChannels[current]]))
+        current += 1
+
+    numImgs = (len(imgList))
+
+    if numImgs >> 2:
+        end = round(numImgs / 2)
+        start = 0
+        
+        imgLine = []
+        for i in range(2):
+            imgLine.append(cv.hconcat(imgList[start:end-1]))
+
+            start += end -1
+            end += end -1
+
+        #print(imgLine)
+        for i in imgLine:
+            img = cv.vconcat(imgLine)
+
+
+    # SaturationChange
+    if (imgDict["saturation"] != 1):
+        img = saturationTweak(img, imgDict["saturation"])
+
+    #ExposureChange
+    if (imgDict["exposure"] != 0):
+        img = img * pow(2,float(imgDict["exposure"]))
+
+
+
+    if(img.dtype == "float32"):
+        # Making the actual OCIO Transform
+        if imgDict["ocioToggle"] == True:
+            ocioTransform2(img, imgDict["ocio"]["ocioIn"], imgDict["ocio"]["ocioOut"], imgDict["ocio"]["ocioLook"], imgDict["ocioVar"], imgDict["ocio"]["ocioDisplay"])
+        #ocioTransform(img, ocioIn, ocioOut, ocioLook)
+        img *= 255
+        # Clamping the values to avoid artifacts if values go over 255
+        img = clampImg(img)
+        # Conversion to the QPixmap format
+        img = img.astype(np.uint8)
+
+    rgb_image = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+    h,w,ch = rgb_image.shape
+    bytes_per_line = ch * w
+    convertedImg = rgb_image.data, w, h, bytes_per_line
+    return(convertedImg)
+
+
+
+        
+
 
 if __name__ == "__main__":
     main()

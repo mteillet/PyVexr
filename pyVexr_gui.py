@@ -8,7 +8,7 @@ import json
 import time
 from math import sqrt
 from PyQt5 import QtWidgets, QtCore, QtGui
-from pyVexr_main import loadImg, interpretRectangle, exrListChannels, seqFromPath, initOcio2, getLooks, bufferBackEnd 
+from pyVexr_main import loadImg, interpretRectangle, exrListChannels, seqFromPath, initOcio2, getLooks, bufferBackEnd, layerContactSheetBackend 
 from pyVexr_timelineGui import Timeline
 
 # Subclassing graphicsView in order to be able to track mouse movements in the scene
@@ -1589,7 +1589,20 @@ class ContactSheetPopup(QtWidgets.QWidget):
             self.channelSelection.append(chanClicked)
 
     def okBtnClicked(self):
-        print(self.channelSelection)
+        '''
+        Responsible for sending the list to backend and returning the image to put in the viewer
+        '''
+        currentPos = (widget.frameNumber.slider.value())
+        frame = widget.frameNumber.returnFrame(currentPos)
+
+        widget.imgDict["path"] = [frame]
+
+        #print(self.channelSelection)
+        tempImg = layerContactSheetBackend(self.channelSelection, widget.imgDict)
+        
+        convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+        widget.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+
 
  
 class OcioPopup(QtWidgets.QWidget):

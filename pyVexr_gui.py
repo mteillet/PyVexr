@@ -324,6 +324,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["flipY"] = False
         self.imgDict["RGBA"] = "rgba"
         self.imgDict["previousShot"] = None
+        self.imgDict["ContactSheet"] = False
         self.p = None
         self.diagnostic = False
         self.playCount = []
@@ -1514,6 +1515,7 @@ class ContactSheetPopup(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout()
 
+        self.toggleLayout = QtWidgets.QHBoxLayout()
         self.titleLayout = QtWidgets.QHBoxLayout()
         self.channelsLayout = QtWidgets.QGridLayout()
         self.okLayout = QtWidgets.QHBoxLayout()
@@ -1534,11 +1536,17 @@ class ContactSheetPopup(QtWidgets.QWidget):
             currentBtn.clicked.connect(self.chanBtnClicked)
             channelBtns.append(currentBtn)
 
+        self.toggleBtn = QtWidgets.QPushButton("Toggle Layer Contact Sheet Mode")
+        self.toggleBtn.setCheckable(True)
+        self.toggleBtn.clicked.connect(self.contactSheetMode)
+        if self.toggleBtn.isChecked() == False:
+            self.toggleBtn.click()
         self.okBtn = QtWidgets.QPushButton("Ok")
         self.okBtn.clicked.connect(self.okBtnClicked)
 
         
         # LAYOUT
+        self.toggleLayout.addWidget(self.toggleBtn)
         self.titleLayout.addStretch()
         self.titleLayout.addWidget(self.titleLabel)
         #self.titleLayout.addWidget(self.hintLabel)
@@ -1553,6 +1561,7 @@ class ContactSheetPopup(QtWidgets.QWidget):
         self.okLayout.addWidget(self.okBtn)
         self.okLayout.addStretch()
 
+        layout.addLayout(self.toggleLayout)
         layout.addStretch()
         layout.addLayout(self.titleLayout)
         layout.addStretch()
@@ -1588,6 +1597,22 @@ class ContactSheetPopup(QtWidgets.QWidget):
         else:
             self.channelSelection.append(chanClicked)
 
+    def contactSheetMode(self):
+        '''
+        Responsible for switching the image buffer generation to layercontactsheet mode
+        '''
+        if self.toggleBtn.isChecked() == True:
+            #print("LayerContactSheet mode is on")
+            self.toggleBtn.setStyleSheet("background-color: rgb(1,1,221)")
+            widget.imgDict["ContactSheet"] = True
+        else:
+            #print("LayerContactSheet mode is off")
+            self.toggleBtn.setStyleSheet("background-color: rgb(11,11,11)")
+            widget.imgDict["ContactSheet"] = False
+
+
+
+
     def okBtnClicked(self):
         '''
         Responsible for sending the list to backend and returning the image to put in the viewer
@@ -1602,6 +1627,8 @@ class ContactSheetPopup(QtWidgets.QWidget):
         
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         widget.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+
+        widget.imgDict["buffer"][currentPos] = tempImg 
 
 
  

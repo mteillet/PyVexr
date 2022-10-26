@@ -10,6 +10,7 @@ import OpenEXR as EXR
 import array
 import time
 import Imath
+import math
 import glob
 
 def bufferBackEnd(imgDict, frameList, current):
@@ -595,20 +596,32 @@ def layerContactSheetBackend(chanList, imgDict):
     numImgs = (len(imgList))
 
     if numImgs >> 2:
-        end = round(numImgs / 2)
+        # Defining number of columns
+        end = math.floor(numImgs / 2)
         start = 0
+
+        # Defining number of row
+        iterations = math.ceil(numImgs/end)
         
         imgLine = []
-        for i in range(2):
-            imgLine.append(cv.hconcat(imgList[start:end-1]))
+        for i in range(iterations):
+            if ((end - start) >> 0):
+                imgLine.append(cv.hconcat(imgList[start:end]))
+            else:
+                imgLine.append(imgList[end])
 
-            start += end -1
-            end += end -1
+            start += end 
+
+            if (end+end << numImgs):
+                end += end  
+            else:
+                end = numImgs - 1
 
         #print(imgLine)
         for i in imgLine:
             img = cv.vconcat(imgLine)
-
+        # Debuggin showing only last line
+        #img = imgLine[len(imgLine)-1]
 
     # SaturationChange
     if (imgDict["saturation"] != 1):

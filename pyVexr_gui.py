@@ -325,6 +325,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["RGBA"] = "rgba"
         self.imgDict["previousShot"] = None
         self.imgDict["ContactSheet"] = False
+        self.imgDict["ContactSheetChannels"] = []
         self.p = None
         self.diagnostic = False
         self.playCount = []
@@ -649,6 +650,8 @@ class MyWidget(QtWidgets.QWidget):
             self.bufferState["exposure"] = self.imgDict["exposure"]
             self.bufferState["saturation"] = self.imgDict["saturation"]
             self.bufferState["RGBA"] = self.imgDict["RGBA"]
+            self.bufferState["ContactSheet"] = self.imgDict["ContactSheet"]
+            self.bufferState["ContactSheetChannels"] = self.imgDict["ContactSheetChannels"]
 
             #print(self.bufferState)
 
@@ -670,6 +673,8 @@ class MyWidget(QtWidgets.QWidget):
             currentState["exposure"] = self.imgDict["exposure"]
             currentState["saturation"] = self.imgDict["saturation"]
             currentState["RGBA"] = self.imgDict["RGBA"]
+            currentState["ContactSheet"] = self.imgDict["ContactSheet"]
+            currentState["ContactSheetChannels"] = self.imgDict["ContactSheetChannels"]
 
             if (currentState == self.bufferState):
                 #print("No change in buffer state")
@@ -1597,6 +1602,8 @@ class ContactSheetPopup(QtWidgets.QWidget):
         else:
             self.channelSelection.append(chanClicked)
 
+        widget.imgDict["ContactSheetChannels"] = self.channelSelection
+
     def contactSheetMode(self):
         '''
         Responsible for switching the image buffer generation to layercontactsheet mode
@@ -1628,6 +1635,7 @@ class ContactSheetPopup(QtWidgets.QWidget):
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
         widget.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
 
+        widget.checkIfBufferStateChanged()
         widget.imgDict["buffer"][currentPos] = tempImg 
 
 

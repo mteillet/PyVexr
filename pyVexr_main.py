@@ -599,27 +599,37 @@ def layerContactSheetBackend(chanList, imgDict):
         # Defining number of columns
         end = math.floor(numImgs / 2)
         start = 0
+        diff = end - start
 
         # Defining number of row
         iterations = math.ceil(numImgs/end)
+        print(iterations)
         
         imgLine = []
         for i in range(iterations):
-            if ((end - start) >> 0):
+            if (end-1 < numImgs):
+                print("starting with image {} up to {}".format(start, end-1))
+                #print("multi image")
                 imgLine.append(cv.hconcat(imgList[start:end]))
             else:
-                imgLine.append(imgList[end])
+                # Need to check if there are more than 1 additionnal pictures to put in last line
+                # Need to place black images after the last one in the last line
+                print("single image {}".format(numImgs - 1))
+                lastLine = []
+                for i in range(diff):
+                    lastLine.append(imgList[numImgs - 1])
+                imgLine.append(cv.hconcat(lastLine))
 
-            start += end 
+            start = end 
 
-            if (end+end << numImgs):
-                end += end  
+            if ((end+diff) << numImgs):
+                end += diff
             else:
                 end = numImgs - 1
 
         #print(imgLine)
         for i in imgLine:
-            img = cv.vconcat(imgLine)
+            img = cv.vconcat([imgLine[0],imgLine[1], imgLine[2]])
         # Debuggin showing only last line
         #img = imgLine[len(imgLine)-1]
 

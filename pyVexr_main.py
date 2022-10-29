@@ -575,6 +575,11 @@ def layerContactSheetBackend(chanList, imgDict):
         greenChannels.append(channelG)
         blueChannels.append(channelB)
 
+        blackChan = np.zeros((isize[1], isize[0], 1), dtype = np.float32)
+        blackChan = np.reshape(blackChan, isize)
+
+        blackImg = cv.merge([blackChan, blackChan, blackChan])
+
         #print("Found channels - {}".format(channel))
         print("Computed channel : {}".format(channel))
 
@@ -616,8 +621,17 @@ def layerContactSheetBackend(chanList, imgDict):
                 # Need to place black images after the last one in the last line
                 print("single image {}".format(numImgs - 1))
                 lastLine = []
-                for i in range(diff):
-                    lastLine.append(imgList[numImgs - 1])
+                #print("{} : {}".format(start, numImgs - 1))
+                current = start
+                for i in range( (numImgs-1) - start + 1 ):
+                    lastLine.append(imgList[current])
+                    current += 1
+
+                for i in range( diff - len(lastLine) ):
+                    lastLine.append(blackImg)
+
+                print(len(lastLine))
+
                 imgLine.append(cv.hconcat(lastLine))
 
             start = end 
@@ -629,7 +643,8 @@ def layerContactSheetBackend(chanList, imgDict):
 
         #print(imgLine)
         for i in imgLine:
-            img = cv.vconcat([imgLine[0],imgLine[1], imgLine[2]])
+            #img = cv.vconcat([imgLine[0],imgLine[1], imgLine[2]])
+            img = cv.vconcat(imgLine)
         # Debuggin showing only last line
         #img = imgLine[len(imgLine)-1]
 

@@ -17,7 +17,8 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 - [x] Easily Pan, Zoom, Mirror the image
 - [x] Visualize independently R/G/B/A channels 
 	- [x] Luminance view
-	- [ ] Layer contact sheet
+	- [x] Layer contact sheet
+		- [] Toggle Layer contact sheet mode
 - [x] Switch and visualize other channels in multilayered exrs
 - [x] Tweak exposition and saturation on the fly
 - [x] Easily accessible OCIO v2 menu
@@ -28,6 +29,7 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 	- [ ] Add option to toggle on / off the buffer
 - [x] Full Python code available
 	- [ ] Compiled versions
+- [ ] Infos menu
 - [ ] Option to add neighbouring shots even after the first ones have been loaded
 - [ ] DPX (10 bit) read support
 - [ ] Load and save the PyVexr playlist directly in order to save viewing sessions containing multiple shots

@@ -595,12 +595,17 @@ def layerContactSheetBackend(chanList, imgDict):
     imgList = []
     current = 0
     for image in redChannels:
-        imgList.append(cv.merge([blueChannels[current], greenChannels[current], redChannels[current]]))
+        currentchannel = cv.merge([blueChannels[current], greenChannels[current], redChannels[current]])
+        # Adding text overlat on the image
+        cv.putText(currentchannel, chanList[current], (0,25), cv.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv.LINE_AA)
+        imgList.append(currentchannel)
         current += 1
 
     numImgs = (len(imgList))
+    #print(numImgs)
 
-    if numImgs >> 2:
+    if numImgs > 1:
+        #print("num imgs is lower than 2")
         # Defining number of columns
         end = math.floor(numImgs / 2)
         start = 0
@@ -608,18 +613,19 @@ def layerContactSheetBackend(chanList, imgDict):
 
         # Defining number of row
         iterations = math.ceil(numImgs/end)
-        print(iterations)
+        #print(end)
+        #print(iterations)
         
         imgLine = []
         for i in range(iterations):
             if (end-1 < numImgs):
-                print("starting with image {} up to {}".format(start, end-1))
+                #print("starting with image {} up to {}".format(start, end-1))
                 #print("multi image")
                 imgLine.append(cv.hconcat(imgList[start:end]))
             else:
                 # Need to check if there are more than 1 additionnal pictures to put in last line
                 # Need to place black images after the last one in the last line
-                print("single image {}".format(numImgs - 1))
+                #print("single image {}".format(numImgs - 1))
                 lastLine = []
                 #print("{} : {}".format(start, numImgs - 1))
                 current = start
@@ -630,7 +636,7 @@ def layerContactSheetBackend(chanList, imgDict):
                 for i in range( diff - len(lastLine) ):
                     lastLine.append(blackImg)
 
-                print(len(lastLine))
+                #print(len(lastLine))
 
                 imgLine.append(cv.hconcat(lastLine))
 
@@ -640,6 +646,8 @@ def layerContactSheetBackend(chanList, imgDict):
                 end += diff
             else:
                 end = numImgs - 1
+
+        #print(len(imgLine))
 
         #print(imgLine)
         for i in imgLine:

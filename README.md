@@ -18,7 +18,7 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 - [x] Visualize independently R/G/B/A channels 
 	- [x] Luminance view
 	- [x] Layer contact sheet
-		- [ ] Toggle Layer contact sheet mode
+		- [x] Toggle Layer contact sheet mode for frame scrolling
 - [x] Switch and visualize other channels in multilayered exrs
 - [x] Tweak exposition and saturation on the fly
 - [x] Easily accessible OCIO v2 menu
@@ -29,6 +29,8 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 	- [ ] Add option to toggle on / off the buffer
 - [x] Full Python code available
 	- [ ] Compiled versions
+		- [ ] Linux (Tested on Ubuntu)
+		- [ ] Windows
 - [ ] Infos menu
 - [ ] Option to add neighbouring shots even after the first ones have been loaded
 - [ ] DPX (10 bit) read support

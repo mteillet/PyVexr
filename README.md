@@ -28,9 +28,9 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 	- [x] MultiThreading
 	- [ ] Add option to toggle on / off the buffer
 - [x] Full Python code available
-	- [ ] Compiled versions
-		- [ ] Linux (Tested on Ubuntu)
-		- [ ] Windows
+	- [x] Compiled versions
+		- [x] Linux (Tested on Ubuntu)
+		- [x] Windows
 - [ ] Infos menu
 - [ ] Option to add neighbouring shots even after the first ones have been loaded
 - [ ] DPX (10 bit) read support

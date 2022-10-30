@@ -763,7 +763,7 @@ class MyWidget(QtWidgets.QWidget):
         self.initSlider(seqDict)
 
         # Calculating the actual image from the backend
-        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"])
+        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"], self.imgDict)
 
         if len(self.imgDict["buffer"]) >> 0:
             self.imgDict["buffer"][(self.frameNumber.slider.value())] = tempImg
@@ -803,7 +803,7 @@ class MyWidget(QtWidgets.QWidget):
             self.imgDict["path"][0] = frame
             self.bufferLoad(self.seqDict)
             #tempImg = self.imgDict["buffer"][currentPos]
-            tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"])
+            tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"], self.imgDict)
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
 
         # Set pixmap in self.image
@@ -1180,9 +1180,12 @@ class MyWidget(QtWidgets.QWidget):
 
         self.imgDict["path"] = [frame]
 
-        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"],self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"])
+        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"],self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"], self.imgDict)
+
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+
         self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+
         self.mirrorToggles()
 
     def imageUpdate(self):
@@ -1616,9 +1619,9 @@ class ContactSheetPopup(QtWidgets.QWidget):
             #print("LayerContactSheet mode is off")
             self.toggleBtn.setStyleSheet("background-color: rgb(11,11,11)")
             widget.imgDict["ContactSheet"] = False
-
-
-
+            
+        # Reset buffer for change
+        widget.checkIfBufferStateChanged()
 
     def okBtnClicked(self):
         '''
@@ -1626,6 +1629,9 @@ class ContactSheetPopup(QtWidgets.QWidget):
         '''
         currentPos = (widget.frameNumber.slider.value())
         frame = widget.frameNumber.returnFrame(currentPos)
+
+        # Passing the chan list again to the widget imgList dict
+        widget.imgDict["ContactSheetChannels"] = self.channelSelection
 
         widget.imgDict["path"] = [frame]
 
@@ -1636,6 +1642,7 @@ class ContactSheetPopup(QtWidgets.QWidget):
         widget.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
 
         widget.checkIfBufferStateChanged()
+
         widget.imgDict["buffer"][currentPos] = tempImg 
 
 

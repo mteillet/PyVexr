@@ -741,7 +741,7 @@ class MyWidget(QtWidgets.QWidget):
         self.frameNumber._timeline.paintBuffer(resultB, len(self.imgDict["buffer"]))
         t1 = time.time()
         #print(t1 - self.t0)
-        if (t1 - self.t0) < 0.3:
+        if (t1 - self.t0) < 0.5:
             self.threadpool.setMaxThreadCount(self.maxThreads - 2)
             self.diagnostic = True
         else:

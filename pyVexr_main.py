@@ -25,7 +25,11 @@ def bufferBackEnd(imgDict, frameList, current):
         try:
             if (imgDict["buffer"][current] == None):
                 #t0 = time.time()
-                convertedImg = convertExr(frameList[current], imgDict["ocio"]["ocioIn"], imgDict["ocio"]["ocioOut"], imgDict["ocio"]["ocioLook"], imgDict["exposure"], imgDict["saturation"], imgDict["channel"], imgDict["RGBA"], imgDict["ocioVar"], imgDict["ocio"]["ocioDisplay"], imgDict["ocioToggle"])
+                if (imgDict["ContactSheet"] == False):
+                    convertedImg = convertExr(frameList[current], imgDict["ocio"]["ocioIn"], imgDict["ocio"]["ocioOut"], imgDict["ocio"]["ocioLook"], imgDict["exposure"], imgDict["saturation"], imgDict["channel"], imgDict["RGBA"], imgDict["ocioVar"], imgDict["ocio"]["ocioDisplay"], imgDict["ocioToggle"])
+                else:
+                    imgDict["path"] = [frameList[current]]
+                    convertedImg = layerContactSheetBackend(imgDict["ContactSheetChannels"], imgDict)
                 #t1 = time.time()
                 #print("executed in {} seconds".format(t1 - t0))
                 return(convertedImg, current)
@@ -94,13 +98,17 @@ def autoRangeFromPath(pathList):
 
         
 
-def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure, saturation, channel, channelRGBA, ocioVar, ocioDisplay, ocioToggle):
+def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure, saturation, channel, channelRGBA, ocioVar, ocioDisplay, ocioToggle, imgDict):
     '''
     Main function responsible for the loading of IMGs
     '''
     temporaryImg = fileList[0]
-    
-    convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, channelRGBA, ocioVar, ocioDisplay, ocioToggle)
+    if (imgDict["ContactSheet"] == False):
+        convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, channelRGBA, ocioVar, ocioDisplay, ocioToggle)
+    else:
+        imgDict["path"] = [fileList[0]]
+        convertedImg = layerContactSheetBackend(imgDict["ContactSheetChannels"], imgDict)
+
     return (convertedImg)
 
 
@@ -496,7 +504,6 @@ def layerContactSheetBackend(chanList, imgDict):
     #print(imgDict)
 
     # Getting casing and size of EXR
-
     exr = EXR.InputFile(imgDict["path"][0])
     header = exr.header()
     channelsRaw = header["channels"]

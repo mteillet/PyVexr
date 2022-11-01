@@ -347,6 +347,11 @@ class MyWidget(QtWidgets.QWidget):
         self.windowsMenu = self.menuBar.addMenu('&Windows')
         self.expoSatMenu = self.menuBar.addMenu('&Expo/Sat')
         self.ociioMenu = self.menuBar.addMenu('&OCIO')
+        self.bufferMenu = self.menuBar.addMenu('&Buffer')
+        # Buffer menu & actions
+        self.reloadFrameAction = self.bufferMenu.addAction("Reload Current Frame")
+        self.resetBufferAction = self.bufferMenu.addAction("Reset Buffer")
+        self.bufferSettingsAction = self.bufferMenu.addAction("Buffer settings")
         # File Menu & Action
         self.openAction = self.fileMenu.addAction("Open        &-&C&t&r&l&+&O")
         self.openAction.triggered.connect(self.openFiles)

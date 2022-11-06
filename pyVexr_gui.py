@@ -350,8 +350,13 @@ class MyWidget(QtWidgets.QWidget):
         self.bufferMenu = self.menuBar.addMenu('&Buffer')
         # Buffer menu & actions
         self.reloadFrameAction = self.bufferMenu.addAction("Reload Current Frame")
+        self.reloadFrameAction.triggered.connect(self.cacheCurrentFrame)
         self.resetBufferAction = self.bufferMenu.addAction("Reset Buffer")
+        self.resetBufferAction.triggered.connect(self.resetBuffer)
+        self.bufferAllAction = self.bufferMenu.addAction("Cache all frames")
+        self.bufferAllAction.triggered.connect(self.cacheAllFrames)
         self.bufferSettingsAction = self.bufferMenu.addAction("Buffer settings")
+        self.bufferSettingsAction.triggered.connect(self.bufferPopup)
         # File Menu & Action
         self.openAction = self.fileMenu.addAction("Open        &-&C&t&r&l&+&O")
         self.openAction.triggered.connect(self.openFiles)
@@ -598,23 +603,29 @@ class MyWidget(QtWidgets.QWidget):
         #print(app.focusWidget().objectName())
         pass
 
-    def bufferInit(self, seqDict):
+    def resetBuffer(self):
         '''
-        Init buffer size using the seqDict length
+        Resetting the buffer
         '''
-        # Reinitialize buffer
+        #Stopping the queue if workers are not created yet
+        self.threadpool.clear()
+
         if (len(self.imgDict["buffer"]) >> 0):
-            #print("Reset Buffer")
             self.imgDict["buffer"] = []
 
-        # Create empty buffer slots
-        for shot in seqDict:
-            #print(len(seqDict[shot]))
-            for frame in seqDict[shot]:
+        # Empty buffer slots
+        for shot in self.seqDict:
+            for frame in self.seqDict[shot]:
                 self.imgDict["buffer"].append(None)
 
         self.frameNumber._timeline.resetCacheDraw()
 
+    def bufferInit(self, seqDict):
+        '''
+        Init buffer size using the seqDict length
+        '''
+
+        self.resetBuffer()
         # Sending One frame to check the time
         frameList = []
         for shot in seqDict:
@@ -694,6 +705,45 @@ class MyWidget(QtWidgets.QWidget):
                 #print(self.bufferState)
                 #print(currentState)
 
+    def cacheCurrentFrame(self):
+        '''
+        Recalculating / Calculating the image for the current buffer
+        '''
+        print("Recaching current Frame")
+        # Stopping the queue if workers are not created yet
+        self.threadpool.clear()
+
+        frameList = []
+        for shot in self.seqDict:
+            for frame in self.seqDict[shot]:
+                frameList.append(frame)
+
+        current = self.frameNumber.slider.value()
+
+        # Starting a thread
+        worker = Worker(frameList, current, **self.imgDict)
+        worker.signals.result.connect(self.queueResult)
+        self.threadpool.start(worker)
+
+    def cacheAllFrames(self):
+        '''
+        Caching all frames in the timeline
+        '''
+        print("cache all frames")
+        # First clear the cache
+        self.resetBuffer()
+        
+        frameList = []
+        for shot in self.seqDict:
+            for frame in self.seqDict[shot]:
+                frameList.append(frame)
+
+        current = self.frameNumber.slider.minimum()
+        for i in frameList:
+            worker = Worker(frameList, current, **self.imgDict)
+            worker.signals.result.connect(self.queueResult)
+            self.threadpool.start(worker)
+            current += 1
 
 
     def bufferLoad(self, seqDict):
@@ -753,6 +803,9 @@ class MyWidget(QtWidgets.QWidget):
             self.threadpool.setMaxThreadCount(self.maxThreads - 6)
             self.diagnostic = False
 
+    def bufferPopup(self):
+        self.bufPopup = BufferPopup()
+        self.bufPopup.show()
 
         
 
@@ -1260,7 +1313,7 @@ class MyWidget(QtWidgets.QWidget):
 
     def customExpoMenu(self):
         self.expoPop = ExposurePopup()
-        self.expoPop.show()
+        self.expopop.show()
         self.expoPop.spin.valueChanged.connect(self.updateCustomExpo)
         
     def updateCustomExpo(self):
@@ -1650,7 +1703,35 @@ class ContactSheetPopup(QtWidgets.QWidget):
 
         widget.imgDict["buffer"][currentPos] = tempImg 
 
+class BufferPopup(QtWidgets.QWidget):
+    def __init__(self, *args, **kwargs):
+        super(BufferPopup, self).__init__(*args, **kwargs)
+        self.setWindowTitle("Buffer Settings")
 
+        self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
+
+        layout = QtWidgets.QVBoxLayout()
+        self.threadLayout = QtWidgets.QHBoxLayout()
+
+        self.threadNumberLabel = QtWidgets.QLabel("Number of threads :")
+        self.threadNumber = QtWidgets.QSpinBox()
+        self.threadNumber.valueChanged.connect(self.updateThreads)
+        # Getting default value of max threads
+        self.threadNumber.setValue(widget.maxThreads - 4)
+        
+        self.threadLayout.addWidget(self.threadNumberLabel)
+        self.threadLayout.addWidget(self.threadNumber)
+        layout.addLayout(self.threadLayout)
+        self.setLayout(layout)
+
+    ###############################
+    # Code for the Slot functions #
+    ###############################
+    @QtCore.pyqtSlot()
+    def updateThreads(self):
+        #print("updating thread numbers")
+        print(self.threadNumber.value())
+ 
  
 class OcioPopup(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):

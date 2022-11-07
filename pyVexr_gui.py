@@ -329,6 +329,7 @@ class MyWidget(QtWidgets.QWidget):
         self.p = None
         self.diagnostic = False
         self.playCount = []
+        self.bufferRange = 2
 
         self.checkIfJsonExists()
 
@@ -756,13 +757,14 @@ class MyWidget(QtWidgets.QWidget):
             for frame in seqDict[shot]:
                 frameList.append(frame)
         current = self.frameNumber.slider.value()
+        
 
         count = 0
         if (len(frameList) >> 0):
             # First check to see how much time a thread takes to finish
             if (self.diagnostic == False):
                 #print("buffer launch limited")
-                for i in range(5):
+                for i in range(self.bufferRange):
                     # Reset the curent + count to not get out of list range
                     if (current+count >> self.frameNumber.slider.maximum()):
                         #print("NEED TO RESET THE CURRENT + COUNT")
@@ -1712,16 +1714,28 @@ class BufferPopup(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout()
         self.threadLayout = QtWidgets.QHBoxLayout()
+        self.batchLayout = QtWidgets.QHBoxLayout()
 
+        # Number of frames
         self.threadNumberLabel = QtWidgets.QLabel("Number of threads :")
         self.threadNumber = QtWidgets.QSpinBox()
         self.threadNumber.valueChanged.connect(self.updateThreads)
         # Getting default value of max threads
         self.threadNumber.setValue(widget.maxThreads - 4)
+        # Size of buffer batch
+        self.threadBatchLabel = QtWidgets.QLabel("Buffer Batch Size for heavy EXRs :")
+        self.threadBatch = QtWidgets.QSpinBox()
+        self.threadBatch.setValue(4)
+        self.threadBatch.valueChanged.connect(self.updateBatchSize)
         
         self.threadLayout.addWidget(self.threadNumberLabel)
+        self.threadLayout.addStretch()
         self.threadLayout.addWidget(self.threadNumber)
+        self.batchLayout.addWidget(self.threadBatchLabel)
+        self.batchLayout.addStretch()
+        self.batchLayout.addWidget(self.threadBatch)
         layout.addLayout(self.threadLayout)
+        layout.addLayout(self.batchLayout)
         self.setLayout(layout)
 
     ###############################
@@ -1730,8 +1744,12 @@ class BufferPopup(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def updateThreads(self):
         #print("updating thread numbers")
-        print(self.threadNumber.value())
- 
+        #print(self.threadNumber.value())
+        widget.threadpool.setMaxThreadCount(self.threadNumber.value())
+
+    def updateBatchSize(self):
+        #print(self.threadBatch.value())
+        widget.bufferRange = self.threadBatch.value()
  
 class OcioPopup(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):

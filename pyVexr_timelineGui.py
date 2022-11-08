@@ -228,6 +228,7 @@ class Timeline(QtWidgets.QWidget):
             else:
                 return(timelineDictInfos["slider"][number]["path"])
         except KeyError:
+            print("returning default image")
             return("/home/martin/Documents/PYTHON/PyVexr/imgs/pyVexrSplashScreen_v002.exr")
 
     def updateSlider(self, timeLineDict):

@@ -857,25 +857,27 @@ class MyWidget(QtWidgets.QWidget):
     def changeFrame(self, frame, currentPos):
         t0 = (time.time())
         #print(self.imgDict["buffer"][currentPos])
-        if (self.imgDict["buffer"][currentPos] != None):
-            tempImg = self.imgDict["buffer"][currentPos]
-        else:
-            self.imgDict["path"][0] = frame
-            self.bufferLoad(self.seqDict)
-            #tempImg = self.imgDict["buffer"][currentPos]
-            tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"], self.imgDict)
-        convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+        # Checking if the position is not out of range from the list
+        if (currentPos < len(self.imgDict["buffer"])):
+            if (self.imgDict["buffer"][currentPos] != None):
+                tempImg = self.imgDict["buffer"][currentPos]
+            else:
+                self.imgDict["path"][0] = frame
+                self.bufferLoad(self.seqDict)
+                #tempImg = self.imgDict["buffer"][currentPos]
+                tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"], self.imgDict)
+            convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
 
-        # Set pixmap in self.image
-        self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
+            # Set pixmap in self.image
+            self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
 
-        t1 = time.time()
-        #print(t1 - t0)
+            t1 = time.time()
+            #print(t1 - t0)
 
-        # Give the rectangle view area the coordinates of the pixmap image after the image has been loaded
-        imgCoordinates = interpretRectangle(str(self.image.boundingRect()))
-        self.viewArea.setRect(imgCoordinates[0],imgCoordinates[1],imgCoordinates[2],imgCoordinates[3])
-        
+            # Give the rectangle view area the coordinates of the pixmap image after the image has been loaded
+            imgCoordinates = interpretRectangle(str(self.image.boundingRect()))
+            self.viewArea.setRect(imgCoordinates[0],imgCoordinates[1],imgCoordinates[2],imgCoordinates[3])
+            
 
     def sliderChanged(self):
         currentPos = (self.frameNumber.slider.value())
@@ -1235,9 +1237,11 @@ class MyWidget(QtWidgets.QWidget):
     def refreshImg(self):
         self.checkIfBufferStateChanged()
 
+
         currentPos = (self.frameNumber.slider.value())
         frame = self.frameNumber.returnFrame(currentPos)
 
+        #print("check buffer at position {} and frame {}".format(currentPos, frame))
         self.imgDict["path"] = [frame]
 
         tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"],self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"], self.imgDict)

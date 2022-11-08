@@ -66,6 +66,7 @@ def seqFromPath(path):
             pathList[seqName] = [i]
 
     seqDict = autoRangeFromPath(pathList)
+    #print("seqDict is : {}".format(seqDict))
 
     return(seqDict)
 
@@ -77,8 +78,12 @@ def fileSearchPath(filepath):
     '''
     filepath= (filepath.split("/"))
     filename = (filepath[-1]).split(".")
-    seqName = (".".join(filename[:-2]))
+    if len(filename) > 3:
+        seqName = (".".join(filename[:-2]))
+    else:
+        seqName = filename[0]
     searchPath = "{0}/{1}".format("/".join(filepath[:-1]), seqName)
+    #print(searchPath)
  
     return(seqName, searchPath)
 
@@ -91,6 +96,9 @@ def autoRangeFromPath(pathList):
         #print("Trying to auto-detect frames for the {} sequence".format(i))
         seqName, searchPath = fileSearchPath(pathList[i][0])
         fileList = glob.glob(str(searchPath)+".*.exr")
+        # Returning the exr without frame number in case it hasn't been found with a frame number
+        if len(fileList) == 0:
+            fileList = glob.glob(str(searchPath)+".exr")
         fileList.sort()
         seqDict[i] = fileList
 

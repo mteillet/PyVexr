@@ -264,7 +264,7 @@ class graphicsView(QtWidgets.QGraphicsView):
                     filenames.append(url.toLocalFile())
                 else:
                     # Append the default pyVexr logo
-                    filenames.append("/home/martin/Documents/PYTHON/PyVexr/imgs/pyVexrSplashScreen_v002.exr")
+                    filenames.append("imgs/pyVexrSplashScreen_v002.exr")
         #print(filenames)
         widget.updateImgDict(filenames)
         widget.totalFrameLabel.setText("{}".format(widget.frameNumber.slider.maximum()))
@@ -290,7 +290,7 @@ class MyWidget(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PyVexr -- OpenExr Viewer") 
-        self.setWindowIcon(QtGui.QIcon("/home/martin/Documents/PYTHON/PyVexr/imgs/pyVexr_Icon_512.jpeg"))
+        self.setWindowIcon(QtGui.QIcon("imgs/pyVexr_Icon_512.jpeg"))
         self.setAcceptDrops(True)
 
         # ThreadPool
@@ -1928,7 +1928,7 @@ if __name__ == "__main__":
     widget.show()
 
     # Init the gui with the default pyVexr splashcreen in order to enable drag and drop from the start
-    filenames = ["/home/martin/Documents/PYTHON/PyVexr/imgs/pyVexrSplashScreen_v001.exr"]
+    filenames = ["imgs/pyVexrSplashScreen_v001.exr"]
     widget.updateImgDict(filenames)
 
     sys.exit(app.exec())

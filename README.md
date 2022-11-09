@@ -21,12 +21,13 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 		- [x] Toggle Layer contact sheet mode for frame scrolling
 - [x] Switch and visualize other channels in multilayered exrs
 - [x] Tweak exposition and saturation on the fly
-- [x] Easily accessible OCIO v2 menu
-	- [x] OCIO menu GUI v2
+- [x] Easily accessible OCIOs 
+	- [x] OCIO menu GUI 
+	- [ ] Add ACES to PyVexr available OCIOs
 	- [x] Config.json to remember your favourite OCIO settings
 - [x] Buffer
 	- [x] MultiThreading
-	- [ ] Add option to toggle on / off the buffer
+	- [x] Buffer Menu
 - [x] Full Python code available
 	- [x] Compiled versions
 		- [x] Linux (Tested on Ubuntu)

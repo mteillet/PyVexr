@@ -1,7 +1,7 @@
 <br />
 <div align="center">
 	<h1 align="center">PyVexr</h1>
-	
+	<img src="/imgs/pyVexr_Icon_512.jpeg" alt="PyVexr Logo">	
 	Open Exr Viewer
 </div>
 
@@ -59,5 +59,6 @@ Teillet Martin - martin.teillet@hotmail.fr
 
 
 ### Thanks
+Thanks to Dorian Douaud for making the PyVexr Logo
 Thanks to Elsksa for his help and advices concerning OCIO handling
 Thanks to Sacha Duru for his help regarding pyQt

@@ -1,7 +1,7 @@
 <br />
 <div align="center">
 	<h1 align="center">PyVexr</h1>
-	<img src="/imgs/pyVexr_Icon_512.jpeg" alt="PyVexr Logo">	
+	<img src="/imgs/pyVexr_Icon_512.jpeg" alt="PyVexr Logo" align="center">	
 	Open Exr Viewer
 </div>
 

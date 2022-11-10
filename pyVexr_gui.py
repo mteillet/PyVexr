@@ -1922,6 +1922,7 @@ class OcioPopup(QtWidgets.QWidget):
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
+    app.setStyle("Fusion")
 
     widget = MyWidget()
     widget.resize(800,600)

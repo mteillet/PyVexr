@@ -8,7 +8,7 @@ import json
 import time
 from math import sqrt
 from PyQt5 import QtWidgets, QtCore, QtGui
-from pyVexr_main import loadImg, interpretRectangle, exrListChannels, seqFromPath, initOcio2, getLooks, bufferBackEnd, layerContactSheetBackend 
+from pyVexr_main import loadImg, interpretRectangle, exrListChannels, seqFromPath, initOcio2, getLooks, bufferBackEnd, layerContactSheetBackend, createVideoWriter 
 from pyVexr_timelineGui import Timeline
 
 # Subclassing graphicsView in order to be able to track mouse movements in the scene
@@ -365,6 +365,7 @@ class MyWidget(QtWidgets.QWidget):
         self.fileMenu.addSeparator()
         self.savePlaylist = self.fileMenu.addAction("Save as playlist")
         self.exportMp4 = self.fileMenu.addAction("Export as mp4")
+        self.exportMp4.triggered.connect(self.movieExport)
         self.fileMenu.addSeparator()
         self.exit = self.fileMenu.addAction("Exit PyVexr")
         # Mirror Action
@@ -809,7 +810,28 @@ class MyWidget(QtWidgets.QWidget):
         self.bufPopup = BufferPopup()
         self.bufPopup.show()
 
-        
+    def movieExport(self):
+        '''
+        Exporting a movie from the written cache
+        '''
+        # First clear threadpool in order to focus writing power to the mp4 generation
+        self.threadpool.clear()
+
+        # Creating window for export destination
+        exportDialog = QtWidgets.QFileDialog.getSaveFileName(self, 'Export MP4 file')
+        destination = (exportDialog[0])
+        # Adding the mp4 extension if it was forgotten
+        if destination.endswith(".mp4") == False:
+            destination ="{}.mp4".format(destination)
+            
+        current = self.frameNumber.slider.value()
+        frameList = []
+        for shot in self.seqDict:
+            for frame in self.seqDict[shot]:
+                frameList.append(frame)
+
+        createVideoWriter(self.imgDict, frameList, current, destination)
+
 
     def loadFile(self):
         #Loading frames from same nomenclature
@@ -1446,9 +1468,7 @@ class Worker(QtCore.QRunnable):
     def run(self, *args, **kwargs):
         #print(self.args)
         #print(self.kwargs)
-        t0 = time.time()
         img= bufferBackEnd(self.kwargs, self.args[0], self.args[1])
-        t1 = time.time()
         #print("img obtained in {}".format(t1-t0))
 
         self.signals.finished.emit()

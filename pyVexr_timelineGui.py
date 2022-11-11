@@ -37,17 +37,30 @@ class _Timeline(QtWidgets.QWidget):
         rect = QtCore.QRect(0,0, painter.device().width(), painter.device().height())
         painter.fillRect(rect, brush)
 
-        # Painting the lower bar
-        brush.setColor(QtGui.QColor(225,225,225))
-        rect = QtCore.QRect(0 ,painter.device().height()-0.5 , painter.device().width(), painter.device().height())
-        painter.fillRect(rect, brush)
-        #print(self.cachePos)
-        #tempList = [QtGui.QColor(10, 125, 10), QtGui.QColor(10, 255,10)]
-        brush.setColor(QtGui.QColor(10,125,10))
+        # Get Values from the slider
+        slider = self.parent().slider
+        vmin, vmax = slider.minimum(), slider.maximum()
+        value = slider.value()
+        tickValue = value * painter.device().width() / vmax
         if self.maxBuffer >> 2:
             lenMax = self.maxBuffer - 1
         else:
             lenMax = self.maxBuffer
+
+        # Painting the current frame background
+        brush.setColor(QtGui.QColor(50,50,50))
+        endFrameCurrent = (painter.device().width() / lenMax + 1)
+        rect = QtCore.QRect(tickValue,0,endFrameCurrent, painter.device().height())
+        painter.fillRect(rect, brush)
+
+
+        # Painting the lower bar
+        brush.setColor(QtGui.QColor(225,225,225))
+        rect = QtCore.QRect(0 ,painter.device().height()-0.5 , painter.device().width(), painter.device().height())
+        painter.fillRect(rect, brush)
+
+        # Painting the green buffer
+        brush.setColor(QtGui.QColor(10,125,10))
         for i in self.cachePos :
             #brush.setColor(tempList[i%2])
             xStart = ( (i) * painter.device().width() / lenMax )
@@ -57,12 +70,6 @@ class _Timeline(QtWidgets.QWidget):
 
         # Color back to white
         brush.setColor(QtGui.QColor(225,225,225))
-        # Get Values from the slider
-        slider = self.parent().slider
-        vmin, vmax = slider.minimum(), slider.maximum()
-        value = slider.value()
-        tickValue = value * painter.device().width() / vmax
-
         pen = painter.pen()
         pen.setColor(QtGui.QColor("white"))
         painter.setPen(pen)

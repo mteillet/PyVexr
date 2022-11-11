@@ -334,6 +334,7 @@ def initOcio2(ocioVar):
             #print(i.getFamily(), i.getName())
             displays.append(i.getName())
 
+
     return(colorSpaces,inputInterp,displays)
 
 def getLooks(ocioVar, colorSpace):

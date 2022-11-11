@@ -56,11 +56,10 @@ file_rules:
 displays:
   sRGB:
     - !<View> {name: Standard, colorspace: sRGB}
-    - !<View> {name: Filmic, colorspace: Filmic sRGB}
     - !<View> {name: AgX, colorspace: AgX Base}
-    - !<View> {name: Appearance Golden, colorspace: Appearance Golden sRGB}
-    - !<View> {name: Appearance Punchy, colorspace: Appearance Punchy sRGB}
-    - !<View> {name: Filmic Log, colorspace: Filmic Log}
+    - !<View> {name: ACES 2065-1 (P0), colorspace: ACES Rec.709}
+    - !<View> {name: ACES CG (P1), colorspace : Linear ACES - AP1}
+    - !<View> {name: Filmic, colorspace: Filmic sRGB}
     - !<View> {name: Raw, colorspace: Raw}
     - !<View> {name: False Color, colorspace: False Color}
   XYZ:
@@ -71,7 +70,7 @@ displays:
     - !<View> {name: Standard, colorspace: Raw}
 
 active_displays: [sRGB, XYZ, None]
-active_views: [Standard, Filmic, AgX, Filmic Log, Raw, False Color]
+active_views: [Standard, AgX, ACES 2065-1 (P0), ACES CG (P1), Filmic,  Raw, False Color]
 
 colorspaces:
   - !<ColorSpace>
@@ -93,6 +92,53 @@ colorspaces:
     isdata: true
     allocation: uniform
     allocationvars: [0, 1]
+
+  - !<ColorSpace>
+    name: Linear ACES - AP0
+    family: Utility
+    categories: [Linear]
+    bitdepth: 32f
+    description: |
+      ACES AP0 linear space AKA ACES2065-1
+    isdata: false
+    allocation: lg2
+    allocationvars: [-8, 5, 0.00390625]
+    from_reference: !<GroupTransform>
+      children:
+        - !<FileTransform> {src: srgb_to_xyz.spimtx, interpolation: linear}
+        - !<BuiltinTransform> {style: "UTILITY - ACES-AP0_to_CIE-XYZ-D65_BFD", direction: inverse}
+
+  - !<ColorSpace>
+    name: Linear ACES - AP1
+    family: Utility
+    categories: [Linear]
+    bitdepth: 32f
+    description: |
+      ACES AP1 linear space AKA ACEScg
+    isdata: false
+    allocation: lg2
+    allocationvars: [-8, 5, 0.00390625]
+    from_reference: !<GroupTransform>
+      children:
+        - !<FileTransform> {src: srgb_to_xyz.spimtx, interpolation: linear}
+        - !<BuiltinTransform> {style: "UTILITY - ACES-AP1_to_CIE-XYZ-D65_BFD", direction: inverse}
+
+  - !<ColorSpace>
+    name: ACES Rec.709
+    family: display
+    categories: [ACES_Display]
+    bitdepth: 32f
+    description: |
+      ACES - sRGB 2.4 Gamma Display space
+    isdata: false
+    allocation: uniform
+    allocationvars: [0, 1]
+    from_scene_reference: !<GroupTransform>
+      children:
+        - !<ExponentWithLinearTransform> {gamma: 2.4, offset: 0.055, direction: inverse}
+        - !<ColorSpaceTransform> {src: sRGB, dst: Linear ACES - AP0}
+        - !<FileTransform> {src: Log2_48_nits_Shaper_to_linear.spi1d, interpolation: linear, direction: inverse}
+        - !<FileTransform> {src: Log2_48_nits_Shaper.RRT.Rec.709.spi3d, interpolation: tetrahedral}
 
   - !<ColorSpace>
     name: Linear ACES

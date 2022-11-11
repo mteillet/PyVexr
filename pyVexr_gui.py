@@ -1790,6 +1790,11 @@ class OcioPopup(QtWidgets.QWidget):
         self.pathChanged()
         self.checkIfJsonExists()
 
+        # Clearing the previous contents of menus
+        self.comboCS.clear()
+        self.comboInput.clear()
+        self.comboDisplay.clear()
+
         colorSpaces,inputInterp,displays = initOcio2(widget.imgDict["ocioVar"])
         for i in colorSpaces:
             self.comboCS.addItem(i)
@@ -1833,7 +1838,7 @@ class OcioPopup(QtWidgets.QWidget):
         self.dropDownLayout.addStretch()
         self.dropDownLayout.addLayout(self.csLayout)
         self.dropDownLayout.addLayout(self.inputLayout)
-        self.dropDownLayout.addLayout(self.displayLayout)
+        #self.dropDownLayout.addLayout(self.displayLayout)
         self.dropDownLayout.addLayout(self.viewLayout)
         self.dropDownLayout.addStretch()
         self.dropDownLayout.addLayout(self.btnsLayout)

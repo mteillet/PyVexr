@@ -350,6 +350,8 @@ class MyWidget(QtWidgets.QWidget):
         self.ociioMenu = self.menuBar.addMenu('&OCIO')
         self.bufferMenu = self.menuBar.addMenu('&Buffer')
         # Buffer menu & actions
+        self.stopBufferAction = self.bufferMenu.addAction("Stop Buffer")
+        self.stopBufferAction.triggered.connect(self.stopBuffer)
         self.reloadFrameAction = self.bufferMenu.addAction("Reload Current Frame")
         self.reloadFrameAction.triggered.connect(self.cacheCurrentFrame)
         self.resetBufferAction = self.bufferMenu.addAction("Reset Buffer")
@@ -605,6 +607,12 @@ class MyWidget(QtWidgets.QWidget):
         #print(app.focusWidget().objectName())
         pass
 
+    def stopBuffer(self):
+        '''
+        Deleting the Queued buffer operations
+        '''
+        self.threadpool.clear()
+
     def resetBuffer(self):
         '''
         Resetting the buffer
@@ -639,16 +647,15 @@ class MyWidget(QtWidgets.QWidget):
         self.threadpool.setMaxThreadCount(self.maxThreads - 6)
         if (len(frameList) >> 0):
             # First check to see how much time a thread takes to finish
-            for i in range(1):
-                if (current+count >> self.frameNumber.slider.maximum()):
-                    #print("NEED TO RESET THE CURRENT + COUNT")
-                    current = self.frameNumber.slider.minimum()
-                    count = 0
-                self.t0 = time.time()
-                worker = Worker(frameList, current+count, **self.imgDict)
-                worker.signals.result.connect(self.queueStart)
-                self.threadpool.start(worker)
-                count += 1
+            if (current+count >> self.frameNumber.slider.maximum()):
+                #print("NEED TO RESET THE CURRENT + COUNT")
+                current = self.frameNumber.slider.minimum()
+                count = 0
+            self.t0 = time.time()
+            worker = Worker(frameList, current+count, **self.imgDict)
+            worker.signals.result.connect(self.queueStart)
+            self.threadpool.start(worker)
+            count += 1
 
     def createBufferState(self):
         '''
@@ -759,6 +766,7 @@ class MyWidget(QtWidgets.QWidget):
                 frameList.append(frame)
         current = self.frameNumber.slider.value()
         
+        #print(self.diagnostic)
 
         count = 0
         if (len(frameList) >> 0):
@@ -777,7 +785,7 @@ class MyWidget(QtWidgets.QWidget):
                     count += 1
             else:
                 #print("buffer launch full")
-                for i in frameList:
+                for i in range(len(frameList)):
                     # Reset the curent + count to not get out of list range
                     if (current+count >> self.frameNumber.slider.maximum()):
                         #print("NEED TO RESET THE CURRENT + COUNT")
@@ -799,12 +807,14 @@ class MyWidget(QtWidgets.QWidget):
         self.frameNumber._timeline.paintBuffer(resultB, len(self.imgDict["buffer"]))
         t1 = time.time()
         #print(t1 - self.t0)
-        if (t1 - self.t0) < 0.5:
+        if (t1 - self.t0) < 0.2:
             self.threadpool.setMaxThreadCount(self.maxThreads - 2)
             self.diagnostic = True
         else:
             self.threadpool.setMaxThreadCount(self.maxThreads - 6)
             self.diagnostic = False
+            self.threadpool.clear()
+        #print("diagnostic has been set to : ".format(self.diagnostic))
 
     def bufferPopup(self):
         self.bufPopup = BufferPopup()
@@ -1512,7 +1522,7 @@ class QueueThread(QtCore.QThread):
         thread = BufferThread()
         thread.result.connect(self.bufferResult)
         temp = 0
-        for i in range(5):
+        for i in range(widget.bufferRange):
             thread.run(args[0], args[1]+temp, kwargs = kwargs["kwargs"])
             temp += 1
 

@@ -40,7 +40,7 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 - [ ] Option to add neighbouring shots even after the first ones have been loaded
 - [ ] DPX (10 bit) read support
 - [ ] Load and save the PyVexr playlist directly in order to save viewing sessions containing multiple shots
-- [ ] Direct .mp4 export from PyVexr, baking in your exposure / saturation tweaks, and your chosen OCIO
+- [x] Direct .mp4 export from PyVexr, baking in your exposure / saturation tweaks, and your chosen OCIO
 - [ ] Multiple versions on each shot in order to compare them easily
 - [ ] Picker to get values from specific pixels
 

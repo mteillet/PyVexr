@@ -25,7 +25,9 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 - [x] Tweak exposition and saturation on the fly
 - [x] Easily accessible OCIOs 
 	- [x] OCIO menu GUI 
-	- [ ] Add ACES to PyVexr available OCIOs
+	- [X] AgX support, with its looks
+	- [X] ACES P0, and ACES P1 support
+	- [X] Filmic support, with its looks
 	- [x] Config.json to remember your favourite OCIO settings
 - [x] Buffer
 	- [x] MultiThreading

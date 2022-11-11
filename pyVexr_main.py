@@ -422,6 +422,8 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
         # Making the actual OCIO Transform
         if ocioToggle == True:
             ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay)
+        else:
+            ocioTransformDefault(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay)
         #ocioTransform(img, ocioIn, ocioOut, ocioLook)
         img *= 255
         # Clamping the values to avoid artifacts if values go over 255
@@ -435,7 +437,37 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
     convertedImg = rgb_image.data, w, h, bytes_per_line
     return(convertedImg)
 
+def ocioTransformDefault(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
+    '''
+    Default Ocio transform -- standard
+    '''
+    config = OCIO.Config.CreateFromFile(ocioVar)
+    ocioOut = "Standard"
+
+    transform = OCIO.DisplayViewTransform()
+    transform.setSrc(ocioIn)
+    transform.setDisplay("sRGB")
+    transform.setView(ocioOut)
+
+    viewer = OCIO.LegacyViewingPipeline()
+    viewer.setDisplayViewTransform(transform)
+
+    view = config.getDefaultView(ocioDisplay)
+
+    processor = viewer.getProcessor(config, config.getCurrentContext())
+
+    cpu = processor.getDefaultCPUProcessor()
+
+    #displays = transform.getDisplays()
+    img = cpu.applyRGB(img)
+
+    return(img)
+
+
 def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
+    '''
+    Custom Ocio transform following the ocio prefs set by user when ocio button is toggled
+    '''
     config = OCIO.Config.CreateFromFile(ocioVar)
     #print(ocioIn)
     #print(ocioOut)

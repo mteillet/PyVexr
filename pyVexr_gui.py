@@ -1838,7 +1838,7 @@ class OcioPopup(QtWidgets.QWidget):
         self.dropDownLayout.addStretch()
         self.dropDownLayout.addLayout(self.csLayout)
         self.dropDownLayout.addLayout(self.inputLayout)
-        self.dropDownLayout.addLayout(self.displayLayout)
+        #self.dropDownLayout.addLayout(self.displayLayout)
         self.dropDownLayout.addLayout(self.viewLayout)
         self.dropDownLayout.addStretch()
         self.dropDownLayout.addLayout(self.btnsLayout)

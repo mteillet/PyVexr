@@ -529,6 +529,90 @@ def ocio(img):
     # Calling filmicBaseContrast
     #filmicBaseContrast(img)
 
+def createVideoWriter(imgDict, frameList, current, destination):
+
+    frameArray = []
+    current = 0
+    for i in imgDict["buffer"]:
+
+        imgResult = videoFirstFrameInit(imgDict, frameList, current)
+
+        height, width, layers = (imgResult.shape)
+        size = (width, height)
+
+        frameArray.append(imgResult)
+        print("# Pre-Computed {} out of {}...".format(current+1, len(imgDict["buffer"])))
+        current += 1
+
+    fourcc = cv.VideoWriter_fourcc('m', 'p', '4', 'v')
+    out = cv.VideoWriter(destination, fourcc, 24, size)
+
+    for i in (frameArray):
+        out.write((i))
+        #out.write(cv.UMat([i]))
+
+    out.release()
+
+    print("# MP4 export done -> {}".format(destination))
+
+
+def videoFirstFrameInit(imgDict, frameList, current):
+    convertedImg = convertForVideo(frameList[current], imgDict["ocio"]["ocioIn"], imgDict["ocio"]["ocioOut"], imgDict["ocio"]["ocioLook"], imgDict["exposure"], imgDict["saturation"], imgDict["channel"], imgDict["RGBA"], imgDict["ocioVar"], imgDict["ocio"]["ocioDisplay"], imgDict["ocioToggle"])
+
+    return(convertedImg)
+
+def convertForVideo(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, channelRGBA, ocioVar, ocioDisplay, ocioToggle):
+    path = [path]
+
+    # Checking if a switch back to RGB / default channel will be needed
+    channel = checkFirstExrChannel(path, channel, channelRGBA)
+
+    if (channel in [None, "RGB", "RGBA"]) & (channelRGBA == "rgba"):
+        # No channel merge will be needed
+        img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
+    else:
+        splitImg = exrSwitchChannel(path, channel, channelRGBA)
+        # Merging the splitted exr channel (in a different order a openCV expects BGR by default)
+        img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
+
+    # For debugging purpose, if you need to display the image in open cv to compare
+    '''
+    img=img*65535
+    img[img>65535]=65535
+    img=np.uint16(img)
+    cv.imshow("Display window", img)
+    k = cv.waitKey(0)
+    '''
+
+    # SaturationChange
+    if (saturation != 1):
+        img = saturationTweak(img, saturation)
+
+    #ExposureChange
+    if (exposure != 0):
+        img = img * pow(2,float(exposure))
+
+
+    if(img.dtype == "float32"):
+        # Making the actual OCIO Transform
+        if ocioToggle == True:
+            ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay)
+        else:
+            ocioTransformDefault(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay)
+        #ocioTransform(img, ocioIn, ocioOut, ocioLook)
+        img *= 255
+        # Clamping the values to avoid artifacts if values go over 255
+        img = clampImg(img)
+        # Conversion to the QPixmap format
+        img = img.astype(np.uint8)
+
+    #rgb_image = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+    #h,w,ch = rgb_image.shape
+    #bytes_per_line = ch * w
+    #convertedImg = rgb_image.data, w, h, bytes_per_line
+    return(img)
+
+
 
 def interpretRectangle(str):
     temp = str.split("(")

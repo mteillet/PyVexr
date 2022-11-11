@@ -50,7 +50,7 @@ class _Timeline(QtWidgets.QWidget):
             lenMax = self.maxBuffer
         for i in self.cachePos :
             #brush.setColor(tempList[i%2])
-            xStart = ( (i-1) * painter.device().width() / lenMax )
+            xStart = ( (i) * painter.device().width() / lenMax )
             xEnd = (painter.device().width() / lenMax + 1)
             rect = QtCore.QRect(xStart, painter.device().height() - 0.5, xEnd, painter.device().height())
             painter.fillRect(rect, brush)

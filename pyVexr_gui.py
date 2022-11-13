@@ -364,8 +364,10 @@ class MyWidget(QtWidgets.QWidget):
         self.openAction = self.fileMenu.addAction("Open        &-&C&t&r&l&+&O")
         self.openAction.triggered.connect(self.openFiles)
         self.openPlaylist = self.fileMenu.addAction("Open playlist")
+        self.openPlaylist.triggered.connect(self.getOpenPlaylist)
         self.fileMenu.addSeparator()
         self.savePlaylist = self.fileMenu.addAction("Save as playlist")
+        self.savePlaylist.triggered.connect(self.exportPlaylist)
         self.exportMp4 = self.fileMenu.addAction("Export as mp4")
         self.exportMp4.triggered.connect(self.movieExport)
         self.fileMenu.addSeparator()
@@ -819,6 +821,58 @@ class MyWidget(QtWidgets.QWidget):
     def bufferPopup(self):
         self.bufPopup = BufferPopup()
         self.bufPopup.show()
+
+    def exportPlaylist(self):
+        '''
+        Exporting the current list of shot as a playlist, in order to re-open it
+        '''
+        # Getting a destination for the playlist
+        lt = time.localtime()
+        
+        jsonData = {}
+        jsonData["user"] = os.getlogin()
+        jsonData["date"] = ("{}/{}/{} - {}:{}".format(lt[0], lt[1], lt[2], lt[3], lt[4]))
+        jsonData["shots"] = self.seqDict
+
+
+        exportDialog = QtWidgets.QFileDialog.getSaveFileName(self, "Export PyVexrPlaylist")
+        destination = (exportDialog[0])
+
+        # Ensuring there is an extension
+        if destination.endswith(".pyVexr") == False:
+            destination = "{}.pyVexr".format(destination)
+
+
+        with open(destination, "w") as file:
+            json.dump(jsonData, file)
+        file.close()
+
+    def getOpenPlaylist(self):
+        '''
+        Opening a playlist file
+        '''
+        openDialog = QtWidgets.QFileDialog.getOpenFileName(self, "Open a playlist")
+
+        jsonPath = (openDialog[0])
+
+        print("Opening {}".format(openDialog[0]))
+
+        with open(jsonPath, "r") as file:
+            config = json.load(file)
+        file.close()
+
+        print("Playlist created by {} on the {}".format(config["user"], config["date"]))
+
+        self.seqDict = config["shots"]
+        frames = []
+        for shot in self.seqDict:
+            for frame in self.seqDict[shot]:
+                frames.append(frame)
+
+        #print(frames)
+
+        self.updateImgDict(frames)
+
 
     def movieExport(self):
         '''

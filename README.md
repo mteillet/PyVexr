@@ -31,6 +31,7 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 	- [X] ACES P0, and ACES P1 support
 	- [X] Filmic support, with its looks
 	- [x] Config.json to remember your favourite OCIO settings
+- [X] Load and save the PyVexr playlist directly in order to save viewing sessions containing multiple shots
 - [x] Buffer
 	- [x] MultiThreading
 	- [x] Buffer Menu
@@ -41,7 +42,6 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 - [ ] Infos menu
 - [ ] Option to add neighbouring shots even after the first ones have been loaded
 - [ ] DPX (10 bit) read support
-- [ ] Load and save the PyVexr playlist directly in order to save viewing sessions containing multiple shots
 - [ ] Multiple versions on each shot in order to compare them easily
 - [ ] Picker to get values from specific pixels
 

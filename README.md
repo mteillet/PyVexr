@@ -24,6 +24,7 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 - [x] Switch and visualize other channels in multilayered exrs
 - [x] Tweak exposition and saturation on the fly
 - [x] Direct .mp4 export from PyVexr, baking in your exposure / saturation tweaks, and your chosen OCIO
+	- [X] Option to add neighbouring shots even after the first ones have been loaded
 	- [ ] Export single frame from PyVexr, with exposure, saturation, and OCIO baked
 - [x] Easily accessible OCIOs 
 	- [x] OCIO menu GUI 
@@ -40,7 +41,6 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 		- [x] Linux (Tested on Ubuntu)
 		- [x] Windows
 - [ ] Infos menu
-- [ ] Option to add neighbouring shots even after the first ones have been loaded
 - [ ] DPX (10 bit) read support
 - [ ] Multiple versions on each shot in order to compare them easily
 - [ ] Picker to get values from specific pixels

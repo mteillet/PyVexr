@@ -137,6 +137,8 @@ class graphicsView(QtWidgets.QGraphicsView):
         if (event.key() == 76):
             widget.switchChannelY()
         # Play and frame jumps
+        if (event.key() == 32):
+            widget.playBtn.click()
         if (event.key() == 16777236):
             if (self.activeKeys[16777248]):
                 widget.jumpGapForward()

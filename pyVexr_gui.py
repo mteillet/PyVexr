@@ -363,6 +363,8 @@ class MyWidget(QtWidgets.QWidget):
         # File Menu & Action
         self.openAction = self.fileMenu.addAction("Open        &-&C&t&r&l&+&O")
         self.openAction.triggered.connect(self.openFiles)
+        self.addAction = self.fileMenu.addAction("Add Shot to session")
+        self.addAction.triggered.connect(self.addShot)
         self.openPlaylist = self.fileMenu.addAction("Open playlist")
         self.openPlaylist.triggered.connect(self.getOpenPlaylist)
         self.fileMenu.addSeparator()
@@ -822,6 +824,26 @@ class MyWidget(QtWidgets.QWidget):
         self.bufPopup = BufferPopup()
         self.bufPopup.show()
 
+    def addShot(self):
+        '''
+        Adding shot to current PyVexr Viewing Session
+        '''
+        #print("Adding shot")
+        openDialog = QtWidgets.QFileDialog.getOpenFileName(self, "Open new shot")
+
+        shotToAdd = (openDialog[0])
+
+        newShotList = []
+
+        for shot in self.seqDict:
+            for frame in self.seqDict[shot]:
+                newShotList.append(frame)
+                
+        newShotList.append(shotToAdd)
+
+        self.updateImgDict(newShotList)
+
+
     def exportPlaylist(self):
         '''
         Exporting the current list of shot as a playlist, in order to re-open it
@@ -868,8 +890,6 @@ class MyWidget(QtWidgets.QWidget):
         for shot in self.seqDict:
             for frame in self.seqDict[shot]:
                 frames.append(frame)
-
-        #print(frames)
 
         self.updateImgDict(frames)
 

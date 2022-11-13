@@ -831,7 +831,7 @@ class MyWidget(QtWidgets.QWidget):
         
         jsonData = {}
         jsonData["user"] = os.getlogin()
-        jsonData["date"] = ("{}/{}/{} - {}:{}".format(lt[0], lt[1], lt[2], lt[3], lt[4]))
+        jsonData["date"] = ("{}/{}/{} - {}:{}".format(lt[0], str(lt[1]).zfill(2), str(lt[2]).zfill(2), str(lt[3]).zfill(2), str(lt[4]).zfill(2)))
         jsonData["shots"] = self.seqDict
 
 

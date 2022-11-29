@@ -60,12 +60,13 @@ def seqFromPath(path):
     pathList = {}
     #print(path)
     for i in path:
-        seqName, searchPath = fileSearchPath(i)
+        seqName, searchPath, extension = fileSearchPath(i)
         if seqName in pathList:
             #print("{} is in the dict".format(seqName))
             pathList[seqName].append(i)
         else:
             pathList[seqName] = [i]
+
 
     seqDict = autoRangeFromPath(pathList)
     #print("seqDict is : {}".format(seqDict))
@@ -80,14 +81,16 @@ def fileSearchPath(filepath):
     '''
     filepath= (filepath.split("/"))
     filename = (filepath[-1]).split(".")
+    extension = filename[len(filename)-1]
     if len(filename) > 3:
         seqName = (".".join(filename[:-2]))
     else:
         seqName = filename[0]
     searchPath = "{0}/{1}".format("/".join(filepath[:-1]), seqName)
     #print(searchPath)
+    #print(seqName, searchPath, "is -> {}".format(extension))
  
-    return(seqName, searchPath)
+    return(seqName, searchPath, extension)
 
 def autoRangeFromPath(pathList):
     '''
@@ -96,11 +99,14 @@ def autoRangeFromPath(pathList):
     seqDict = {}
     for i in pathList:
         #print("Trying to auto-detect frames for the {} sequence".format(i))
-        seqName, searchPath = fileSearchPath(pathList[i][0])
-        fileList = glob.glob(str(searchPath)+".*.exr")
+        extension = pathList[i][0].split(".")
+        extension = extension[len(extension) -1]
+        #print("{} is extension {}".format(i, extension))
+        seqName, searchPath , extension= fileSearchPath(pathList[i][0])
+        fileList = glob.glob(str(searchPath)+".*."+ extension)
         # Returning the exr without frame number in case it hasn't been found with a frame number
         if len(fileList) == 0:
-            fileList = glob.glob(str(searchPath)+".exr")
+            fileList = glob.glob(str(searchPath)+"." + extension)
         fileList.sort()
         seqDict[i] = fileList
 
@@ -152,25 +158,28 @@ def exrListChannels(path):
     '''
     Function responsible for returning the EXR Channels to the channel pannel
     '''
-    exr = EXR.InputFile(path[0])
-    # Getting the RAW list of channels
-    header = exr.header()
-    channelsRaw = (header["channels"])
-    dw =  header["dataWindow"]
-    # Printing the raw list of channels (listed in alphabetical order)
-    channelList = []
-    for channel in channelsRaw:
+    if path[0].endswith(".exr") == True:
+        exr = EXR.InputFile(path[0])
+        # Getting the RAW list of channels
+        header = exr.header()
+        channelsRaw = (header["channels"])
+        dw =  header["dataWindow"]
+        # Printing the raw list of channels (listed in alphabetical order)
+        channelList = []
+        for channel in channelsRaw:
 
-        if "." in channel:
-            tempChannel = channel.split(".")
-            tempChannel = ".".join(tempChannel[:-1])
-        else:
-            tempChannel = channel
+            if "." in channel:
+                tempChannel = channel.split(".")
+                tempChannel = ".".join(tempChannel[:-1])
+            else:
+                tempChannel = channel
 
-        if (tempChannel not in channelList) & (channel not in ["R","G","B","A"]):
-            channelList.append(tempChannel)
-        elif (channel) == "A":
-            channelList.insert(0,"RGBA")
+            if (tempChannel not in channelList) & (channel not in ["R","G","B","A"]):
+                channelList.append(tempChannel)
+            elif (channel) == "A":
+                channelList.insert(0,"RGBA")
+    else:
+        channelList = ["RGBA"]
     # If RGBA is not in the channel list, then insert RGB, as it means the alpha channel was never found
     #if "RGBA" not in channelList:
     #    channelList.insert(0, "RGB")
@@ -391,17 +400,24 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
     Main core code
     '''
     path = [path]
+    
 
     # Checking if a switch back to RGB / default channel will be needed
-    channel = checkFirstExrChannel(path, channel, channelRGBA)
+    if path[0].endswith(".exr"):
+        channel = checkFirstExrChannel(path, channel, channelRGBA)
 
-    if (channel in [None, "RGB", "RGBA"]) & (channelRGBA == "rgba"):
-        # No channel merge will be needed
-        img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
+        if (channel in [None, "RGB", "RGBA"]) & (channelRGBA == "rgba"):
+            # No channel merge will be needed
+            img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
+        else:
+            splitImg = exrSwitchChannel(path, channel, channelRGBA)
+            # Merging the splitted exr channel (in a different order a openCV expects BGR by default)
+            img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
+
     else:
-        splitImg = exrSwitchChannel(path, channel, channelRGBA)
-        # Merging the splitted exr channel (in a different order a openCV expects BGR by default)
-        img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
+        img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
+        # Convert img to float 32
+        img = np.float32(img/255)
 
     # For debugging purpose, if you need to display the image in open cv to compare
     '''

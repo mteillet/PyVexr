@@ -261,12 +261,11 @@ class graphicsView(QtWidgets.QGraphicsView):
             path = url.toLocalFile()
             # Check if file exists and is an exr
             if os.path.exists(path) == True:
-                if path.endswith(".exr") == True:
-                    #print("File exists {}".format(path))
-                    filenames.append(url.toLocalFile())
-                else:
-                    # Append the default pyVexr logo
-                    filenames.append("imgs/pyVexrSplashScreen_v002.exr")
+                #print("File exists {}".format(path))
+                filenames.append(url.toLocalFile())
+            else:
+                # Append the default pyVexr logo
+                filenames.append("imgs/pyVexrSplashScreen_v002.exr")
         #print(filenames)
         widget.updateImgDict(filenames)
         widget.totalFrameLabel.setText("{}".format(widget.frameNumber.slider.maximum()))

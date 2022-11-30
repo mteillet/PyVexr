@@ -338,7 +338,7 @@ def initOcio2(ocioVar):
     inputInterp = []
     displays = []
     for i in color:
-        if (i.getFamily().lower() in ["linear", "log", "Log"]):
+        if (i.getFamily().lower() in ["linear", "log", "Log", "raw"]):
             #print(i.getFamily(),i.getName())
             inputInterp.append(i.getName())
         if (i.getFamily().lower() in ["display", ""]):

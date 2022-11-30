@@ -415,6 +415,8 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
             img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
 
     else:
+        if (ocioIn == "Linear"):
+            ocioIn = "Raw"
         img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
         # Convert img to float 32
         img = np.float32(img/255)

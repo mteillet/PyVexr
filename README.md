@@ -16,6 +16,8 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 # Roadmap
 - [x] Load multiple shots in the same timeline
 	- [x] Scroll through multiple shots easily
+	- [x] Playlist save and opening
+		- [X] Add neighbouring shots to shots / playlists
 - [x] Easily Pan, Zoom, Mirror the image
 - [x] Visualize independently R/G/B/A channels 
 	- [x] Luminance view
@@ -31,8 +33,6 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 	- [X] ACES P0, and ACES P1 support
 	- [X] Filmic support, with its looks
 	- [x] Config.json to remember your favourite OCIO settings
-- [X] Load and save the PyVexr playlist directly in order to save viewing sessions containing multiple shots
-	- [X] Option to add neighbouring shots even after the first ones have been loaded
 - [x] Buffer
 	- [x] MultiThreading
 	- [x] Buffer Menu
@@ -40,8 +40,14 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 	- [x] Compiled versions
 		- [x] Linux (Tested on Ubuntu)
 		- [x] Windows
+- [ ] Image support :
+	- [x] Open EXR
+	- [x] Jpeg/Jpg
+	- [x] Png
+	- [x] Tiff (16 bits not tested yet)
+	- [ ] DPX 10 bits
+- [ ] C++ OpenExr backend
 - [ ] Infos menu
-- [ ] DPX (10 bit) read support
 - [ ] Multiple versions on each shot in order to compare them easily
 - [ ] Picker to get values from specific pixels
 

@@ -46,6 +46,9 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 	- [x] Png
 	- [x] Tiff (16 bits not tested yet)
 	- [ ] DPX 10 bits
+	- [ ] .mov
+	- [ ] .mp4
+- [ ] Switch between movie and images if they exist in the same folder with the same naming
 - [ ] C++ OpenExr backend
 - [ ] Infos menu
 - [ ] Multiple versions on each shot in order to compare them easily

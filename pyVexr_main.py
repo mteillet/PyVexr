@@ -269,27 +269,27 @@ def exrSwitchChannel(path, channel, channelRGBA):
 
 
     if len(foundChannelList) == 3:
-        channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
-        channelR = np.fromstring(channelR, dtype = np.float32)
+        channelR,channelG,channelB = exr.channels([foundChannelList[0],foundChannelList[1],foundChannelList[2]], Imath.PixelType(Imath.PixelType.FLOAT)) 
+        #t0 = time.time()
+        channelR = np.frombuffer(channelR, dtype = np.float32)
         channelR = np.reshape(channelR, isize)
-        channelG = exr.channel("{}".format(foundChannelList[1]), Imath.PixelType(Imath.PixelType.FLOAT))
-        channelG = np.fromstring(channelG, dtype = np.float32)
+        #t1 = time.time()
+        #print("{}".format(t1-t0))
+        channelG = np.frombuffer(channelG, dtype = np.float32)
         channelG = np.reshape(channelG, isize)
-        channelB = exr.channel("{}".format(foundChannelList[2]), Imath.PixelType(Imath.PixelType.FLOAT))
-        channelB = np.fromstring(channelB, dtype = np.float32)
+        channelB = np.frombuffer(channelB, dtype = np.float32)
         channelB = np.reshape(channelB, isize) 
     elif len(foundChannelList) == 2:
-        channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
-        channelR = np.fromstring(channelR, dtype = np.float32)
+        channelR, channelG = exr.channels([foundChannelList[0], foundChannelList[1]], Imath.PixelType(Imath.PixelType.FLOAT)) 
+        channelR = np.frombuffer(channelR, dtype = np.float32)
         channelR = np.reshape(channelR, isize)
-        channelG = exr.channel("{}".format(foundChannelList[1]), Imath.PixelType(Imath.PixelType.FLOAT))
-        channelG = np.fromstring(channelG, dtype = np.float32)
+        channelG = np.frombuffer(channelG, dtype = np.float32)
         channelG = np.reshape(channelG, isize)       
         channelB = np.zeros((isize[1], isize[0], 1), dtype = np.float32)
         channelB = np.reshape(channelB, isize)
     elif len(foundChannelList) == 1:
         channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
-        channelR = np.fromstring(channelR, dtype = np.float32)
+        channelR = np.frombuffer(channelR, dtype = np.float32)
         channelR = np.reshape(channelR, isize)
         channelG = channelR 
         channelB = channelR

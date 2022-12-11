@@ -10,7 +10,7 @@
 
 # About The Project
 PyVexr is intended to be a lightweight, simple GUI application to preview your EXR files easily using the OCIO you want.
-Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
+Built using Python, C++, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 
 
 # Roadmap
@@ -60,12 +60,15 @@ Built using Python, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 If you want to build the python version in order to modify or plug it in and existing pipe, here's what you need:
 ```sh
 	* Python 3.7 + 
+	* Cpp 11+
 	* PyQt5
 	* OpenCV2
 	* PyOpenColorIO
 	* OpenEXR
 ```
-An executable release for Windows and Linux will soon be released.
+### WARNING 
+If you are not on a x64 linux distribution, the custom c++ python modules will not run, you will need to recompile the using the tasks.py file in the cppModules folder
+Meanwhile, you can use the latest Windows compile release you can find on this github
 
 ## License
 Distributed under the MIT License. See `LICENSE.txt` for more information

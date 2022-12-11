@@ -4,7 +4,6 @@
 #pyVexr_main.py
 
 import os
-os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"
 import cv2 as cv
 import numpy as np
 import PyOpenColorIO as OCIO
@@ -14,6 +13,13 @@ import time
 import Imath
 import math
 import glob
+import sys
+# Adding the cppModules dir to the search path
+sys.path.append('cppModules') 
+import exposureUp
+
+# Enabling the EXR format in OpenCv for windows platform
+os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"
 
 def bufferBackEnd(imgDict, frameList, current):
     """
@@ -436,7 +442,7 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
 
     #ExposureChange
     if (exposure != 0):
-        img = img * pow(2,float(exposure))
+        img = exposureUp.expoUp(img, exposure)
 
 
     if(img.dtype == "float32"):

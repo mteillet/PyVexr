@@ -4,7 +4,6 @@
 #pyVexr_main.py
 
 import os
-import cv2 as cv
 import numpy as np
 import PyOpenColorIO as OCIO
 import OpenEXR as EXR
@@ -14,12 +13,20 @@ import Imath
 import math
 import glob
 import sys
+
+# Setting absPath in order to avoid broken file links when using a compiled version on windows
+absPath = os.path.dirname(sys.argv[0])
+if absPath:
+    absPath = "{}/".format(absPath)
+
 # Adding the cppModules dir to the search path
-sys.path.append('cppModules') 
+sys.path.append('{}cppModules'.format(absPath)) 
 import exposureUp
 
 # Enabling the EXR format in OpenCv for windows platform
 os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"
+import cv2 as cv
+
 
 def bufferBackEnd(imgDict, frameList, current):
     """
@@ -406,6 +413,7 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
     Main core code
     '''
     path = [path]
+
     
 
     # Checking if a switch back to RGB / default channel will be needed
@@ -536,7 +544,7 @@ def clampImg(img):
 def ocio(img):
     print("OCIO -- {}".format("Version 2"))
 
-    ocioVar = "ocio/config.ocio"
+    ocioVar = "{}ocio/config.ocio".format(absPath)
     config = OCIO.Config.CreateFromFile(ocioVar)
     #print(config)
 

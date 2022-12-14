@@ -1884,7 +1884,7 @@ class OcioPopup(QtWidgets.QWidget):
 
         self.ocioLabel = QtWidgets.QLabel("Ocio Path")
         self.ocioPath = QtWidgets.QLineEdit("{}ocio/config.ocio".format(absPath))
-        self.ocioPath.textChanged.connect(self.pathChanged)
+        self.ocioPath.returnPressed.connect(self.pathChanged)
         self.labelCS = QtWidgets.QLabel("Color Space")
         self.comboCS = QtWidgets.QComboBox()
         self.comboCS.currentIndexChanged.connect(self.onCsChanged)
@@ -1963,22 +1963,38 @@ class OcioPopup(QtWidgets.QWidget):
     ###############################
     @QtCore.pyqtSlot()
     def pathChanged(self):
+        previousOCIOvar = widget.imgDict["ocioVar"]
         widget.imgDict["ocioVar"] = self.ocioPath.text()
-        self.comboCS.clear()
-        self.comboInput.clear()
-        self.comboDisplay.clear()
-        self.comboView.clear()
 
-        colorSpaces,inputInterp,displays = initOcio2(widget.imgDict["ocioVar"])
-        for i in colorSpaces:
-            self.comboCS.addItem(i)
-        for i in inputInterp:
-            self.comboInput.addItem(i)
-        for i in displays:
-            self.comboDisplay.addItem(i)
+        try :
+            colorSpaces,inputInterp,displays = initOcio2(widget.imgDict["ocioVar"])
+            self.comboCS.clear()
+            self.comboInput.clear()
+            self.comboDisplay.clear()
+            self.comboView.clear()
+            for i in colorSpaces:
+                self.comboCS.addItem(i)
+            for i in inputInterp:
+                self.comboInput.addItem(i)
+            for i in displays:
+                self.comboDisplay.addItem(i)
 
-        self.onCsChanged()
-        self.onAnyChanged()
+            self.onCsChanged()
+            self.onAnyChanged()
+        except :
+            #print("Bad OCIO file")
+            self.errorOcio(widget.imgDict["ocioVar"])
+            widget.imgDict["ocioVar"] = previousOCIOvar
+            # Turn off OCIO button
+            #if widget.ocioToggle.isChecked():
+            #    widget.ocioToggle.click()
+
+    def errorOcio(self, path):
+        err = QtWidgets.QMessageBox()
+        err.setIcon(QtWidgets.QMessageBox.Critical)
+        err.setText("ERROR : {} is not a valid ocio file".format(path))
+        err.setWindowTitle("OCIO path error !")
+        err.exec()
 
     def onCsChanged(self):
         cs = (self.comboCS.currentText())

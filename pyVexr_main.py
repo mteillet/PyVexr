@@ -504,6 +504,20 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     Custom Ocio transform following the ocio prefs set by user when ocio button is toggled
     '''
     config = OCIO.Config.CreateFromFile(ocioVar)
+
+    # Getting all the colorspaces
+    #colorSpaceNames = [ cs.getName() for cs in config.getColorSpaces() ]
+    #print(colorSpaceNames)
+
+    colorspaces = config.getColorSpaces()
+    #displayTransform = config.getDisplayTransform()
+    #viewTransform = config.getViewTransform()
+
+    print("ColorSpaces : {}".format([cs.getName() for cs in colorspaces]))
+    #print("DisplayTransforms : {}".format(colorspaces))
+    #print("ViewTransforms: {}".format(colorspaces))
+
+
     #print(ocioIn)
     #print(ocioOut)
     #print(ocioLook)

@@ -345,19 +345,24 @@ def initOcio2(ocioVar):
     config = OCIO.Config.CreateFromFile(ocioVar)
 
     colorSpaces = config.getActiveViews().split(", ")
-
+    displays = config.getActiveDisplays()
+    #print(dir(config))
     color = config.getColorSpaces()
 
     inputInterp = []
     displays = []
-    for i in color:
-        if (i.getFamily().lower() in ["linear", "log", "Log", "raw"]):
-            #print(i.getFamily(),i.getName())
-            inputInterp.append(i.getName())
-        if (i.getFamily().lower() in ["display", ""]):
-            #print(i.getFamily(), i.getName())
-            displays.append(i.getName())
 
+    for cs in color:
+        if (cs.getFamily() == "display"):
+            displays.append(cs.getName())
+        else:
+            if (cs.getFamily().startswith("Appearances") == False):
+                inputInterp.append(cs.getName())
+        print("{}, is : {}".format(cs.getName(), cs.getFamily()))
+    #for disp in config.getActiveDisplays():
+        #displays.append(disp.getName())
+
+    print("DISPLAYS -- : {}".format(displays))
 
     return(colorSpaces,inputInterp,displays)
 
@@ -504,29 +509,17 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     Custom Ocio transform following the ocio prefs set by user when ocio button is toggled
     '''
     config = OCIO.Config.CreateFromFile(ocioVar)
-
-    # Getting all the colorspaces
-    #colorSpaceNames = [ cs.getName() for cs in config.getColorSpaces() ]
-    #print(colorSpaceNames)
+    print(ocioOut)
+    print(ocioIn)
+    print(ocioDisplay)
 
     colorspaces = config.getColorSpaces()
-    #displayTransform = config.getDisplayTransform()
-    #viewTransform = config.getViewTransform()
-
-    print("ColorSpaces : {}".format([cs.getName() for cs in colorspaces]))
-    #print("DisplayTransforms : {}".format(colorspaces))
-    #print("ViewTransforms: {}".format(colorspaces))
-
-
-    #print(ocioIn)
-    #print(ocioOut)
-    #print(ocioLook)
-    #print(ocioDisplay)
 
     transform = OCIO.DisplayViewTransform()
     transform.setSrc(ocioIn)
     transform.setDisplay("sRGB")
     transform.setView(ocioOut)
+    print(transform)
 
     viewer = OCIO.LegacyViewingPipeline()
     viewer.setDisplayViewTransform(transform)

@@ -1968,6 +1968,9 @@ class OcioPopup(QtWidgets.QWidget):
 
         try :
             colorSpaces,inputInterp,displays = initOcio2(widget.imgDict["ocioVar"])
+            print(colorSpaces)
+            print(inputInterp)
+            print(displays)
             self.comboCS.clear()
             self.comboInput.clear()
             self.comboDisplay.clear()

@@ -211,7 +211,7 @@ colorspaces:
 
   - !<ColorSpace>
     name: sRGB
-    family:
+    family: display
     equalitygroup:
     bitdepth: 32f
     description: |

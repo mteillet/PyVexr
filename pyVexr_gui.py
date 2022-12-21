@@ -1949,7 +1949,7 @@ class OcioPopup(QtWidgets.QWidget):
         self.dropDownLayout.addStretch()
         self.dropDownLayout.addLayout(self.csLayout)
         self.dropDownLayout.addLayout(self.inputLayout)
-        #self.dropDownLayout.addLayout(self.displayLayout)
+        self.dropDownLayout.addLayout(self.displayLayout)
         self.dropDownLayout.addLayout(self.viewLayout)
         self.dropDownLayout.addStretch()
         self.dropDownLayout.addLayout(self.btnsLayout)
@@ -1968,9 +1968,9 @@ class OcioPopup(QtWidgets.QWidget):
 
         try :
             colorSpaces,inputInterp,displays = initOcio2(widget.imgDict["ocioVar"])
-            print(colorSpaces)
-            print(inputInterp)
-            print(displays)
+            #print(colorSpaces)
+            #print(inputInterp)
+            #print(displays)
             self.comboCS.clear()
             self.comboInput.clear()
             self.comboDisplay.clear()

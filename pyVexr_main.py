@@ -345,7 +345,8 @@ def initOcio2(ocioVar):
     config = OCIO.Config.CreateFromFile(ocioVar)
 
     colorSpaces = config.getActiveViews().split(", ")
-    displays = config.getActiveDisplays()
+    #displays = config.getActiveDisplays()
+    displays = config.getDisplays()
     #print(dir(config))
     color = config.getColorSpaces()
 
@@ -353,7 +354,7 @@ def initOcio2(ocioVar):
     displays = []
 
     for cs in color:
-        if (cs.getFamily() == "display"):
+        if (cs.getFamily().endswith("display") == True):
             displays.append(cs.getName())
         else:
             if (cs.getFamily().startswith("Appearances") == False):
@@ -362,7 +363,11 @@ def initOcio2(ocioVar):
     #for disp in config.getActiveDisplays():
         #displays.append(disp.getName())
 
-    print("DISPLAYS -- : {}".format(displays))
+    #print("DISPLAYS -- : {}".format(displays))
+    # Adding the default display to the display list 
+    if not displays:
+        print("NO DISPLAYS, FETCH NEW : {}".format(config.getDefaultDisplay()))
+        displays.append(config.getDefaultDisplay())
 
     return(colorSpaces,inputInterp,displays)
 
@@ -517,7 +522,11 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
 
     transform = OCIO.DisplayViewTransform()
     transform.setSrc(ocioIn)
-    transform.setDisplay("sRGB")
+    #transform.setDisplay("sRGB")
+    if ocioDisplay:
+        transform.setDisplay(ocioDisplay)
+    else:
+        transform.setDisplay("sRGB")
     transform.setView(ocioOut)
     print(transform)
 

@@ -345,28 +345,21 @@ def initOcio2(ocioVar):
     config = OCIO.Config.CreateFromFile(ocioVar)
 
     colorSpaces = config.getActiveViews().split(", ")
-    #displays = config.getActiveDisplays()
-    displays = config.getDisplays()
-    #print(dir(config))
+    displays = config.getActiveDisplays().split(", ")
     color = config.getColorSpaces()
 
     inputInterp = []
-    displays = []
 
     for cs in color:
         if (cs.getFamily().endswith("display") == True):
-            displays.append(cs.getName())
+            pass
         else:
             if (cs.getFamily().startswith("Appearances") == False):
                 inputInterp.append(cs.getName())
-        print("{}, is : {}".format(cs.getName(), cs.getFamily()))
-    #for disp in config.getActiveDisplays():
-        #displays.append(disp.getName())
+        #print("{}, is : {}".format(cs.getName(), cs.getFamily()))
 
-    #print("DISPLAYS -- : {}".format(displays))
     # Adding the default display to the display list 
     if not displays:
-        print("NO DISPLAYS, FETCH NEW : {}".format(config.getDefaultDisplay()))
         displays.append(config.getDefaultDisplay())
 
     return(colorSpaces,inputInterp,displays)
@@ -468,7 +461,7 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
         if ocioToggle == True:
             ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay)
         else:
-            ocioTransformDefault(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay)
+            img = ocioTransformDefault(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay)
         #ocioTransform(img, ocioIn, ocioOut, ocioLook)
         img *= 255
         # Clamping the values to avoid artifacts if values go over 255
@@ -486,26 +479,8 @@ def ocioTransformDefault(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     '''
     Default Ocio transform -- standard
     '''
-    config = OCIO.Config.CreateFromFile(ocioVar)
-    ocioOut = "Standard"
-
-    transform = OCIO.DisplayViewTransform()
-    transform.setSrc(ocioIn)
-    transform.setDisplay("sRGB")
-    transform.setView(ocioOut)
-
-    viewer = OCIO.LegacyViewingPipeline()
-    viewer.setDisplayViewTransform(transform)
-
-    view = config.getDefaultView(ocioDisplay)
-
-    processor = viewer.getProcessor(config, config.getCurrentContext())
-
-    cpu = processor.getDefaultCPUProcessor()
-
-    #displays = transform.getDisplays()
-    img = cpu.applyRGB(img)
-
+    img = np.power(img, 0.45)
+    
     return(img)
 
 
@@ -514,9 +489,9 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     Custom Ocio transform following the ocio prefs set by user when ocio button is toggled
     '''
     config = OCIO.Config.CreateFromFile(ocioVar)
-    print(ocioOut)
-    print(ocioIn)
-    print(ocioDisplay)
+    #print(ocioOut)
+    #print(ocioIn)
+    #print(ocioDisplay)
 
     colorspaces = config.getColorSpaces()
 
@@ -528,7 +503,7 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     else:
         transform.setDisplay("sRGB")
     transform.setView(ocioOut)
-    print(transform)
+    #print(transform)
 
     viewer = OCIO.LegacyViewingPipeline()
     viewer.setDisplayViewTransform(transform)

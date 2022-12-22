@@ -499,6 +499,16 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     transform.setSrc(ocioIn)
     #transform.setDisplay("sRGB")
     if ocioDisplay:
+        # Checking if the current view is suited for the colorpsace to avoid errors
+        # Retrieving colorspaces from view
+        displayViews = (config.getViews(ocioDisplay))
+        availableDisplays = []
+        for disp in displayViews:
+            availableDisplays.append(disp)
+        if ocioOut not in availableDisplays:
+            print("The colorspace : {} is not supported by the following display : {}".format(ocioOut, ocioDisplay))
+            print("Defaulting the colorspace to {} in order to avoid unwanted ocio crash".format(availableDisplays[0]))
+            ocioOut = availableDisplays[0]
         transform.setDisplay(ocioDisplay)
     else:
         transform.setDisplay("sRGB")

@@ -79,5 +79,5 @@ Teillet Martin - martin.teillet@hotmail.fr
 
 ### Thanks
 Thanks to Dorian Douaud for making the PyVexr Logo<br />
-Thanks to Elsksa for his help and advices concerning OCIO handling<br />
+Thanks to Elsksa and MrLixm for their help and advices concerning OCIO handling<br />
 Thanks to Sacha Duru for his help regarding pyQt

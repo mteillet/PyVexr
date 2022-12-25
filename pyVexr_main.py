@@ -504,7 +504,6 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
 
     transform = OCIO.DisplayViewTransform()
     transform.setSrc(ocioIn)
-    #transform.setDisplay("sRGB")
     if ocioDisplay:
         # Checking if the current view is suited for the colorpsace to avoid errors
         # Retrieving colorspaces from view
@@ -539,9 +538,6 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     img = cpu.applyRGB(img)
 
     #print(dir(transform))
-    #for i in displays:
-    #    print(i)
-
     return(img)
 
 

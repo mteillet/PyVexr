@@ -15,7 +15,7 @@ from pyVexr_timelineGui import Timeline
 absPath = os.path.dirname(sys.argv[0])
 if absPath:
     absPath = "{}/".format(absPath)
-
+realPath = "{}/".format(os.path.realpath("/".join((sys.argv[0]).split("/")[:-1])))
 
 # Subclassing graphicsView in order to be able to track mouse movements in the scene
 class graphicsView(QtWidgets.QGraphicsView):
@@ -317,7 +317,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict = {}
         self.imgDict["buffer"] = []
         self.imgDict["path"] = []
-        self.imgDict["ocioVar"] = "{}ocio/config.ocio".format(absPath)
+        self.imgDict["ocioVar"] = "{}ocio/config.ocio".format(realPath)
         self.imgDict["ocio"] = {}
         self.imgDict["ocio"]["ocioIn"] = "Linear"
         self.imgDict["ocio"]["ocioOut"] = "Standard"
@@ -1883,7 +1883,7 @@ class OcioPopup(QtWidgets.QWidget):
         self.btnsLayout = QtWidgets.QHBoxLayout()
 
         self.ocioLabel = QtWidgets.QLabel("Ocio Path")
-        self.ocioPath = QtWidgets.QLineEdit("{}ocio/config.ocio".format(absPath))
+        self.ocioPath = QtWidgets.QLineEdit("{}ocio/config.ocio".format(realPath))
         self.ocioPath.returnPressed.connect(self.pathChanged)
         self.labelCS = QtWidgets.QLabel("Color Space")
         self.comboCS = QtWidgets.QComboBox()
@@ -1898,8 +1898,7 @@ class OcioPopup(QtWidgets.QWidget):
         self.comboView = QtWidgets.QComboBox()
         self.comboView.currentIndexChanged.connect(self.onAnyChanged)
 
-        self.checkIfJsonExists()
-        #self.pathChanged()
+        
 
         # Clearing the previous contents of menus
         self.comboCS.clear()
@@ -1923,6 +1922,7 @@ class OcioPopup(QtWidgets.QWidget):
         self.saveBtn.clicked.connect(self.saveConfigClicked)
         self.okBtn.setFocus()
 
+        self.checkIfJsonExists()
 
         self.ocioLayout.addWidget(self.ocioLabel)
         self.ocioLayout.addStretch()
@@ -1985,7 +1985,6 @@ class OcioPopup(QtWidgets.QWidget):
             self.onCsChanged()
             self.onAnyChanged()
         except :
-            #print("Bad OCIO file")
             self.errorOcio(widget.imgDict["ocioVar"])
             widget.imgDict["ocioVar"] = previousOCIOvar
             # Turn off OCIO button
@@ -2021,7 +2020,7 @@ class OcioPopup(QtWidgets.QWidget):
         # Check if a config.json exists 
         jsonPath = "config.json"
         absoluteOcioPath = (os.path.realpath(self.ocioPath.text()))
-        if (os.path.exists(jsonPath) == True):
+        if (os.path.exists(absoluteOcioPath) == True):
             print("Config exists, overriding")
         else:
             print("Creating new config")
@@ -2032,14 +2031,14 @@ class OcioPopup(QtWidgets.QWidget):
         jsonData["ocioDisplay"] = self.comboDisplay.currentText()
         jsonData["ocioLook"] = self.comboView.currentText()
         #print(jsonData)
-        with open(jsonPath, "w") as file:
+        with open("{}{}".format(realPath, jsonPath), "w") as file:
             json.dump(jsonData, file)
         file.close()
 
     def checkIfJsonExists(self):
         jsonPath = "config.json"
-        if (os.path.exists(jsonPath) == True):
-            with open(jsonPath, "r") as file:
+        if (os.path.exists("{}{}".format(realPath,jsonPath)) == True):
+            with open("{}{}".format(realPath,jsonPath), "r") as file:
                 config = json.load(file)
             file.close()
             self.ocioPath.setText(config["ocioVar"])

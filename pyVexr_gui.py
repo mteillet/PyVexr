@@ -1898,8 +1898,8 @@ class OcioPopup(QtWidgets.QWidget):
         self.comboView = QtWidgets.QComboBox()
         self.comboView.currentIndexChanged.connect(self.onAnyChanged)
 
-        self.pathChanged()
         self.checkIfJsonExists()
+        #self.pathChanged()
 
         # Clearing the previous contents of menus
         self.comboCS.clear()
@@ -2020,12 +2020,13 @@ class OcioPopup(QtWidgets.QWidget):
     def saveConfigClicked(self):
         # Check if a config.json exists 
         jsonPath = "config.json"
+        absoluteOcioPath = (os.path.realpath(self.ocioPath.text()))
         if (os.path.exists(jsonPath) == True):
             print("Config exists, overriding")
         else:
             print("Creating new config")
         jsonData = {}
-        jsonData["ocioVar"] = self.ocioPath.text()
+        jsonData["ocioVar"] = absoluteOcioPath
         jsonData["ocioIn"] = self.comboInput.currentText()
         jsonData["ocioOut"] = self.comboCS.currentText()
         jsonData["ocioDisplay"] = self.comboDisplay.currentText()

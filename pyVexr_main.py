@@ -345,6 +345,13 @@ def initOcio2(ocioVar):
     config = OCIO.Config.CreateFromFile(ocioVar)
 
     colorSpaces = config.getActiveViews().split(", ")
+    # In case no active views were declared in the OCIO
+    if colorSpaces == [""]:
+        #colorSpaces = config.getViews().split(", ")
+        colorSpaces = []
+        csNames = (config.getColorSpaceNames())
+        for cs in csNames:
+            colorSpaces.append(cs)
     displays = config.getActiveDisplays().split(", ")
     color = config.getColorSpaces()
 

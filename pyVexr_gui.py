@@ -403,7 +403,8 @@ class MyWidget(QtWidgets.QWidget):
         self.contactSheet.triggered.connect(self.contactSheetWindow)
         self.mirrorY.triggered.connect(self.mirrorYToggle)
         self.fileMenu.addSeparator()
-        self.infosAction = self.editMenu.addAction("Help")
+        self.infosAction = self.editMenu.addAction("About / Help")
+        self.infosAction.triggered.connect(self.infosPopup)
         # Exposure Actions
         self.exposureAction = self.expoSatMenu.addMenu("Exposure                  &-&E")
         self.expoUpAction = self.exposureAction.addAction("Increase Exposure      &+")
@@ -830,6 +831,10 @@ class MyWidget(QtWidgets.QWidget):
     def bufferPopup(self):
         self.bufPopup = BufferPopup()
         self.bufPopup.show()
+
+    def infosPopup(self):
+        self.infPopup = InfosPopup()
+        self.infPopup.show()
 
     def addShot(self):
         '''
@@ -1819,6 +1824,24 @@ class ContactSheetPopup(QtWidgets.QWidget):
         widget.checkIfBufferStateChanged()
 
         widget.imgDict["buffer"][currentPos] = tempImg 
+
+
+class InfosPopup(QtWidgets.QWidget):
+    def __init__(self, *args,**kwargs):
+        super(InfosPopup, self).__init__(*args, **kwargs)
+        self.setWindowTitle("Infos:")
+
+        self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
+
+        layout = QtWidgets.QVBoxLayout()
+        self.titleLayout = QtWidgets.QHBoxLayout()
+
+        self.infoTitle = QtWidgets.QLabel("Infos:")
+
+        self.titleLayout.addWidget(self.infoTitle)
+
+        layout.addLayout(self.titleLayout)
+        self.setLayout(layout)
 
 class BufferPopup(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):

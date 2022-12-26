@@ -1836,9 +1836,10 @@ class InfosPopup(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout()
         self.titleLayout = QtWidgets.QHBoxLayout()
 
-        self.infoTitle = QtWidgets.QLabel("Infos:")
+        self.infoTitle = QtWidgets.QLabel("About:")
 
         self.titleLayout.addWidget(self.infoTitle)
+        self.titleLayout.setAlignment(QtCore.Qt.AlignCenter)
 
         layout.addLayout(self.titleLayout)
         self.setLayout(layout)

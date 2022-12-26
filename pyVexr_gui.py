@@ -835,6 +835,7 @@ class MyWidget(QtWidgets.QWidget):
     def infosPopup(self):
         self.infPopup = InfosPopup()
         self.infPopup.show()
+        self.infPopup.resize(500,400)
 
     def addShot(self):
         '''
@@ -1835,13 +1836,41 @@ class InfosPopup(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout()
         self.titleLayout = QtWidgets.QHBoxLayout()
+        self.aboutLayout = QtWidgets.QHBoxLayout()
+        self.thanksLayout = QtWidgets.QHBoxLayout()
+        self.contactLayout = QtWidgets.QVBoxLayout()
+        self.versionLayout = QtWidgets.QHBoxLayout()
 
         self.infoTitle = QtWidgets.QLabel("About:")
+        self.aboutLabel = QtWidgets.QLabel("PyVexr is a lighthweight, simple GUI application to preview your EXR shots\nor sequences easily with an easy to access OCIO setup.\n\nBuilt using Python, C++, PyQt5, OpenCV2, OpenExr, and OCIO version2.")
+        self.thanksLabel = QtWidgets.QLabel("\nThanks to Dorian Douaud for making the PyVexr logo.\nThanks to Elsksa and MrLixm for their feedback, advices,\nand help concerning OCIO and how it is handleld in the PyVexr.\nThanks to Sacha Duru for his help regarding PyQt.")
+        self.contactLabel = QtWidgets.QLabel("\nContact :")
+        self.mailLabel = QtWidgets.QLabel("Mail : <a href='mailto::martin.teillet@hotmail.fr'>martin.teillet@hotmail.fr</a>")
+        self.githubLabel = QtWidgets.QLabel("Github : <a href='https://github.com/mteillet/PyVexr'>https://github.com/mteillet/PyVexr</a>")
+        self.versionLabel = QtWidgets.QLabel("PyVexr - Python Open Exr Viewer - version 0.0.4-Alpha.\nDeveloped by Martin Teillet.")
+        self.mailLabel.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+        self.githubLabel.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
 
         self.titleLayout.addWidget(self.infoTitle)
+        self.aboutLayout.addWidget(self.aboutLabel)
+        self.thanksLayout.addWidget(self.thanksLabel)
+        self.contactLayout.addWidget(self.contactLabel)
+        self.contactLayout.addWidget(self.mailLabel)
+        self.contactLayout.addWidget(self.githubLabel)
+        self.versionLayout.addWidget(self.versionLabel)
         self.titleLayout.setAlignment(QtCore.Qt.AlignCenter)
+        self.aboutLayout.setAlignment(QtCore.Qt.AlignCenter)
+        self.thanksLayout.setAlignment(QtCore.Qt.AlignCenter)
+        self.versionLayout.setAlignment(QtCore.Qt.AlignCenter)
 
         layout.addLayout(self.titleLayout)
+        layout.addLayout(self.aboutLayout)
+        layout.addStretch()
+        layout.addLayout(self.thanksLayout)
+        layout.addStretch()
+        layout.addLayout(self.contactLayout)
+        layout.addStretch()
+        layout.addLayout(self.versionLayout)
         self.setLayout(layout)
 
 class BufferPopup(QtWidgets.QWidget):

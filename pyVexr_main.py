@@ -6,6 +6,7 @@
 import os
 import numpy as np
 import PyOpenColorIO as OCIO
+import imageio
 import OpenEXR as EXR
 import array
 import time
@@ -71,20 +72,55 @@ def seqFromPath(path):
     and then scan folder to get the full range looking for files and add them into the dict
     '''
     pathList = {}
+    movList = {}
     #print(path)
     for i in path:
-        seqName, searchPath, extension = fileSearchPath(i)
-        if seqName in pathList:
-            #print("{} is in the dict".format(seqName))
-            pathList[seqName].append(i)
+        if (i.lower().endswith(".mov")) | (i.lower().endswith(".mp4")):
+            frameCount, movStruct = detectFrameNumberMov(i)
+            # Appending this to movList in case there are many movies
+            movList[list(movStruct.keys())[0]] = movStruct[list(movStruct.keys())[0]]
         else:
-            pathList[seqName] = [i]
+            seqName, searchPath, extension = fileSearchPath(i)
+            if seqName in pathList:
+                #print("{} is in the dict".format(seqName))
+                pathList[seqName].append(i)
+            else:
+                pathList[seqName] = [i]
 
 
     seqDict = autoRangeFromPath(pathList)
+    # Adding the movies to the seqDict
+    for mov in movList:
+        seqDict[mov] = movList[mov]
+
     #print("seqDict is : {}".format(seqDict))
 
     return(seqDict)
+
+def detectFrameNumberMov(filepath):
+    '''
+    In case file is a .mov, need to build and feed to the timelineGui.py 
+    the number of frame to enable scrubbing in the timeline
+    Also adds the frame number to the mov filename in order to allow frame
+    display on the timelineGui
+    '''
+    # Getting the frame number from the mov file
+    capture = cv.VideoCapture(filepath)
+    frameCount = int(capture.get(cv.CAP_PROP_FRAME_COUNT))
+    # Getting the name of the move file
+    seqName =filepath.split("/")
+    seqName = ((seqName[len(seqName)-1]).split("."))[:-1][0]
+    movStruct = {}
+    movStruct[seqName] = []
+    current = 0
+    for i in range(frameCount):
+        framedPath = filepath.split(".")
+        framedPath.insert(-1, str(current+1).zfill(4))
+        framedPath = ".".join(framedPath)
+        movStruct[seqName].append(framedPath)
+        current += 1
+
+    return(frameCount, movStruct)
 
 def fileSearchPath(filepath):
     '''
@@ -437,13 +473,30 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
             splitImg = exrSwitchChannel(path, channel, channelRGBA)
             # Merging the splitted exr channel (in a different order a openCV expects BGR by default)
             img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
-
     else:
+        if path[0].lower().endswith(".dpx"):
+            print("DPX file found")
+        elif (path[0].lower().endswith(".mov"))|(path[0].lower().endswith(".mp4")):
+            #print(".mov file found")
+            split = path[0].split(".")
+            try:
+                frameNumber = int(split[-2])
+            except:
+                frameNumber = 1
+            del split[-2]
+            split =".".join(split)
+            if len(split) > 3 :
+                capture = cv.VideoCapture(split)
+            else:
+                capture = cv.VideoCapture(path[0])
+            capture.set(cv.CAP_PROP_POS_FRAMES, frameNumber)
+            success, img = capture.read()
+        else:
+            img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
         if (ocioIn == "Linear"):
             ocioIn = "Raw"
-        img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
         # Convert img to float 32
-        img = np.float32(img/255)
+        #img = np.float32(img/255)
 
     # For debugging purpose, if you need to display the image in open cv to compare
     '''

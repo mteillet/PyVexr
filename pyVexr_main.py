@@ -75,7 +75,7 @@ def seqFromPath(path):
     movList = {}
     #print(path)
     for i in path:
-        if i.lower().endswith(".mov"):
+        if (i.lower().endswith(".mov")) | (i.lower().endswith(".mp4")):
             frameCount, movStruct = detectFrameNumberMov(i)
             # Appending this to movList in case there are many movies
             movList[list(movStruct.keys())[0]] = movStruct[list(movStruct.keys())[0]]
@@ -473,14 +473,22 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
             splitImg = exrSwitchChannel(path, channel, channelRGBA)
             # Merging the splitted exr channel (in a different order a openCV expects BGR by default)
             img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
-
     else:
         if path[0].lower().endswith(".dpx"):
             print("DPX file found")
-        elif path[0].lower().endswith(".mov"):
+        elif (path[0].lower().endswith(".mov"))|(path[0].lower().endswith(".mp4")):
             #print(".mov file found")
-            capture = cv.VideoCapture(path[0])
-            frameNumber = 1
+            split = path[0].split(".")
+            try:
+                frameNumber = int(split[-2])
+            except:
+                frameNumber = 1
+            del split[-2]
+            split =".".join(split)
+            if len(split) > 3 :
+                capture = cv.VideoCapture(split)
+            else:
+                capture = cv.VideoCapture(path[0])
             capture.set(cv.CAP_PROP_POS_FRAMES, frameNumber)
             success, img = capture.read()
         else:

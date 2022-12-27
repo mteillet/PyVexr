@@ -6,6 +6,7 @@
 import os
 import numpy as np
 import PyOpenColorIO as OCIO
+import imageio
 import OpenEXR as EXR
 import array
 import time
@@ -439,11 +440,20 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
             img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
 
     else:
+        if path[0].lower().endswith(".dpx"):
+            print("DPX file found")
+        elif path[0].lower().endswith(".mov"):
+            #print(".mov file found")
+            capture = cv.VideoCapture(path[0])
+            frameNumber = 1
+            capture.set(cv.CAP_PROP_POS_FRAMES, frameNumber)
+            success, img = capture.read()
+        else:
+            img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
         if (ocioIn == "Linear"):
             ocioIn = "Raw"
-        img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
         # Convert img to float 32
-        img = np.float32(img/255)
+        #img = np.float32(img/255)
 
     # For debugging purpose, if you need to display the image in open cv to compare
     '''

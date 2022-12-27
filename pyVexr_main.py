@@ -72,20 +72,55 @@ def seqFromPath(path):
     and then scan folder to get the full range looking for files and add them into the dict
     '''
     pathList = {}
+    movList = {}
     #print(path)
     for i in path:
-        seqName, searchPath, extension = fileSearchPath(i)
-        if seqName in pathList:
-            #print("{} is in the dict".format(seqName))
-            pathList[seqName].append(i)
+        if i.lower().endswith(".mov"):
+            frameCount, movStruct = detectFrameNumberMov(i)
+            # Appending this to movList in case there are many movies
+            movList[list(movStruct.keys())[0]] = movStruct[list(movStruct.keys())[0]]
         else:
-            pathList[seqName] = [i]
+            seqName, searchPath, extension = fileSearchPath(i)
+            if seqName in pathList:
+                #print("{} is in the dict".format(seqName))
+                pathList[seqName].append(i)
+            else:
+                pathList[seqName] = [i]
 
 
     seqDict = autoRangeFromPath(pathList)
+    # Adding the movies to the seqDict
+    for mov in movList:
+        seqDict[mov] = movList[mov]
+
     #print("seqDict is : {}".format(seqDict))
 
     return(seqDict)
+
+def detectFrameNumberMov(filepath):
+    '''
+    In case file is a .mov, need to build and feed to the timelineGui.py 
+    the number of frame to enable scrubbing in the timeline
+    Also adds the frame number to the mov filename in order to allow frame
+    display on the timelineGui
+    '''
+    # Getting the frame number from the mov file
+    capture = cv.VideoCapture(filepath)
+    frameCount = int(capture.get(cv.CAP_PROP_FRAME_COUNT))
+    # Getting the name of the move file
+    seqName =filepath.split("/")
+    seqName = ((seqName[len(seqName)-1]).split("."))[:-1][0]
+    movStruct = {}
+    movStruct[seqName] = []
+    current = 0
+    for i in range(frameCount):
+        framedPath = filepath.split(".")
+        framedPath.insert(-1, str(current+1).zfill(4))
+        framedPath = ".".join(framedPath)
+        movStruct[seqName].append(framedPath)
+        current += 1
+
+    return(frameCount, movStruct)
 
 def fileSearchPath(filepath):
     '''

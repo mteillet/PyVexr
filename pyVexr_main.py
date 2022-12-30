@@ -489,8 +489,11 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
                 capture = cv.VideoCapture(split)
             else:
                 capture = cv.VideoCapture(path[0])
+            t0 = time.time()
             capture.set(cv.CAP_PROP_POS_FRAMES, frameNumber)
             success, img = capture.read()
+            t1 = time.time()
+            print(t1-t0)
         else:
             img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
         if (ocioIn == "Linear"):

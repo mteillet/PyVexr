@@ -1,15 +1,18 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+#include <ImathExport.h>
 #include <ImathBox.h>
+#include <OpenEXR/ImfFrameBuffer.h>
 #include <OpenEXR/ImfInputFile.h>
 #include <OpenEXR/ImfChannelList.h>
-#include <OpenEXR/ImfFrameBuffer.h>
+#include <OpenEXR/ImfHeader.h>
+#include <OpenEXR/ImfArray.h>
 
 namespace py = pybind11;
 
 py::array_t<float> loadExrChannels(const std::string& filename, const std::string& selectedChannel){
 	// Open the .exr file 
-	Imf::InputFile exr_file(file_path.c_str());
+	Imf::InputFile exr_file(filename.c_str());
 
 	// Get the number of channels in the .exr file
 	Imf::ChannelList channels = exr_file.header().channels();
@@ -20,7 +23,7 @@ py::array_t<float> loadExrChannels(const std::string& filename, const std::strin
 	}
 
 	// Get the channel data type
-	Imf::PixelType channel_type = channels.findChannel(selectedChannels.c_str())->type;
+	Imf::PixelType channel_type = channels.findChannel(selectedChannel.c_str())->type;
 
 	// Allocate an array to store the channel data
 	Imf::Array2D<float>data(exr_file.header().dataWindow().max.y - exr_file.header().dataWindow().min.y + 1, exr_file.header().dataWindow().max.x - exr_file.header().dataWindow().min.x + 1);

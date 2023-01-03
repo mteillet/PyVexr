@@ -26,17 +26,17 @@ py::array_t<float> loadExrChannels(const std::string& filename, const std::strin
 	Imf::PixelType channel_type = channels.findChannel(selectedChannel.c_str())->type;
 
 	// Allocate an array to store the channel data
-	Imf::Array2D<float>data(exr_file.header().dataWindow().max.y - exr_file.header().dataWindow().min.y + 1, exr_file.header().dataWindow().max.x - exr_file.header().dataWindow().min.x + 1);
+	Imf::Array2D<float>data(exr_file.header().dataWindow().max.x - exr_file.header().dataWindow().min.x + 1, exr_file.header().dataWindow().max.y - exr_file.header().dataWindow().min.y + 1);
 
 	// Read the channel data
 	Imf::FrameBuffer frame_buffer;
-	frame_buffer.insert(selectedChannel.c_str(), Imf::Slice(channel_type, (char*)data[0] - exr_file.header().dataWindow().min.x - exr_file.header().dataWindow().min.y * data.xStride(), sizeof(float) * data.xStride(), sizeof(float) * data.yStride()));
+	frame_buffer.insert(selectedChannel.c_str(), Imf::Slice(channel_type, (char*)data[0] - exr_file.header().dataWindow().min.x - exr_file.header().dataWindow().min.y * data.width(), sizeof(float) * data.width(), sizeof(float) * data.height()));
 	exr_file.setFrameBuffer(frame_buffer);
-	exr_file.readPixels(exr_file.header().dataWindow().min.y; exr_file.header().dataWindow().max.y);
+	exr_file.readPixels(exr_file.header().dataWindow().min.y, exr_file.header().dataWindow().max.y);
 
 	// close the .exr
-	exr_file.close();
+	exr_file.~InputFile();
 	       	
 	// return the channel data as numpy array
-	return py::array_t<float>({data.height(), data.width()}, data.begin());	
+	return py::array_t<float>({data.height(), data.width()}, data[0]);	
 }

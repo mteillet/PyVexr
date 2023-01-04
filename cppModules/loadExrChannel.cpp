@@ -10,7 +10,7 @@
 
 namespace py = pybind11;
 
-py::array_t<float> loadExrChannels(const std::string& filename, const std::string& selectedChannel){
+py::array_t<float> loadExrChan(const std::string& filename, const std::string& selectedChannel){
 	// Open the .exr file 
 	Imf::InputFile exr_file(filename.c_str());
 
@@ -39,4 +39,9 @@ py::array_t<float> loadExrChannels(const std::string& filename, const std::strin
 	       	
 	// return the channel data as numpy array
 	return py::array_t<float>({data.height(), data.width()}, data[0]);	
+}
+
+PYBIND11_MODULE(loadExrChannel, m) {
+	m.doc() = "pybind11 plugin retrieving image data from a specific channel contained in an exr";
+	m.def("loadExrChan", &loadExrChan, "A function retrieving image data from a specific channel in a multipart EXR");
 }

@@ -14,16 +14,13 @@ import Imath
 import math
 import glob
 import sys
-
 # Setting absPath in order to avoid broken file links when using a compiled version on windows
 absPath = os.path.dirname(sys.argv[0])
 if absPath:
     absPath = "{}/".format(absPath)
-
 # Adding the cppModules dir to the search path
 sys.path.append('{}cppModules'.format(absPath)) 
 import exposureUp
-
 # Enabling the EXR format in OpenCv for windows platform
 os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"
 import cv2 as cv
@@ -318,12 +315,12 @@ def exrSwitchChannel(path, channel, channelRGBA):
 
 
     if len(foundChannelList) == 3:
+        t0 = time.time()
         channelR,channelG,channelB = exr.channels([foundChannelList[0],foundChannelList[1],foundChannelList[2]], Imath.PixelType(Imath.PixelType.FLOAT)) 
-        #t0 = time.time()
+        t1 = time.time()
+        print("EXR loadChannels function takes : {}".format(t1-t0))
         channelR = np.frombuffer(channelR, dtype = np.float32)
         channelR = np.reshape(channelR, isize)
-        #t1 = time.time()
-        #print("{}".format(t1-t0))
         channelG = np.frombuffer(channelG, dtype = np.float32)
         channelG = np.reshape(channelG, isize)
         channelB = np.frombuffer(channelB, dtype = np.float32)

@@ -1,5 +1,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+#include <iostream>
+#include <math.h>
+#include <stdio.h>
 #include <ImathExport.h>
 #include <ImathBox.h>
 #include <OpenEXR/ImfFrameBuffer.h>
@@ -34,8 +37,6 @@ py::array_t<float> loadExrChan(const std::string& filename, const std::string& s
 	exr_file.setFrameBuffer(frame_buffer);
 	exr_file.readPixels(exr_file.header().dataWindow().min.y, exr_file.header().dataWindow().max.y);
 
-	// close the .exr
-	exr_file.~InputFile();
 	       	
 	// return the channel data as numpy array
 	return py::array_t<float>({data.height(), data.width()}, data[0]);	

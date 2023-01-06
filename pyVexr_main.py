@@ -21,6 +21,7 @@ if absPath:
 # Adding the cppModules dir to the search path
 sys.path.append('{}cppModules'.format(absPath)) 
 import exposureUp
+#import loadExrChannel
 # Enabling the EXR format in OpenCv for windows platform
 os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"
 import cv2 as cv

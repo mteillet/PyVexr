@@ -24,6 +24,8 @@ py::array_t<float> loadExrChan(const std::string& filename, const std::string& s
 	if (!channels.findChannel(selectedChannel.c_str())){
 		throw std::invalid_argument("CPP: Invalid channel name: " + selectedChannel);
 	}
+	//std::cout << "Valid channel " << selectedChannel << " in file " << filename << std::endl;
+
 
 	// Get the channel data type
 	Imf::PixelType channel_type = channels.findChannel(selectedChannel.c_str())->type;

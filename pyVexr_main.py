@@ -21,7 +21,7 @@ if absPath:
 # Adding the cppModules dir to the search path
 sys.path.append('{}cppModules'.format(absPath)) 
 import exposureUp
-#import loadExrChannel
+import loadExrChannel
 # Enabling the EXR format in OpenCv for windows platform
 os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"
 import cv2 as cv
@@ -319,7 +319,11 @@ def exrSwitchChannel(path, channel, channelRGBA):
         t0 = time.time()
         channelR,channelG,channelB = exr.channels([foundChannelList[0],foundChannelList[1],foundChannelList[2]], Imath.PixelType(Imath.PixelType.FLOAT)) 
         t1 = time.time()
-        print("EXR loadChannels function takes : {}".format(t1-t0))
+        print("EXR loadChannels python function takes : {}".format(t1-t0))
+        t0 = time.time()
+        channelR = loadExrChannel.loadExrChan(path[0], foundChannelList[0])
+        t1 = time.time()
+        print("EXR loadChannels CPP function takes : {}".format(t1-t0))
         channelR = np.frombuffer(channelR, dtype = np.float32)
         channelR = np.reshape(channelR, isize)
         channelG = np.frombuffer(channelG, dtype = np.float32)

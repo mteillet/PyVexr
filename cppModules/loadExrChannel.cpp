@@ -39,22 +39,31 @@ std::vector<py::array_t<float>> loadExrChan(const std::string& filename, const s
 
 	// Allocate a frame buffer to hold image data
 	FrameBuffer frameBuffer;
-	Array2D<float> channelData(height, width);
 	size_t sampleSize = sizeof(float);
+	if (pixelType == HALF){
+		Array2D<half> channelDataR(height, width);
+	}
+	else{
+		Array2D<float> channelDataR(height, width);
+	}
+	Array2D<half> channelDataR(height, width);
 	if(pixelType == HALF){
 		sampleSize = sizeof(half);
 	}
 	int pixel_base = exr_file.header().dataWindow().min.y* (exr_file.header().dataWindow().size().x+1) + exr_file.header().dataWindow().min.x;
 
 	frameBuffer.insert(selectedChannel[0].c_str(), Slice(pixelType,
-			       (char*)channelData[0] - pixel_base * sampleSize, 
+			       (char*)channelDataR[0] - pixel_base * sampleSize, 
 			       sampleSize, 
 			       sampleSize * width));
 
 	exr_file.setFrameBuffer(frameBuffer);
 	exr_file.readPixels(header.dataWindow().min.y, header.dataWindow().max.y);
 
-	py::array_t<float> channelR = py::array_t<float>({channelData.height(), channelData.width()}, channelData[0]);
+	Array2D<float> floatData(height, width);
+	std::copy(channelDataR[0],channelDataR[0] + (height * width), floatData[0]);
+
+	py::array_t<float> channelR = py::array_t<float>({channelDataR.height(), channelDataR.width()}, floatData[0]);
 	// return the channel data as numpy array
 	return std::vector<py::array_t<float>>{channelR, channelR, channelR};
 }

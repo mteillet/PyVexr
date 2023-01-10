@@ -33,35 +33,30 @@ std::vector<py::array_t<float>> loadExrChan(const std::string& filename, const s
 	if (!channels.findChannel(selectedChannel[0].c_str())){
 		throw std::invalid_argument("CPP: invalid channel name: " + selectedChannel[0]);			
 	}
-	else{
-		std::cout << "CPP: valid channel found: " << selectedChannel[0].c_str() << " in the EXR : " << filename.c_str() << std::endl;
-	}
 
 	Channel channel = channels[selectedChannel[0].c_str()];
 	PixelType pixelType = channel.type;
 
-	std::cout << "Check 1" << std::endl;
-
 	// Allocate a frame buffer to hold image data
 	FrameBuffer frameBuffer;
-	Array2D<float> channelData(width, height);
-	frameBuffer.insert(selectedChannel[0].c_str(), Slice(pixelType, (char*)channelData[0]  - exr_file.header().dataWindow().min.x - exr_file.header().dataWindow().min.y * channelData.width(), sizeof(float) * width, sizeof(float) * height));
+	Array2D<float> channelData(height, width);
+	size_t sampleSize = sizeof(float);
+	if(pixelType == HALF){
+		sampleSize = sizeof(half);
+	}
+	int pixel_base = exr_file.header().dataWindow().min.y* (exr_file.header().dataWindow().size().x+1) + exr_file.header().dataWindow().min.x;
 
-	std::cout << "Check 2" << std::endl;
+	frameBuffer.insert(selectedChannel[0].c_str(), Slice(pixelType,
+			       (char*)channelData[0] - pixel_base * sampleSize, 
+			       sampleSize, 
+			       sampleSize * width));
 
 	exr_file.setFrameBuffer(frameBuffer);
-	std::cout << "Check 3" << std::endl;
-	//exr_file.readPixels(header.dataWindow().min.y, header.dataWindow().max.y);
-	exr_file.readPixels(0, height - 1);
+	exr_file.readPixels(header.dataWindow().min.y, header.dataWindow().max.y);
 
-	std::cout << "Check 4" << std::endl;
-
-	//py::array_t<float> channelR = py::array_t<float>({channelData.height(), channelData.width()}, channelData[0]);
-	       	
-	std::cout << "Check 5" << std::endl;
-
+	py::array_t<float> channelR = py::array_t<float>({channelData.height(), channelData.width()}, channelData[0]);
 	// return the channel data as numpy array
-	return std::vector<py::array_t<float>>{py::array_t<float>({channelData.height(), channelData.width()}, channelData[0]), py::array_t<float>({channelData.height(), channelData.width()}, channelData[0]), py::array_t<float>({channelData.height(), channelData.width()}, channelData[0])};
+	return std::vector<py::array_t<float>>{channelR, channelR, channelR};
 }
 
 PYBIND11_MODULE(loadExrChannel, m) {

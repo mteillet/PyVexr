@@ -50,7 +50,7 @@ Built using Python, C++, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 	- [ ] DPX 10 bits
 	- [ ] DCP
 - [ ] Switch between movie and images if they exist in the same folder with the same naming
-- [ ] C++ OpenExr backend
+- [x] C++ OpenExr backend
 - [ ] Multiple versions on each shot in order to compare them easily
 - [ ] Picker to get values from specific pixels
 

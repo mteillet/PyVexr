@@ -26,7 +26,7 @@ Built using Python, C++, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 - [x] Switch and visualize other channels in multilayered exrs
 - [x] Tweak exposition and saturation on the fly
 - [x] Direct .mp4 export from PyVexr, baking in your exposure / saturation tweaks, and your chosen OCIO
-	- [ ] Export single frame from PyVexr, with exposure, saturation, and OCIO baked
+	- [x] Export single frame from PyVexr, with exposure, saturation, and OCIO baked
 - [x] Easily accessible OCIOs 
 	- [x] OCIO menu GUI 
 	- [X] AgX support, with its looks
@@ -40,7 +40,7 @@ Built using Python, C++, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 	- [x] Compiled versions
 		- [x] Linux (Tested on Ubuntu)
 		- [x] Windows
-- [ ] Image support :
+- [x] Image support :
 	- [x] Open EXR
 	- [x] Jpeg/Jpg
 	- [x] Png
@@ -49,9 +49,9 @@ Built using Python, C++, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 	- [x] .mp4
 	- [ ] DPX 10 bits
 	- [ ] DCP
-- [ ] Switch between movie and images if they exist in the same folder with the same naming
 - [x] C++ OpenExr backend
 - [ ] Multiple versions on each shot in order to compare them easily
+- [ ] Switch between movie and images if they exist in the same folder with the same naming
 - [ ] Picker to get values from specific pixels
 
 

@@ -8,7 +8,7 @@ import json
 import time
 from math import sqrt
 from PyQt5 import QtWidgets, QtCore, QtGui
-from pyVexr_main import loadImg, interpretRectangle, exrListChannels, seqFromPath, initOcio2, getLooks, bufferBackEnd, layerContactSheetBackend, createVideoWriter 
+from pyVexr_main import loadImg, interpretRectangle, exrListChannels, seqFromPath, initOcio2, getLooks, bufferBackEnd, layerContactSheetBackend, createVideoWriter, createImgWriter
 from pyVexr_timelineGui import Timeline
 
 # Setting absPath in order to avoid broken file links when using a compiled version on windows
@@ -379,6 +379,8 @@ class MyWidget(QtWidgets.QWidget):
         self.savePlaylist.triggered.connect(self.exportPlaylist)
         self.exportMp4 = self.fileMenu.addAction("Export as mp4")
         self.exportMp4.triggered.connect(self.movieExport)
+        self.exportImg = self.fileMenu.addAction("Export as Image")
+        self.exportImg.triggered.connect(self.imgExport)
         self.fileMenu.addSeparator()
         self.exit = self.fileMenu.addAction("Exit PyVexr")
         # Mirror Action
@@ -928,6 +930,28 @@ class MyWidget(QtWidgets.QWidget):
                 frameList.append(frame)
 
         createVideoWriter(self.imgDict, frameList, current, destination)
+
+    def imgExport(self):
+        '''
+        Exporting a single frame from the written cache
+        '''
+        # Clear threadpool in order to focus writing the image to disk
+        self.threadpool.clear()
+
+        current = self.frameNumber.slider.value()
+        frameList = []
+        for shot in self.seqDict:
+            for frame in self.seqDict[shot]:
+                frameList.append(frame)
+
+        # Creating a window for export destination
+        exportDiag = QtWidgets.QFileDialog.getSaveFileName(self, "Export Jpeg Image")
+        destination = exportDiag[0]
+        # Adding jpeg extension if forgotten
+        if destination.endswith(".jpg") == False:
+            destination = "{}.jpg".format(destination)
+
+        createImgWriter(self.imgDict, frameList, current, destination)
 
 
     def loadFile(self):

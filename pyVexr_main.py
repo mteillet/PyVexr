@@ -648,6 +648,15 @@ def createVideoWriter(imgDict, frameList, current, destination):
 
     print("# MP4 export done -> {}".format(destination))
 
+def createImgWriter(imgDict, frameList, current, destination):
+    '''
+    Exporting an image from the buffer with baked in exposure, saturation, and ocio
+    '''
+
+    convertedImg = convertForVideo(frameList[current], imgDict["ocio"]["ocioIn"], imgDict["ocio"]["ocioOut"], imgDict["ocio"]["ocioLook"], imgDict["exposure"], imgDict["saturation"], imgDict["channel"], imgDict["RGBA"], imgDict["ocioVar"], imgDict["ocio"]["ocioDisplay"], imgDict["ocioToggle"])
+    cv.imwrite(destination, convertedImg, [cv.IMWRITE_JPEG_QUALITY, 100])
+    
+    print("# JPEG export done -> {}".format(destination))
 
 def videoFirstFrameInit(imgDict, frameList, current):
     convertedImg = convertForVideo(frameList[current], imgDict["ocio"]["ocioIn"], imgDict["ocio"]["ocioOut"], imgDict["ocio"]["ocioLook"], imgDict["exposure"], imgDict["saturation"], imgDict["channel"], imgDict["RGBA"], imgDict["ocioVar"], imgDict["ocio"]["ocioDisplay"], imgDict["ocioToggle"])

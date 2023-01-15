@@ -458,10 +458,14 @@ class MyWidget(QtWidgets.QWidget):
         self.version = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
         self.version.setText("Versions : ")
         self.versionsGroupBox = QtWidgets.QGroupBox()
-        self.versionsDock = QtWidgets.QDockWidget("Versions Panne", self)
+        self.versionsDock = QtWidgets.QDockWidget("Versions Pannel", self)
         self.versionsDock.setFeatures(QtWidgets.QDockWidget.DockWidgetFloatable | QtWidgets.QDockWidget.DockWidgetMovable)
         self.versionsDock.hide()
         self.versionsDock.setWidget(self.versionsGroupBox)
+
+        # Add version button
+        self.addVersion = QtWidgets.QPushButton("Add Version")
+        self.addVersion.clicked.connect(self.addNewVersion)
 
 
         # Graphics Scene used to have a virtual space for the objects
@@ -510,7 +514,7 @@ class MyWidget(QtWidgets.QWidget):
 
         # Version area - Need to replace with a floating window
         self.version = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
-        self.version.setText("Versions")
+        self.version.setText("")
 
         # Slider for the frame sequence
         #self.frameNumber = QtWidgets.QSlider(QtCore.Qt.Horizontal)
@@ -572,6 +576,7 @@ class MyWidget(QtWidgets.QWidget):
         self.versionsLayout = QtWidgets.QVBoxLayout()
         self.versionsLayout.addStretch()
         self.versionsLayout.addWidget(self.version)
+        self.versionsLayout.addWidget(self.addVersion)
         self.versionsGroupBox.setLayout(self.versionsLayout)
 
         self.centerLayout.addWidget(self.channelsDock)
@@ -1341,6 +1346,11 @@ class MyWidget(QtWidgets.QWidget):
         else:
             self.versionsDock.hide()
 
+    def addNewVersion(self):
+        print("Add version")
+
+
+
     def listChannels(self):
         currentPos = (self.frameNumber.slider.value())
         frame = self.frameNumber.returnFrame(currentPos)
@@ -1348,7 +1358,6 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["path"] = [frame]
 
         channels = exrListChannels(self.imgDict["path"])
-        #print(channels)
 
         # Removing old channelBtns if the channel Btns Var was created
         removeList = []

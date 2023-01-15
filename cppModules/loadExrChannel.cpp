@@ -42,6 +42,9 @@ std::vector<py::array_t<float>> loadExrChan(const std::string& filename, const s
 	Array2D<half> channelDataR(height, width);
 	Array2D<half> channelDataG(height, width);
 	Array2D<half> channelDataB(height, width);
+	// Try to replace the 3 arrays by this vector next : 
+	std::vector<Array2D<half>*> channelData = {&channelDataR, &channelDataG, &channelDataB};
+
 	if(pixelType == HALF){
 		sampleSize = sizeof(half);
 	}

@@ -333,6 +333,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["previousShot"] = None
         self.imgDict["ContactSheet"] = False
         self.imgDict["ContactSheetChannels"] = []
+        self.imgDict["version"] = {} 
         self.p = None
         self.diagnostic = False
         self.playCount = []
@@ -1302,13 +1303,14 @@ class MyWidget(QtWidgets.QWidget):
 
         return(self.timeLineDict)
 
-
     def updateImgDict(self, path):
         self.imgDict["path"] = path
         self.imgDict["channel"] = None
         self.loadFile()
         self.listChannels()
         self.imgDict["previousShot"] = (self.frameNumber.label.text()[7:])
+        #print("updating img dict")
+        self.buildVersioningDict()
 
     def dragEnterEvent(self, event):
         #print("drag")
@@ -1348,6 +1350,21 @@ class MyWidget(QtWidgets.QWidget):
 
     def addNewVersion(self):
         print("Add version")
+
+        openDialog = QtWidgets.QFileDialog.getOpenFileName(self, "New Version")
+        newVersion = [(openDialog[0])]
+
+        imagesFromNewVersion = seqFromPath(newVersion)
+        #for shot in self.seqDict:
+            #for frame in self.seqDict[shot]:
+                #newShotList.append(frame)
+        #newShotList.append(shotToAdd)
+
+    def buildVersioningDict(self):
+        # Building the versioning dictionnary
+        for i in self.seqDict:
+            self.imgDict["version"][i] = {}
+            self.imgDict["version"][i]["version_0000"] = self.seqDict[i]
 
 
 

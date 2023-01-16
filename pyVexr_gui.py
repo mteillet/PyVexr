@@ -970,7 +970,7 @@ class MyWidget(QtWidgets.QWidget):
 
         #Init the slider
         self.initSlider(seqDict)
-
+        self.buildVersioningDict()
         # Calculating the actual image from the backend
         tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"], self.imgDict)
 
@@ -1057,6 +1057,7 @@ class MyWidget(QtWidgets.QWidget):
 
         if isSameShot != True:
             self.listChannels()
+            self.listVersions()
         
     def playForward(self):
         if (self.playBtn.isChecked() == True):
@@ -1308,9 +1309,11 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["channel"] = None
         self.loadFile()
         self.listChannels()
+        try:
+            self.listVersions()
+        except:
+            self.listVersions()
         self.imgDict["previousShot"] = (self.frameNumber.label.text()[7:])
-        #print("updating img dict")
-        self.buildVersioningDict()
 
     def dragEnterEvent(self, event):
         #print("drag")
@@ -1334,6 +1337,7 @@ class MyWidget(QtWidgets.QWidget):
             self.imgDict["path"] = filenames
             self.loadFile()
             self.listChannels()
+            self.listVersions()
 
     def channelsClicked(self):
         #print(self.channelsDock.isVisible())
@@ -1349,16 +1353,19 @@ class MyWidget(QtWidgets.QWidget):
             self.versionsDock.hide()
 
     def addNewVersion(self):
-        print("Add version")
-
         openDialog = QtWidgets.QFileDialog.getOpenFileName(self, "New Version")
         newVersion = [(openDialog[0])]
 
-        imagesFromNewVersion = seqFromPath(newVersion)
-        #for shot in self.seqDict:
-            #for frame in self.seqDict[shot]:
-                #newShotList.append(frame)
-        #newShotList.append(shotToAdd)
+        imagesFromNewVersion = list((seqFromPath(newVersion)).values())[0]
+
+        currentPos = self.frameNumber.slider.value()
+        shot = self.timeLineDict[currentPos]["shot"]
+
+        # Getting number of version to know what tag to give the newest one
+        numberOfVersions = len(list(self.imgDict["version"][shot].keys())) - 1
+        self.imgDict["version"][shot]["v_{}".format(str(numberOfVersions+1).zfill(4))] = imagesFromNewVersion
+
+        self.listVersions()
 
     def buildVersioningDict(self):
         # Building the versioning dictionnary
@@ -1366,7 +1373,32 @@ class MyWidget(QtWidgets.QWidget):
             self.imgDict["version"][i] = {}
             self.imgDict["version"][i]["version_0000"] = self.seqDict[i]
 
+    def listVersions(self):
+        currentPos = (self.frameNumber.slider.value())
+        frame = self.frameNumber.returnFrame(currentPos)
+        shot = (self.timeLineDict[currentPos]["shot"])
 
+        #print(self.imgDict["version"][shot].keys())
+        versionsButtonList = []
+        current = 0
+        for i in self.imgDict["version"][shot].keys():
+            #print("Creating versions buttons")
+            versionsButtonList.append(QtWidgets.QPushButton("v_{}".format(str(current).zfill(4))))
+            current += 1
+
+        # Removing older versions
+        layout = self.versionsLayout
+        if (layout.count()) > 3:
+            for i in range(layout.count()-1,-1,-1):
+                widget = layout.itemAt(i).widget()
+                if isinstance(widget, QtWidgets.QPushButton):
+                    if widget.text().startswith("v_"):
+                        layout.removeWidget(widget)
+                        widget.deleteLater()
+
+        # Adding versions button
+        for btn in versionsButtonList:
+             self.versionsLayout.addWidget(btn)
 
     def listChannels(self):
         currentPos = (self.frameNumber.slider.value())

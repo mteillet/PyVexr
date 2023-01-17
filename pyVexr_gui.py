@@ -1371,7 +1371,7 @@ class MyWidget(QtWidgets.QWidget):
         # Building the versioning dictionnary
         for i in self.seqDict:
             self.imgDict["version"][i] = {}
-            self.imgDict["version"][i]["version_0000"] = self.seqDict[i]
+            self.imgDict["version"][i]["v_0000"] = self.seqDict[i]
 
     def listVersions(self):
         currentPos = (self.frameNumber.slider.value())
@@ -1383,7 +1383,9 @@ class MyWidget(QtWidgets.QWidget):
         current = 0
         for i in self.imgDict["version"][shot].keys():
             #print("Creating versions buttons")
-            versionsButtonList.append(QtWidgets.QPushButton("v_{}".format(str(current).zfill(4))))
+            versionBtn = QtWidgets.QPushButton("v_{}".format(str(current).zfill(4)))
+            versionBtn.clicked.connect(self.switchVersion)
+            versionsButtonList.append(versionBtn)
             current += 1
 
         # Removing older versions
@@ -1399,6 +1401,12 @@ class MyWidget(QtWidgets.QWidget):
         # Adding versions button
         for btn in versionsButtonList:
              self.versionsLayout.addWidget(btn)
+
+    def switchVersion(self):
+        currentPos = (self.frameNumber.slider.value())
+        shot =  self.timeLineDict[currentPos]["shot"]
+
+        print(self.imgDict["version"][shot][self.sender().text()])
 
     def listChannels(self):
         currentPos = (self.frameNumber.slider.value())

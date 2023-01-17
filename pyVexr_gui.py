@@ -1406,7 +1406,39 @@ class MyWidget(QtWidgets.QWidget):
         currentPos = (self.frameNumber.slider.value())
         shot =  self.timeLineDict[currentPos]["shot"]
 
-        print(self.imgDict["version"][shot][self.sender().text()])
+        # Getting the new version path to assign
+        versionToAssign = self.imgDict["version"][shot][self.sender().text()]
+
+        # Assign on same frame range as the previous shot
+        resizedVersionList = self.matchListLen(versionToAssign, self.seqDict[shot])
+        self.seqDict[shot] = resizedVersionList
+
+        # Need to implement a re cache of the shot before the image update, for now need to do it manually
+        self.imageUpdate()
+
+    def matchListLen(self, listA, listB):
+        '''
+        Modify listA so it matches the len of listB and only contains items from listA
+        '''
+        lenA = len(listA)
+        lenB = len(listB)
+
+        # In case listA is not as long as list B
+        if (lenA < lenB):
+            current = 0
+            while (len(listA) < len(listB)):
+                listA.insert(current+1, listA[current])
+                if (current + 2) < len(listA):
+                    current += 2
+                else:
+                    current = 0
+                #print("length list A is : {}".format(len(listA)))
+                #print("current is : {}".format(current))
+
+        # In case listA is longer than list B
+                
+        return(listA)
+
 
     def listChannels(self):
         currentPos = (self.frameNumber.slider.value())

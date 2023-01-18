@@ -633,6 +633,30 @@ class MyWidget(QtWidgets.QWidget):
         '''
         self.threadpool.clear()
 
+    def resetShotBuffer(self):
+        '''
+        Resetting the buffer on the current shot of the timeline
+        '''
+        self.stopBuffer()
+
+        currentPos = (self.frameNumber.slider.value())
+        shot =  self.timeLineDict[currentPos]["shot"]
+
+        bufferToReset = []
+
+        current = 0
+        for frame in self.timeLineDict:
+            if (self.timeLineDict[frame]["shot"] == shot):
+                bufferToReset.append(current)
+            current += 1
+
+        for i in bufferToReset:
+            self.imgDict["buffer"][i] = None
+
+        # TODO
+        # Would need to reset the cache draw only on the shot, and not the whole timeline
+        self.frameNumber._timeline.resetCacheDraw()
+
     def resetBuffer(self):
         '''
         Resetting the buffer
@@ -654,7 +678,6 @@ class MyWidget(QtWidgets.QWidget):
         '''
         Init buffer size using the seqDict length
         '''
-
         self.resetBuffer()
         # Sending One frame to check the time
         frameList = []
@@ -753,6 +776,8 @@ class MyWidget(QtWidgets.QWidget):
         worker = Worker(frameList, current, **self.imgDict)
         worker.signals.result.connect(self.queueResult)
         self.threadpool.start(worker)
+
+        self.refreshImg()
 
     def cacheAllFrames(self):
         '''
@@ -1414,7 +1439,19 @@ class MyWidget(QtWidgets.QWidget):
         self.seqDict[shot] = resizedVersionList
 
         # Need to implement a re cache of the shot before the image update, for now need to do it manually
+        self.resetShotBuffer()
+        currentFrameVar = [self.seqDict[shot][currentPos]]
+        print(self.imgDict["path"])
+        print(currentFrameVar)
+        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],currentFrameVar, self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"], self.imgDict)
+
+        self.imgDict["buffer"][(self.frameNumber.slider.value())] = tempImg
+        convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
+
+        self.cacheCurrentFrame()
         self.imageUpdate()
+        self.jumpFrameBackward()
+        self.jumpFrameForward()
 
     def matchListLen(self, listA, listB):
         '''

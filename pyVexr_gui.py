@@ -1436,7 +1436,19 @@ class MyWidget(QtWidgets.QWidget):
                 #print("current is : {}".format(current))
 
         # In case listA is longer than list B
-                
+        if (lenA > lenB):
+            current = len(listA) // 2
+            while (len(listA) > len(listB)):
+                del listA[current]
+                previousCurrent = current
+                current = current // 2
+                if current == 1:
+                    current = 2
+                currentIter = current + previousCurrent
+                while currentIter < len(listA) and len(listA) > len(listB):
+                    del listA[currentIter]
+                    currentIter += previousCurrent
+
         return(listA)
 
 

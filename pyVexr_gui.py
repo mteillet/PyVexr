@@ -333,6 +333,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["previousShot"] = None
         self.imgDict["ContactSheet"] = False
         self.imgDict["ContactSheetChannels"] = []
+        self.imgDict["version"] = {} 
         self.p = None
         self.diagnostic = False
         self.playCount = []
@@ -632,6 +633,30 @@ class MyWidget(QtWidgets.QWidget):
         '''
         self.threadpool.clear()
 
+    def resetShotBuffer(self):
+        '''
+        Resetting the buffer on the current shot of the timeline
+        '''
+        self.stopBuffer()
+
+        currentPos = (self.frameNumber.slider.value())
+        shot =  self.timeLineDict[currentPos]["shot"]
+
+        bufferToReset = []
+
+        current = 0
+        for frame in self.timeLineDict:
+            if (self.timeLineDict[frame]["shot"] == shot):
+                bufferToReset.append(current)
+            current += 1
+
+        for i in bufferToReset:
+            self.imgDict["buffer"][i] = None
+
+        # TODO
+        # Would need to reset the cache draw only on the shot, and not the whole timeline
+        self.frameNumber._timeline.resetCacheDraw()
+
     def resetBuffer(self):
         '''
         Resetting the buffer
@@ -653,7 +678,6 @@ class MyWidget(QtWidgets.QWidget):
         '''
         Init buffer size using the seqDict length
         '''
-
         self.resetBuffer()
         # Sending One frame to check the time
         frameList = []
@@ -737,7 +761,7 @@ class MyWidget(QtWidgets.QWidget):
         '''
         Recalculating / Calculating the image for the current buffer
         '''
-        print("Recaching current Frame")
+        #print("Recaching current Frame")
         # Stopping the queue if workers are not created yet
         self.threadpool.clear()
 
@@ -752,6 +776,8 @@ class MyWidget(QtWidgets.QWidget):
         worker = Worker(frameList, current, **self.imgDict)
         worker.signals.result.connect(self.queueResult)
         self.threadpool.start(worker)
+
+        self.refreshImg()
 
     def cacheAllFrames(self):
         '''
@@ -969,7 +995,7 @@ class MyWidget(QtWidgets.QWidget):
 
         #Init the slider
         self.initSlider(seqDict)
-
+        self.buildVersioningDict()
         # Calculating the actual image from the backend
         tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"], self.imgDict)
 
@@ -1056,6 +1082,7 @@ class MyWidget(QtWidgets.QWidget):
 
         if isSameShot != True:
             self.listChannels()
+            self.listVersions()
         
     def playForward(self):
         if (self.playBtn.isChecked() == True):
@@ -1302,12 +1329,15 @@ class MyWidget(QtWidgets.QWidget):
 
         return(self.timeLineDict)
 
-
     def updateImgDict(self, path):
         self.imgDict["path"] = path
         self.imgDict["channel"] = None
         self.loadFile()
         self.listChannels()
+        try:
+            self.listVersions()
+        except:
+            self.listVersions()
         self.imgDict["previousShot"] = (self.frameNumber.label.text()[7:])
 
     def dragEnterEvent(self, event):
@@ -1332,6 +1362,7 @@ class MyWidget(QtWidgets.QWidget):
             self.imgDict["path"] = filenames
             self.loadFile()
             self.listChannels()
+            self.listVersions()
 
     def channelsClicked(self):
         #print(self.channelsDock.isVisible())
@@ -1347,8 +1378,105 @@ class MyWidget(QtWidgets.QWidget):
             self.versionsDock.hide()
 
     def addNewVersion(self):
-        print("Add version")
+        openDialog = QtWidgets.QFileDialog.getOpenFileName(self, "New Version")
+        newVersion = [(openDialog[0])]
 
+        imagesFromNewVersion = list((seqFromPath(newVersion)).values())[0]
+
+        currentPos = self.frameNumber.slider.value()
+        shot = self.timeLineDict[currentPos]["shot"]
+
+        # Getting number of version to know what tag to give the newest one
+        numberOfVersions = len(list(self.imgDict["version"][shot].keys())) - 1
+        self.imgDict["version"][shot]["v_{}".format(str(numberOfVersions+1).zfill(4))] = imagesFromNewVersion
+
+        self.listVersions()
+
+    def buildVersioningDict(self):
+        # Building the versioning dictionnary
+        for i in self.seqDict:
+            self.imgDict["version"][i] = {}
+            self.imgDict["version"][i]["v_0000"] = self.seqDict[i]
+
+    def listVersions(self):
+        currentPos = (self.frameNumber.slider.value())
+        frame = self.frameNumber.returnFrame(currentPos)
+        shot = (self.timeLineDict[currentPos]["shot"])
+
+        #print(self.imgDict["version"][shot].keys())
+        versionsButtonList = []
+        current = 0
+        for i in self.imgDict["version"][shot].keys():
+            #print("Creating versions buttons")
+            versionBtn = QtWidgets.QPushButton("v_{}".format(str(current).zfill(4)))
+            versionBtn.clicked.connect(self.switchVersion)
+            versionsButtonList.append(versionBtn)
+            current += 1
+
+        # Removing older versions
+        layout = self.versionsLayout
+        if (layout.count()) > 3:
+            for i in range(layout.count()-1,-1,-1):
+                widget = layout.itemAt(i).widget()
+                if isinstance(widget, QtWidgets.QPushButton):
+                    if widget.text().startswith("v_"):
+                        layout.removeWidget(widget)
+                        widget.deleteLater()
+
+        # Adding versions button
+        for btn in versionsButtonList:
+             self.versionsLayout.addWidget(btn)
+
+    def switchVersion(self):
+        currentPos = (self.frameNumber.slider.value())
+        shot =  self.timeLineDict[currentPos]["shot"]
+
+        # Getting the new version path to assign
+        versionToAssign = self.imgDict["version"][shot][self.sender().text()]
+
+        # Assign on same frame range as the previous shot
+        resizedVersionList = self.matchListLen(versionToAssign, self.seqDict[shot])
+        self.seqDict[shot] = resizedVersionList
+
+        # Need to implement a re cache of the shot before the image update, for now need to do it manually
+        self.resetShotBuffer()
+        self.cacheCurrentFrame()
+        self.imageUpdate()
+
+    def matchListLen(self, listA, listB):
+        '''
+        Modify listA so it matches the len of listB and only contains items from listA
+        '''
+        lenA = len(listA)
+        lenB = len(listB)
+
+        # In case listA is not as long as list B
+        if (lenA < lenB):
+            current = 0
+            while (len(listA) < len(listB)):
+                listA.insert(current+1, listA[current])
+                if (current + 2) < len(listA):
+                    current += 2
+                else:
+                    current = 0
+                #print("length list A is : {}".format(len(listA)))
+                #print("current is : {}".format(current))
+
+        # In case listA is longer than list B
+        if (lenA > lenB):
+            current = len(listA) // 2
+            while (len(listA) > len(listB)):
+                del listA[current]
+                previousCurrent = current
+                current = current // 2
+                if current == 1:
+                    current = 2
+                currentIter = current + previousCurrent
+                while currentIter < len(listA) and len(listA) > len(listB):
+                    del listA[currentIter]
+                    currentIter += previousCurrent
+
+        return(listA)
 
 
     def listChannels(self):
@@ -1386,16 +1514,34 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["channel"] = sender.text()
         self.imageUpdate()
 
+    def getRelativeFrameIndex(self):
+        currentPos = (self.frameNumber.slider.value())
+
+        shot =  self.timeLineDict[currentPos]["shot"]
+        posRelativeToShot = 0
+        for anyshot in self.seqDict:
+            if len(self.seqDict[anyshot]) < currentPos:
+                 #print("Not in shot {}, continuing".format(anyshot))
+                posRelativeToShot += - len(self.seqDict[anyshot])
+        posRelativeToShot += currentPos
+        return(posRelativeToShot)
+
     def refreshImg(self):
         self.checkIfBufferStateChanged()
 
-
         currentPos = (self.frameNumber.slider.value())
-        frame = self.frameNumber.returnFrame(currentPos)
+        # DEPRECATED, since the versioning has been added.
+        # REPLACED by the seqDict access you'll find under
+        #frame = self.frameNumber.returnFrame(currentPos)
+        #print(frame)
+        #self.imgDict["path"] = [frame]
+
+        shot =  self.timeLineDict[currentPos]["shot"]
+        # Finding the index of the frame relative to current shot
+        posRelativeToShot = self.getRelativeFrameIndex()
+        self.imgDict["path"] = [self.seqDict[shot][posRelativeToShot]]
 
         #print("check buffer at position {} and frame {}".format(currentPos, frame))
-        self.imgDict["path"] = [frame]
-
         tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"],self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"], self.imgDict)
 
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
@@ -1599,6 +1745,7 @@ class Worker(QtCore.QRunnable):
         #print(self.args)
         #print(self.kwargs)
         img= bufferBackEnd(self.kwargs, self.args[0], self.args[1])
+        #print(self.kwargs)
         #print("img obtained in {}".format(t1-t0))
 
         self.signals.finished.emit()

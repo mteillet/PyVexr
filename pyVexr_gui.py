@@ -761,7 +761,7 @@ class MyWidget(QtWidgets.QWidget):
         '''
         Recalculating / Calculating the image for the current buffer
         '''
-        print("Recaching current Frame")
+        #print("Recaching current Frame")
         # Stopping the queue if workers are not created yet
         self.threadpool.clear()
 
@@ -1440,18 +1440,8 @@ class MyWidget(QtWidgets.QWidget):
 
         # Need to implement a re cache of the shot before the image update, for now need to do it manually
         self.resetShotBuffer()
-        currentFrameVar = [self.seqDict[shot][currentPos]]
-        print(self.imgDict["path"])
-        print(currentFrameVar)
-        tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],currentFrameVar, self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"], self.imgDict)
-
-        self.imgDict["buffer"][(self.frameNumber.slider.value())] = tempImg
-        convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
-
         self.cacheCurrentFrame()
         self.imageUpdate()
-        self.jumpFrameBackward()
-        self.jumpFrameForward()
 
     def matchListLen(self, listA, listB):
         '''
@@ -1524,16 +1514,34 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["channel"] = sender.text()
         self.imageUpdate()
 
+    def getRelativeFrameIndex(self):
+        currentPos = (self.frameNumber.slider.value())
+
+        shot =  self.timeLineDict[currentPos]["shot"]
+        posRelativeToShot = 0
+        for anyshot in self.seqDict:
+            if len(self.seqDict[anyshot]) < currentPos:
+                 #print("Not in shot {}, continuing".format(anyshot))
+                posRelativeToShot += - len(self.seqDict[anyshot])
+        posRelativeToShot += currentPos
+        return(posRelativeToShot)
+
     def refreshImg(self):
         self.checkIfBufferStateChanged()
 
-
         currentPos = (self.frameNumber.slider.value())
-        frame = self.frameNumber.returnFrame(currentPos)
+        # DEPRECATED, since the versioning has been added.
+        # REPLACED by the seqDict access you'll find under
+        #frame = self.frameNumber.returnFrame(currentPos)
+        #print(frame)
+        #self.imgDict["path"] = [frame]
+
+        shot =  self.timeLineDict[currentPos]["shot"]
+        # Finding the index of the frame relative to current shot
+        posRelativeToShot = self.getRelativeFrameIndex()
+        self.imgDict["path"] = [self.seqDict[shot][posRelativeToShot]]
 
         #print("check buffer at position {} and frame {}".format(currentPos, frame))
-        self.imgDict["path"] = [frame]
-
         tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"],self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"], self.imgDict)
 
         convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
@@ -1737,6 +1745,7 @@ class Worker(QtCore.QRunnable):
         #print(self.args)
         #print(self.kwargs)
         img= bufferBackEnd(self.kwargs, self.args[0], self.args[1])
+        #print(self.kwargs)
         #print("img obtained in {}".format(t1-t0))
 
         self.signals.finished.emit()

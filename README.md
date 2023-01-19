@@ -18,6 +18,7 @@ Built using Python, C++, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 	- [x] Scroll through multiple shots easily
 	- [x] Playlist save and opening
 		- [X] Add neighbouring shots to shots / playlists
+	- [X] Multiple versions on each shot in order switch and compare them easily
 - [x] Easily Pan, Zoom, Mirror the image
 - [x] Visualize independently R/G/B/A channels 
 	- [x] Luminance view
@@ -50,7 +51,7 @@ Built using Python, C++, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 	- [ ] DPX 10 bits
 	- [ ] DCP
 - [x] C++ OpenExr backend
-- [ ] Multiple versions on each shot in order to compare them easily
+-	[ ] C++ Multilayer exr optimizations
 - [ ] Switch between movie and images if they exist in the same folder with the same naming
 - [ ] Picker to get values from specific pixels
 

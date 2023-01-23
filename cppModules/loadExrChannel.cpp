@@ -23,8 +23,8 @@ namespace py = pybind11;
 std::vector<py::array_t<float>> loadExrChan(const std::string& filename, const std::vector<std::string>& selectedChannels){
 // Open the .exr file 
 	Imf::MultiPartInputFile exrFile(filename.c_str());
-
 	std::vector<py::array_t<float>> result;
+	Imf::FrameBuffer frameBuffer;
 
 	for (int i = 0; i < exrFile.parts(); ++i) {
 		Imf::InputPart inputPart(exrFile, i);
@@ -32,8 +32,7 @@ std::vector<py::array_t<float>> loadExrChan(const std::string& filename, const s
 		int width = header.dataWindow().max.x - header.dataWindow().min.x + 1 ;
 		int height = header.dataWindow().max.y - header.dataWindow().min.y + 1;
 		Imf::ChannelList channels = inputPart.header().channels();
-		Imf::Array2D<Imf::Rgba> pixels;
-		pixels.resizeErase(inputPart.header().dataWindow().max.y - inputPart.header().dataWindow().min.y + 1, inputPart.header().dataWindow().max.x - inputPart.header().dataWindow().min.x + 1);
+		Imf::Array2D<Imf::Rgba> pixels(height, width);
 		Imf::FrameBuffer frameBuffer;
 
 		// Iterate over all selected channels
@@ -42,7 +41,7 @@ std::vector<py::array_t<float>> loadExrChan(const std::string& filename, const s
 			if (Imf::Channel *channel = channels.findChannel(channelName.c_str())) {
 				// Setup frame buffer for the current channel
 				//Imf::Rgba *pixel = &(*pixels.begin());
-				frameBuffer.insert(channelName.c_str(), Imf::Slice(Imf::FLOAT, (char*)pixels, sizeof(Imf::Rgba), sizeof(Imf::Rgba) * pixels.width()));
+				frameBuffer.insert(channelName.c_str(), Imf::Slice(Imf::FLOAT, (char*)(&pixels[0][0]), sizeof(Imf::Rgba), sizeof(Imf::Rgba) * pixels.width()));
 				inputPart.setFrameBuffer(frameBuffer);
 				inputPart.readPixels(inputPart.header().dataWindow().min.y, inputPart.header().dataWindow().max.y);
 

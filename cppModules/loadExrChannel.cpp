@@ -21,7 +21,7 @@ using namespace Imath;
 namespace py = pybind11;
 
 std::vector<py::array_t<float>> loadExrChan(const std::string& filename, const std::vector<std::string>& selectedChannels){
-// Open the .exr file 
+	// Open the .exr file 
 	Imf::MultiPartInputFile exrFile(filename.c_str());
 	std::vector<py::array_t<float>> result;
 	Imf::FrameBuffer frameBuffer;
@@ -33,12 +33,18 @@ std::vector<py::array_t<float>> loadExrChan(const std::string& filename, const s
 		int height = header.dataWindow().max.y - header.dataWindow().min.y + 1;
 		Imf::ChannelList channels = inputPart.header().channels();
 		Imf::Array2D<Imf::Rgba> pixels(height, width);
-		Imf::FrameBuffer frameBuffer;
 
 		// Iterate over all selected channels
 		for (const auto& channelName : selectedChannels) {
 			// Check if the channel exists in the file
-			if (Imf::Channel *channel = channels.findChannel(channelName.c_str())) {
+			if (!channels.findChannel(channelName.c_str())){
+				throw std::runtime_error("channel " + channelName + " not found in file");
+			}
+			else {
+				// Get the channel type
+				Imf::PixelType pixelType = channels.findChannel(channelName.c_str())->type;
+				// Make the buffer an 16 bits Imf::HALF if pixelType = 1
+				std::cout << channelName.c_str() << std::endl;
 				// Setup frame buffer for the current channel
 				//Imf::Rgba *pixel = &(*pixels.begin());
 				frameBuffer.insert(channelName.c_str(), Imf::Slice(Imf::FLOAT, (char*)(&pixels[0][0]), sizeof(Imf::Rgba), sizeof(Imf::Rgba) * pixels.width()));
@@ -56,10 +62,6 @@ std::vector<py::array_t<float>> loadExrChan(const std::string& filename, const s
 				}
 				result.push_back(channelData);
 			} 
-			else {
-				// Throw an error if the specified channel is not found in the file
-				throw std::runtime_error("channel " + channelName + " not found in file");
-			}
 		}
 	}
 	return result;

@@ -26,6 +26,30 @@ std::vector<py::array_t<float>> loadExrChan(const std::string& filename, const s
 	std::vector<py::array_t<float>> result;
 	Imf::FrameBuffer frameBuffer;
 
+	int partId = 0;
+
+	// Getting the exr part in which the channels are contained
+	for (int i = 0; i < exrFile.parts(); i++) {
+		if (exrFile.header(i).channels().findChannel(selectedChannels[0].c_str()) != nullptr){
+			partId = i;
+		}
+	}
+
+	// Setting up the image dimensions
+	const Imath::Box2i display = exrFile.header(partId).displayWindow();
+	const Imath::Box2i data = exrFile.header(partId).dataWindow();
+	const Imath::V2i dim(data.max.y - data.min.x + 1, data.max.y - data.min.y + 1);
+	// For now setting up a half buffer of image X axis, not sure it is actually what's needed
+	half buffer[data.max.y - data.min.x + 1];
+	
+	// Setting up default as HALF 16-bits
+	uint8_t strideMult = 4;
+	uint8_t stideOffset = 0;
+	//uint8_t dataSize = Size::Size16;
+	Imf::PixelType pixelType = Imf::HALF;
+
+	half* bufferHalfCast = static_cast<half*>(buffer);
+
 	for (int i = 0; i < exrFile.parts(); ++i) {
 		Imf::InputPart inputPart(exrFile, i);
 		Imf::Header header = inputPart.header();

@@ -44,11 +44,43 @@ std::vector<py::array_t<float>> loadExrChan(const std::string& filename, const s
 	
 	// Setting up default as HALF 16-bits
 	uint8_t strideMult = 4;
-	uint8_t stideOffset = 0;
-	//uint8_t dataSize = Size::Size16;
+	uint8_t strideOffset = 0;
+	uint8_t dataSize = 2;
 	Imf::PixelType pixelType = Imf::HALF;
 
 	half* bufferHalfCast = static_cast<half*>(buffer);
+	float* bufferFloatCast= (float*)buffer;
+
+	if (exrFile.header(partId).channels().findChannel(selectedChannels[0].c_str())->type== Imf::HALF) {
+		strideMult = 3;
+	}
+
+	if (exrFile.header(partId).channels().findChannel(selectedChannels[0].c_str())->type== Imf::FLOAT) {
+		dataSize = 4;
+		pixelType = Imf::FLOAT;
+	}
+
+	// Check if data window is smaller than display windos
+	// If so, fills the missing regions with black pixels
+	if (data.max.x < display.max.x || data.max.y < display.max.y ||
+	    data.min.x > display.min.x || data.min.y > display.min.y ) {
+		memset(buffer, 0.0f, (data.max.x - data.min.x + 1) * (data.max.y - data.min.y + 1) * (selectedChannels.size() < 3 ? 3 : selectedChannels.size()) * dataSize);
+	}
+
+	for (auto& channelName : selectedChannels){
+		if (channelName.compare("") == 0) continue;
+		if (pixelType == Imf::HALF) {
+			frameBuffer.insert(channelName.c_str(), Imf::Slice(pixelType, (char*) &bufferHalfCast[strideOffset], dataSize * (data.max.x - data.min.x + 1) * strideMult, 1, 1, 1.0));	
+		}
+		else if (pixelType == Imf::FLOAT) {
+			frameBuffer.insert(channelName.c_str(), Imf::Slice(pixelType, (char*) &bufferFloatCast[strideOffset], dataSize * (data.max.x - data.min.x + 1) * strideMult, 1, 1,1.0));
+		}
+		++strideOffset;
+	}
+
+
+
+
 
 	for (int i = 0; i < exrFile.parts(); ++i) {
 		Imf::InputPart inputPart(exrFile, i);

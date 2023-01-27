@@ -78,49 +78,45 @@ std::vector<py::array_t<float>> loadExrChan(const std::string& filename, const s
 		++strideOffset;
 	}
 
+	Imf::InputPart inputPart(exrFile, partId);
 
+	inputPart.setFrameBuffer(frameBuffer);
+	inputPart.readPixels(data.min.y, data.max.y);
 
-
-
-	for (int i = 0; i < exrFile.parts(); ++i) {
-		Imf::InputPart inputPart(exrFile, i);
-		Imf::Header header = inputPart.header();
-		int width = header.dataWindow().max.x - header.dataWindow().min.x + 1 ;
-		int height = header.dataWindow().max.y - header.dataWindow().min.y + 1;
-		Imf::ChannelList channels = inputPart.header().channels();
-		Imf::Array2D<Imf::Rgba> pixels(height, width);
-
-		// Iterate over all selected channels
-		for (const auto& channelName : selectedChannels) {
-			// Check if the channel exists in the file
-			if (!channels.findChannel(channelName.c_str())){
-				throw std::runtime_error("channel " + channelName + " not found in file");
-			}
-			else {
-				// Get the channel type
-				Imf::PixelType pixelType = channels.findChannel(channelName.c_str())->type;
-				// Make the buffer an 16 bits Imf::HALF if pixelType = 1
-				std::cout << channelName.c_str() << std::endl;
-				// Setup frame buffer for the current channel
-				//Imf::Rgba *pixel = &(*pixels.begin());
-				frameBuffer.insert(channelName.c_str(), Imf::Slice(Imf::FLOAT, (char*)(&pixels[0][0]), sizeof(Imf::Rgba), sizeof(Imf::Rgba) * pixels.width()));
-				inputPart.setFrameBuffer(frameBuffer);
-				inputPart.readPixels(inputPart.header().dataWindow().min.y, inputPart.header().dataWindow().max.y);
-
-				// Convert the Array2D to a numpy array
-				py::array_t<float> channelData({pixels.height(), pixels.width()});
-				auto channelDataBuffer = channelData.request();
-				float *channelDataPtr = (float *)channelDataBuffer.ptr;
-				for (int i = 0; i < pixels.height(); ++i) {
-					for (int j = 0; j < pixels.width(); j++){
-					channelDataPtr[i * pixels.width() + j] = pixels[i][j].r;
-					}
+	// If only a single channel is in the vector selectedChannels, copy it to the 2 other ones
+	if (selectedChannels.size() < 3) {
+		if (pixelType == Imf::FLOAT){
+			for (uint32_t y = 0; y < static_cast<uint32_t>(data.max.y - data.min.y + 1); y++) {
+				for (uint32_t x = 0; x < static_cast<uint32_t>(data.max.x - data.min.x + 1); x += 3) {
+					// red channel
+					float rVal = bufferFloatCast[x + y * (data.max.x - data.min.x + 1) * 3];
+					// copy red channel to green 
+					bufferFloatCast[x + 1 + y * (data.max.x - data.min.x + 1) * 3] = rVal;
+					// copy red channel to blue
+					bufferFloatCast[x + 2 + y * (data.max.x - data.min.x + 1) * 3] = rVal;
 				}
-				result.push_back(channelData);
-			} 
+			}
+		}
+		else if(pixelType == Imf::HALF){
+			for (uint32_t y = 0; y < static_cast<uint32_t>(data.max.y - data.min.y + 1); y++) {
+				for (uint32_t x = 0; x < static_cast<uint32_t>(data.max.x - data.min.x + 1); x += 3) {
+					float rVal = bufferHalfCast[x + y * (data.max.x - data.min.x + 1) * 3];
+					bufferHalfCast[x + 1 + y * (data.max.x - data.min.x + 1) * 3] = rVal;
+					bufferHalfCast[x + 2 + y * (data.max.x - data.min.x + 1) * 3] = rVal;
+			
+				}
+			}
+			return(bufferHalfCast);
 		}
 	}
-	return result;
+	/*
+	else if (selectedChannels.size() == 3) {
+		if (pixelType == Imf::FLOAT){
+		}
+		else if (pixelType == Imf::HALF){
+		}
+	}
+	*/
 }
 
 PYBIND11_MODULE(loadExrChannel, m) {

@@ -383,15 +383,27 @@ def initOcio2(ocioVar):
     config = OCIO.Config.CreateFromFile(ocioVar)
 
     colorSpaces = config.getActiveViews().split(", ")
+    print(colorSpaces)
     # In case no active views were declared in the OCIO
+    """
     if colorSpaces == [""]:
         #colorSpaces = config.getViews().split(", ")
         colorSpaces = []
         csNames = (config.getColorSpaceNames())
         for cs in csNames:
             colorSpaces.append(cs)
-    displays = config.getActiveDisplays().split(", ")
+    """
+    csNames = (config.getColorSpaceNames())
+    for cs in csNames:
+        colorSpaces.append(cs)
+
+    #displays = config.getActiveDisplays().split(", ")
+    displays = []
+    displayNames = config.getDisplays()
+    for disp in displayNames:
+        displays.append(disp)
     color = config.getColorSpaces()
+    print("Displays at first check are : ".format(displays))
 
     inputInterp = []
 
@@ -406,6 +418,7 @@ def initOcio2(ocioVar):
     # Adding the default display to the display list 
     if not displays:
         displays.append(config.getDefaultDisplay())
+    print("Displays at second check are : ".format(displays))
 
     return(colorSpaces,inputInterp,displays)
 
@@ -551,9 +564,9 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     Custom Ocio transform following the ocio prefs set by user when ocio button is toggled
     '''
     config = OCIO.Config.CreateFromFile(ocioVar)
-    #print(ocioOut)
-    #print(ocioIn)
-    #print(ocioDisplay)
+    #print("ocio Out var {}".format(ocioOut))
+    #print("ocio In var {}".format(ocioIn))
+    #print("ocio Display var {}".format(ocioDisplay))
 
     colorspaces = config.getColorSpaces()
 

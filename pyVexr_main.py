@@ -383,7 +383,7 @@ def initOcio2(ocioVar):
     config = OCIO.Config.CreateFromFile(ocioVar)
 
     colorSpaces = config.getActiveViews().split(", ")
-    print(colorSpaces)
+    #print(colorSpaces)
     # In case no active views were declared in the OCIO
     """
     if colorSpaces == [""]:
@@ -403,7 +403,7 @@ def initOcio2(ocioVar):
     for disp in displayNames:
         displays.append(disp)
     color = config.getColorSpaces()
-    print("Displays at first check are : ".format(displays))
+    #print("Displays at first check are : ".format(displays))
 
     inputInterp = []
 
@@ -418,7 +418,7 @@ def initOcio2(ocioVar):
     # Adding the default display to the display list 
     if not displays:
         displays.append(config.getDefaultDisplay())
-    print("Displays at second check are : ".format(displays))
+    #print("Displays at second check are : ".format(displays))
 
     return(colorSpaces,inputInterp,displays)
 
@@ -572,9 +572,11 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
 
     transform = OCIO.DisplayViewTransform()
     transform.setSrc(ocioIn)
+    print("Ths ocio source is set as {}".format(ocioIn))
     if ocioDisplay:
         # Checking if the current view is suited for the colorpsace to avoid errors
         # Retrieving colorspaces from view
+        print("Display is : {}".format(ocioOut))
         displayViews = (config.getViews(ocioDisplay))
         availableDisplays = []
         for disp in displayViews:

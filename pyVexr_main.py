@@ -563,11 +563,22 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     '''
     Custom Ocio transform following the ocio prefs set by user when ocio button is toggled
     '''
+    # temp line for changing the ocioVar to aces
+    ocioVar = "/home/martin/Documents/BOURDONNEMENT_EXRs/ocios/OpenColorIO-Config-ACES-1.2/aces_1.2/config.ocio"
+    ocioIn = "ACEScg"
+    ocioOut = "Output - sRGB"
+    ocioDisplay = "Linear(None)"
     config = OCIO.Config.CreateFromFile(ocioVar)
-    #print("ocio Out var {}".format(ocioOut))
-    #print("ocio In var {}".format(ocioIn))
-    #print("ocio Display var {}".format(ocioDisplay))
+    print("ocio Out var {}".format(ocioOut))
+    print("ocio In var {}".format(ocioIn))
+    print("ocio Display var {}".format(ocioDisplay))
 
+
+    processor = config.getProcessor(ocioIn, ocioOut)
+    cpu = processor.getDefaultCPUProcessor()
+
+    img = cpu.applyRGB(img)
+    '''
     colorspaces = config.getColorSpaces()
 
     transform = OCIO.DisplayViewTransform()
@@ -604,8 +615,12 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
 
     cpu = processor.getDefaultCPUProcessor()
 
+    
+
     #displays = transform.getDisplays()
     img = cpu.applyRGB(img)
+
+    '''
 
     #print(dir(transform))
     return(img)

@@ -576,8 +576,10 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
 
     processor = config.getProcessor(ocioIn, ocioOut)
     cpu = processor.getDefaultCPUProcessor()
-
     img = cpu.applyRGB(img)
+
+    dispTransform = config.getViews(ocioDisplay)
+
     '''
     colorspaces = config.getColorSpaces()
 

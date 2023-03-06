@@ -1058,7 +1058,7 @@ class MyWidget(QtWidgets.QWidget):
         frame = self.frameNumber.returnFrame(currentPos)
         #print(self.frameNumber)
         positionMax = (self.frameNumber.slider.maximum())
-        isSameShot = True
+        #isSameShot = True
 
         # Updating the layers on the new shot
         # Adding exception in case first drag and drop and the timeLineDict has not been created yet (avoid errors on splashcreen)
@@ -1067,6 +1067,7 @@ class MyWidget(QtWidgets.QWidget):
                 isSameShot = False
                 self.imgDict["channel"] = None
                 self.imgDict["previousShot"] = self.timeLineDict[currentPos]["shot"]
+                self.listVersions()
                 #print("DifferentShot")
 
         except KeyError:
@@ -1082,7 +1083,6 @@ class MyWidget(QtWidgets.QWidget):
 
         if isSameShot != True:
             self.listChannels()
-            self.listVersions()
         
     def playForward(self):
         if (self.playBtn.isChecked() == True):

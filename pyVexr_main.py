@@ -418,7 +418,7 @@ def initOcio2(ocioVar):
     # Adding the default display to the display list 
     if not displays:
         displays.append(config.getDefaultDisplay())
-    #print("Displays at second check are : ".format(displays))
+    print("Displays at second check are : ".format(displays))
 
     return(colorSpaces,inputInterp,displays)
 

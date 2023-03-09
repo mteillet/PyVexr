@@ -380,6 +380,12 @@ def initOcio2(ocioVar):
     '''
     Def responsible for populating the ocio menus if no config file is found
     '''
+    # Judging from the Nuke config, using aces v2
+    # /home/martin/Downloads/cg-config-v0.2.0_aces-v1.3_ocio-v2.1.2.ocio
+    # To match nuke result, the default ACES config should be as follows:
+    # Input Transform = scene_linear(ACEScg)
+    # Working space = compositing_log(ACEScct)
+    # Viewer Proccess = ACES 1.0 - SDR Video (sRGB - Display)
     config = OCIO.Config.CreateFromFile(ocioVar)
 
     colorSpaces = config.getActiveViews().split(", ")

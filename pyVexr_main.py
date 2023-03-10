@@ -380,12 +380,7 @@ def initOcio2(ocioVar):
     '''
     Def responsible for populating the ocio menus if no config file is found
     '''
-    # Judging from the Nuke config, using aces v2
-    # /home/martin/Downloads/cg-config-v0.2.0_aces-v1.3_ocio-v2.1.2.ocio
-    # To match nuke result, the default ACES config should be as follows:
-    # Input Transform = scene_linear(ACEScg)
-    # Working space = compositing_log(ACEScct)
-    # Viewer Proccess = ACES 1.0 - SDR Video (sRGB - Display)
+
     config = OCIO.Config.CreateFromFile(ocioVar)
 
     colorSpaces = config.getActiveViews().split(", ")
@@ -569,24 +564,33 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     '''
     Custom Ocio transform following the ocio prefs set by user when ocio button is toggled
     '''
+# Judging from the Nuke config, using aces v2
+    # /home/martin/Downloads/cg-config-v0.2.0_aces-v1.3_ocio-v2.1.2.ocio
+    # To match nuke result, the default ACES config should be as follows:
+    # Input Transform = scene_linear(ACEScg)
+    # Working space = compositing_log(ACEScct)
+    # Viewer Proccess = ACES 1.0 - SDR Video (sRGB - Display)
     # temp line for changing the ocioVar to aces
     ocioVar = "/home/martin/Documents/BOURDONNEMENT_EXRs/ocios/OpenColorIO-Config-ACES-1.2/aces_1.2/config.ocio"
     ocioIn = "ACEScg"
-    ocioOut = "Output - sRGB"
-    ocioDisplay = "Linear(None)"
+    ocioOut = "ACEScct"
+    ocioDisplay = "ACES 1.0 - SDR Video (sRGB - Display)"
     config = OCIO.Config.CreateFromFile(ocioVar)
-    print("ocio Out var {}".format(ocioOut))
-    print("ocio In var {}".format(ocioIn))
-    print("ocio Display var {}".format(ocioDisplay))
+
+    # Log print to check if corred is set
+    #print("ocio Out var {}".format(ocioOut))
+    #print("ocio In var {}".format(ocioIn))
+    #print("ocio Display var {}".format(ocioDisplay))
 
 
+    '''
     processor = config.getProcessor(ocioIn, ocioOut)
     cpu = processor.getDefaultCPUProcessor()
     img = cpu.applyRGB(img)
 
     dispTransform = config.getViews(ocioDisplay)
-
     '''
+
     colorspaces = config.getColorSpaces()
 
     transform = OCIO.DisplayViewTransform()
@@ -599,6 +603,7 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
         displayViews = (config.getViews(ocioDisplay))
         availableDisplays = []
         for disp in displayViews:
+            print(disp)
             availableDisplays.append(disp)
         if ocioOut not in availableDisplays:
             print("The colorspace : {} is not supported by the following display : {}".format(ocioOut, ocioDisplay))
@@ -628,7 +633,6 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     #displays = transform.getDisplays()
     img = cpu.applyRGB(img)
 
-    '''
 
     #print(dir(transform))
     return(img)

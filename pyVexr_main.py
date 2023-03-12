@@ -571,11 +571,14 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     # Working space = compositing_log(ACEScct)
     # Viewer Proccess = ACES 1.0 - SDR Video (sRGB - Display)
     # temp line for changing the ocioVar to aces
-    ocioVar = "/home/martin/Documents/BOURDONNEMENT_EXRs/ocios/OpenColorIO-Config-ACES-1.2/aces_1.2/config.ocio"
+    #ocioVar = "/home/martin/Documents/BOURDONNEMENT_EXRs/ocios/OpenColorIO-Config-ACES-1.2/aces_1.2/config.ocio"
+    ocioVar = "/home/martin/Documents/BOURDONNEMENT_EXRs/ocios/cg-config-v1.0.0_aces-v1.3_ocio-v2.0.ocio"
     ocioIn = "ACEScg"
     ocioOut = "ACEScct"
-    ocioDisplay = "ACES 1.0 - SDR Video (sRGB - Display)"
+    ocioDisplay = "sRGB - Display"
     config = OCIO.Config.CreateFromFile(ocioVar)
+    ocioVersion = "{}.{}".format(config.getMajorVersion(), config.getMinorVersion())
+    print("Using OCIO version {}".format(ocioVersion))
 
     # Log print to check if corred is set
     #print("ocio Out var {}".format(ocioOut))
@@ -595,11 +598,27 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
 
     transform = OCIO.DisplayViewTransform()
     transform.setSrc(ocioIn)
-    print("Ths ocio source is set as {}".format(ocioIn))
+    print("This ocio source is set as {}".format(ocioIn))
+
+    for cs in config.getColorSpaceNames():
+        print("ColorSpace : {}".format(cs))
+
+    for disp in config.getDisplaysAll():
+        print("Display : {}".format(disp))
+
+    # In ocio V2, need to use the shared views
+    # For ocio V1, use the getViews
+    for view in config.getSharedViews():
+        print("View : {}".format(view))
+    #for view in config.getViews():
+    #    print("Other view {}".format(view))
+
     if ocioDisplay:
         # Checking if the current view is suited for the colorpsace to avoid errors
         # Retrieving colorspaces from view
-        print("Display is : {}".format(ocioOut))
+        print("Colorspace out is : {}".format(ocioOut))
+
+        '''
         displayViews = (config.getViews(ocioDisplay))
         availableDisplays = []
         for disp in displayViews:
@@ -609,18 +628,19 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
             print("The colorspace : {} is not supported by the following display : {}".format(ocioOut, ocioDisplay))
             print("Defaulting the colorspace to {} in order to avoid unwanted ocio crash".format(availableDisplays[0]))
             ocioOut = availableDisplays[0]
-        transform.setDisplay(ocioDisplay)
-    else:
-        transform.setDisplay("sRGB")
-    transform.setView(ocioOut)
+        '''
+        #transform.setDisplay(ocioDisplay)
+    #transform.setView("Un-tone-mapped")
+    transform.setView("ACES 1.0 - SDR Video")
+    transform.setDisplay("sRGB - Display")
     #print(transform)
 
     viewer = OCIO.LegacyViewingPipeline()
     viewer.setDisplayViewTransform(transform)
+
     if ocioLook != "None":
         viewer.setLooksOverrideEnabled(True)
         viewer.setLooksOverride(ocioLook)
-
 
     view = config.getDefaultView(ocioDisplay)
 
@@ -872,7 +892,7 @@ def layerContactSheetBackend(chanList, imgDict):
     current = 0
     for image in redChannels:
         currentchannel = cv.merge([blueChannels[current], greenChannels[current], redChannels[current]])
-        # Adding text overlat on the image
+        # Adding text overlay on the image
         cv.putText(currentchannel, chanList[current], (0,25), cv.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv.LINE_AA)
         imgList.append(currentchannel)
         current += 1

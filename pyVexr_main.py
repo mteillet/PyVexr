@@ -184,17 +184,18 @@ def saturationKernel(img, saturation, coefRGB):
     luma3d = np.repeat(luma[:,:, np.newaxis], 3, axis = 2)
     saturated = np.clip(((img - luma3d) * saturation + luma3d), 0, 255)
     
-
     return(saturated)
 
 
-def saturationTweak(img, saturation):
+def saturationTweak(img, saturation, ocioVar):
     '''
     Check and setup of saturation luma values before actual saturation is applied
     '''
     if saturation != 1:
-        # Settings for the luma calculations
-        coefRGB = [0.2126, 0.7152, 0.0722]
+        # Getting the actual luma coef RGB from the ocio setup
+        config = OCIO.Config.CreateFromFile(ocioVar)
+        coefRGB = config.getDefaultLumaCoefs()
+        #coefRGB = [0.2126, 0.7152, 0.0722]
         rgb = saturationKernel(img,saturation, coefRGB)
     else:
         rgb = img
@@ -380,47 +381,34 @@ def initOcio2(ocioVar):
     '''
     Def responsible for populating the ocio menus if no config file is found
     '''
+
     config = OCIO.Config.CreateFromFile(ocioVar)
 
-    colorSpaces = config.getActiveViews().split(", ")
-    #print(colorSpaces)
-    # In case no active views were declared in the OCIO
-    """
-    if colorSpaces == [""]:
-        #colorSpaces = config.getViews().split(", ")
-        colorSpaces = []
-        csNames = (config.getColorSpaceNames())
-        for cs in csNames:
-            colorSpaces.append(cs)
-    """
-    csNames = (config.getColorSpaceNames())
-    for cs in csNames:
-        colorSpaces.append(cs)
+    ccList, viewList = ocio2Version(config)
 
-    #displays = config.getActiveDisplays().split(", ")
-    displays = []
-    displayNames = config.getDisplays()
-    for disp in displayNames:
-        displays.append(disp)
-    color = config.getColorSpaces()
-    #print("Displays at first check are : ".format(displays))
+    return(ccList,ccList,viewList)
 
-    inputInterp = []
+def ocio2Version(config):
+    '''
+    Listing Colorspaces views and displays based on OCIO2 shared views setup
+    '''
+    # Getting colorspaces
+    ccList = []
+    colorspaces = config.getColorSpaceNames()
+    for cc in colorspaces:
+        ccList.append(cc)
+    #print(ccList)
 
-    for cs in color:
-        if (cs.getFamily().endswith("display") == True):
-            pass
-        else:
-            if (cs.getFamily().startswith("Appearances") == False):
-                inputInterp.append(cs.getName())
-        #print("{}, is : {}".format(cs.getName(), cs.getFamily()))
+    # Getting linked displays and views
+    viewList = []
+    displays = config.getDisplays()
+    for disp in displays:
+        view = config.getViews(disp)
+        for v in view:
+            viewList.append("{},{}".format(disp, v))
+    #print(viewList)
 
-    # Adding the default display to the display list 
-    if not displays:
-        displays.append(config.getDefaultDisplay())
-    #print("Displays at second check are : ".format(displays))
-
-    return(colorSpaces,inputInterp,displays)
+    return(ccList, viewList)
 
 def getLooks(ocioVar, colorSpace):
     '''
@@ -475,8 +463,6 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
     '''
     path = [path]
 
-    
-
     # Checking if a switch back to RGB / default channel will be needed
     if path[0].endswith(".exr"):
         channel = checkFirstExrChannel(path, channel, channelRGBA)
@@ -521,15 +507,13 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
     cv.imshow("Display window", img)
     k = cv.waitKey(0)
     '''
-
     # SaturationChange
     if (saturation != 1):
-        img = saturationTweak(img, saturation)
+        img = saturationTweak(img, saturation, ocioVar)
 
     #ExposureChange
     if (exposure != 0):
         img = exposureUp.expoUp(img, exposure)
-
 
     if(img.dtype == "float32"):
         # Making the actual OCIO Transform
@@ -563,73 +547,44 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     '''
     Custom Ocio transform following the ocio prefs set by user when ocio button is toggled
     '''
-    # temp line for changing the ocioVar to aces
-    ocioVar = "/home/martin/Documents/BOURDONNEMENT_EXRs/ocios/OpenColorIO-Config-ACES-1.2/aces_1.2/config.ocio"
-    ocioIn = "ACEScg"
-    ocioOut = "Output - sRGB"
-    ocioDisplay = "Linear(None)"
+    # Need to shuffle the channel order in ocio in order to switch the R and B channels (thanks openCV)
+    img = img[...,::-1]
+
     config = OCIO.Config.CreateFromFile(ocioVar)
-    print("ocio Out var {}".format(ocioOut))
-    print("ocio In var {}".format(ocioIn))
-    print("ocio Display var {}".format(ocioDisplay))
+    ocioVersion = "{}.{}".format(config.getMajorVersion(), config.getMinorVersion())
+    disp, view = ocioDisplay.split(",")
 
+    # Colorpsace conversion if the in and out colorspaces are different
+    if ocioIn != ocioOut:
+        #print("Conversion from {} to {}".format(ocioIn, ocioOut))
+        transform = OCIO.ColorSpaceTransform()
+        processor = config.getProcessor(ocioIn, ocioOut)
+        cpu = processor.getDefaultCPUProcessor()
+        cpu.applyRGB(img)
 
-    processor = config.getProcessor(ocioIn, ocioOut)
-    cpu = processor.getDefaultCPUProcessor()
-    img = cpu.applyRGB(img)
-
-    dispTransform = config.getViews(ocioDisplay)
-
-    '''
-    colorspaces = config.getColorSpaces()
-
+    # View Transform conversion for display
     transform = OCIO.DisplayViewTransform()
-    transform.setSrc(ocioIn)
-    print("Ths ocio source is set as {}".format(ocioIn))
-    if ocioDisplay:
-        # Checking if the current view is suited for the colorpsace to avoid errors
-        # Retrieving colorspaces from view
-        print("Display is : {}".format(ocioOut))
-        displayViews = (config.getViews(ocioDisplay))
-        availableDisplays = []
-        for disp in displayViews:
-            availableDisplays.append(disp)
-        if ocioOut not in availableDisplays:
-            print("The colorspace : {} is not supported by the following display : {}".format(ocioOut, ocioDisplay))
-            print("Defaulting the colorspace to {} in order to avoid unwanted ocio crash".format(availableDisplays[0]))
-            ocioOut = availableDisplays[0]
-        transform.setDisplay(ocioDisplay)
-    else:
-        transform.setDisplay("sRGB")
-    transform.setView(ocioOut)
-    #print(transform)
+    transform.setSrc(ocioOut)
+    transform.setView(view)
+    transform.setDisplay(disp)
 
     viewer = OCIO.LegacyViewingPipeline()
     viewer.setDisplayViewTransform(transform)
     if ocioLook != "None":
         viewer.setLooksOverrideEnabled(True)
         viewer.setLooksOverride(ocioLook)
-
-
-    view = config.getDefaultView(ocioDisplay)
-
     processor = viewer.getProcessor(config, config.getCurrentContext())
-
     cpu = processor.getDefaultCPUProcessor()
-
-    
-
-    #displays = transform.getDisplays()
     img = cpu.applyRGB(img)
 
-    '''
-
-    #print(dir(transform))
     return(img)
 
-
 def clampImg(img):
+    '''
+    Clamping 8 bit RGB values above 255 and below 0 to avoid errors
+    '''
     img[img>255] = 255
+    img[img<0] = 0
     return(img)
 
 def ocio(img):
@@ -649,10 +604,6 @@ def ocio(img):
     processor = config.getProcessor("Linear", "sRGB")
     cpu = processor.getDefaultCPUProcessor()
     img = cpu.applyRGB(img)
-
-
-    # Calling filmicBaseContrast
-    #filmicBaseContrast(img)
 
 def createVideoWriter(imgDict, frameList, current, destination):
 
@@ -720,7 +671,7 @@ def convertForVideo(path, ocioIn, ocioOut, ocioLook, exposure, saturation, chann
 
     # SaturationChange
     if (saturation != 1):
-        img = saturationTweak(img, saturation)
+        img = saturationTweak(img, saturation, ocioVar)
 
     #ExposureChange
     if (exposure != 0):
@@ -862,7 +813,7 @@ def layerContactSheetBackend(chanList, imgDict):
     current = 0
     for image in redChannels:
         currentchannel = cv.merge([blueChannels[current], greenChannels[current], redChannels[current]])
-        # Adding text overlat on the image
+        # Adding text overlay on the image
         cv.putText(currentchannel, chanList[current], (0,25), cv.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv.LINE_AA)
         imgList.append(currentchannel)
         current += 1

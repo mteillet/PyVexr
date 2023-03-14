@@ -1699,7 +1699,11 @@ class MyWidget(QtWidgets.QWidget):
             self.imgDict["ocio"]["ocioDisplay"] = (config["ocioDisplay"])
             self.imgDict["ocio"]["ocioLook"] = (config["ocioLook"])
         else:
-            pass
+            cc, cc, dispView = initOcio2(self.imgDict["ocioVar"])
+            self.imgDict["ocio"]["ocioIn"] = cc[0]
+            self.imgDict["ocio"]["ocioOut"] = cc[0]
+            self.imgDict["ocio"]["ocioDisplay"] = dispView[0]
+
 
     def ocioToggleClicked(self):
         if (self.ocioToggle.isChecked() == True):

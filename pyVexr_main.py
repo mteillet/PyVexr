@@ -383,45 +383,31 @@ def initOcio2(ocioVar):
 
     config = OCIO.Config.CreateFromFile(ocioVar)
 
-    colorSpaces = config.getActiveViews().split(", ")
-    #print(colorSpaces)
-    # In case no active views were declared in the OCIO
-    """
-    if colorSpaces == [""]:
-        #colorSpaces = config.getViews().split(", ")
-        colorSpaces = []
-        csNames = (config.getColorSpaceNames())
-        for cs in csNames:
-            colorSpaces.append(cs)
-    """
-    csNames = (config.getColorSpaceNames())
-    for cs in csNames:
-        colorSpaces.append(cs)
+    ccList, viewList = ocio2Version(config)
 
-    #displays = config.getActiveDisplays().split(", ")
-    displays = []
-    displayNames = config.getDisplays()
-    for disp in displayNames:
-        displays.append(disp)
-    color = config.getColorSpaces()
-    #print("Displays at first check are : ".format(displays))
+    return(ccList,ccList,viewList)
 
-    inputInterp = []
+def ocio2Version(config):
+    '''
+    Listing Colorspaces views and displays based on OCIO2 shared views setup
+    '''
+    # Getting colorspaces
+    ccList = []
+    colorspaces = config.getColorSpaceNames()
+    for cc in colorspaces:
+        ccList.append(cc)
+    #print(ccList)
 
-    for cs in color:
-        if (cs.getFamily().endswith("display") == True):
-            pass
-        else:
-            if (cs.getFamily().startswith("Appearances") == False):
-                inputInterp.append(cs.getName())
-        #print("{}, is : {}".format(cs.getName(), cs.getFamily()))
+    # Getting linked displays and views
+    viewList = []
+    displays = config.getDisplays()
+    for disp in displays:
+        view = config.getViews(disp)
+        for v in view:
+            viewList.append("{},{}".format(disp, v))
+    #print(viewList)
 
-    # Adding the default display to the display list 
-    if not displays:
-        displays.append(config.getDefaultDisplay())
-    print("Displays at second check are : ".format(displays))
-
-    return(colorSpaces,inputInterp,displays)
+    return(ccList, viewList)
 
 def getLooks(ocioVar, colorSpace):
     '''
@@ -564,102 +550,51 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     '''
     Custom Ocio transform following the ocio prefs set by user when ocio button is toggled
     '''
-# Judging from the Nuke config, using aces v2
-    # /home/martin/Downloads/cg-config-v0.2.0_aces-v1.3_ocio-v2.1.2.ocio
-    # To match nuke result, the default ACES config should be as follows:
-    # Input Transform = scene_linear(ACEScg)
-    # Working space = compositing_log(ACEScct)
-    # Viewer Proccess = ACES 1.0 - SDR Video (sRGB - Display)
     # temp line for changing the ocioVar to aces
-    #ocioVar = "/home/martin/Documents/BOURDONNEMENT_EXRs/ocios/OpenColorIO-Config-ACES-1.2/aces_1.2/config.ocio"
+    '''
     ocioVar = "/home/martin/Documents/BOURDONNEMENT_EXRs/ocios/cg-config-v1.0.0_aces-v1.3_ocio-v2.0.ocio"
     ocioIn = "ACEScg"
     ocioOut = "ACEScct"
     ocioDisplay = "sRGB - Display"
+    '''
     config = OCIO.Config.CreateFromFile(ocioVar)
     ocioVersion = "{}.{}".format(config.getMajorVersion(), config.getMinorVersion())
-    print("Using OCIO version {}".format(ocioVersion))
+    disp, view = ocioDisplay.split(",")
 
     # Log print to check if corred is set
     #print("ocio Out var {}".format(ocioOut))
     #print("ocio In var {}".format(ocioIn))
     #print("ocio Display var {}".format(ocioDisplay))
 
+    # Colorpsace conversion if the in and out colorspaces are different
+    if ocioIn != ocioOut:
+        #print("Conversion from {} to {}".format(ocioIn, ocioOut))
+        transform = OCIO.ColorSpaceTransform()
+        processor = config.getProcessor(ocioIn, ocioOut)
+        cpu = processor.getDefaultCPUProcessor()
+        cpu.applyRGB(img)
 
-    '''
-    processor = config.getProcessor(ocioIn, ocioOut)
-    cpu = processor.getDefaultCPUProcessor()
-    img = cpu.applyRGB(img)
-
-    dispTransform = config.getViews(ocioDisplay)
-    '''
-
-    colorspaces = config.getColorSpaces()
-
+    # View Transform conversion for display
     transform = OCIO.DisplayViewTransform()
-    transform.setSrc(ocioIn)
-    print("This ocio source is set as {}".format(ocioIn))
-
-    for cs in config.getColorSpaceNames():
-        print("ColorSpace : {}".format(cs))
-
-    for disp in config.getDisplaysAll():
-        print("Display : {}".format(disp))
-
-    # In ocio V2, need to use the shared views
-    # For ocio V1, use the getViews
-    for view in config.getSharedViews():
-        print("View : {}".format(view))
-    #for view in config.getViews():
-    #    print("Other view {}".format(view))
-
-    if ocioDisplay:
-        # Checking if the current view is suited for the colorpsace to avoid errors
-        # Retrieving colorspaces from view
-        print("Colorspace out is : {}".format(ocioOut))
-
-        '''
-        displayViews = (config.getViews(ocioDisplay))
-        availableDisplays = []
-        for disp in displayViews:
-            print(disp)
-            availableDisplays.append(disp)
-        if ocioOut not in availableDisplays:
-            print("The colorspace : {} is not supported by the following display : {}".format(ocioOut, ocioDisplay))
-            print("Defaulting the colorspace to {} in order to avoid unwanted ocio crash".format(availableDisplays[0]))
-            ocioOut = availableDisplays[0]
-        '''
-        #transform.setDisplay(ocioDisplay)
-    #transform.setView("Un-tone-mapped")
-    transform.setView("ACES 1.0 - SDR Video")
-    transform.setDisplay("sRGB - Display")
-    #print(transform)
+    transform.setSrc(ocioOut)
+    transform.setView(view)
+    transform.setDisplay(disp)
 
     viewer = OCIO.LegacyViewingPipeline()
     viewer.setDisplayViewTransform(transform)
-
     if ocioLook != "None":
         viewer.setLooksOverrideEnabled(True)
         viewer.setLooksOverride(ocioLook)
-
-    view = config.getDefaultView(ocioDisplay)
-
     processor = viewer.getProcessor(config, config.getCurrentContext())
-
     cpu = processor.getDefaultCPUProcessor()
-
-    
-
-    #displays = transform.getDisplays()
     img = cpu.applyRGB(img)
 
-
-    #print(dir(transform))
     return(img)
 
 
 def clampImg(img):
     img[img>255] = 255
+    img[img<1] = 1
     return(img)
 
 def ocio(img):

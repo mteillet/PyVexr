@@ -31,7 +31,7 @@ Built using Python, C++, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 - [x] Easily accessible OCIOs 
 	- [x] OCIO menu GUI 
 	- [X] AgX support, with its looks
-	- [X] ACES P0, and ACES P1 support
+	- [X] ACES P0, and ACES P1 support (could be better, for now use ACES official configs)
 	- [X] Filmic support, with its looks
 	- [x] Config.json to remember your favourite OCIO settings
 - [x] Buffer
@@ -43,17 +43,22 @@ Built using Python, C++, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 		- [x] Windows
 - [x] Image support :
 	- [x] Open EXR
+		- [ ] Need optimization for multilayered EXRs
 	- [x] Jpeg/Jpg
 	- [x] Png
 	- [x] Tiff (16 bits not tested yet)
 	- [x] .mov
+		- [ ] Need optimization
 	- [x] .mp4
+		- [ ] Need optimization
 	- [ ] DPX 10 bits
 	- [ ] DCP
 - [x] C++ OpenExr backend
 -	[ ] C++ Multilayer exr optimizations
 - [ ] Switch between movie and images if they exist in the same folder with the same naming
 - [ ] Picker to get values from specific pixels
+- [ ] Convenient command line mode to start the pyVexr with specific shots and OCIO
+- [ ] Context Menu on right click to open with PyVexr directly in the explorer
 
 
 ## Prerequisites

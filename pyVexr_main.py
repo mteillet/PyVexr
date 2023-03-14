@@ -184,17 +184,18 @@ def saturationKernel(img, saturation, coefRGB):
     luma3d = np.repeat(luma[:,:, np.newaxis], 3, axis = 2)
     saturated = np.clip(((img - luma3d) * saturation + luma3d), 0, 255)
     
-
     return(saturated)
 
 
-def saturationTweak(img, saturation):
+def saturationTweak(img, saturation, ocioVar):
     '''
     Check and setup of saturation luma values before actual saturation is applied
     '''
     if saturation != 1:
-        # Settings for the luma calculations
-        coefRGB = [0.2126, 0.7152, 0.0722]
+        # Getting the actual luma coef RGB from the ocio setup
+        config = OCIO.Config.CreateFromFile(ocioVar)
+        coefRGB = config.getDefaultLumaCoefs()
+        #coefRGB = [0.2126, 0.7152, 0.0722]
         rgb = saturationKernel(img,saturation, coefRGB)
     else:
         rgb = img
@@ -462,8 +463,6 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
     '''
     path = [path]
 
-    
-
     # Checking if a switch back to RGB / default channel will be needed
     if path[0].endswith(".exr"):
         channel = checkFirstExrChannel(path, channel, channelRGBA)
@@ -508,15 +507,13 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
     cv.imshow("Display window", img)
     k = cv.waitKey(0)
     '''
-
     # SaturationChange
     if (saturation != 1):
-        img = saturationTweak(img, saturation)
+        img = saturationTweak(img, saturation, ocioVar)
 
     #ExposureChange
     if (exposure != 0):
         img = exposureUp.expoUp(img, exposure)
-
 
     if(img.dtype == "float32"):
         # Making the actual OCIO Transform
@@ -550,21 +547,12 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     '''
     Custom Ocio transform following the ocio prefs set by user when ocio button is toggled
     '''
-    # temp line for changing the ocioVar to aces
-    '''
-    ocioVar = "/home/martin/Documents/BOURDONNEMENT_EXRs/ocios/cg-config-v1.0.0_aces-v1.3_ocio-v2.0.ocio"
-    ocioIn = "ACEScg"
-    ocioOut = "ACEScct"
-    ocioDisplay = "sRGB - Display"
-    '''
+    # Need to shuffle the channel order in ocio in order to switch the R and B channels (thanks openCV)
+    img = img[...,::-1]
+
     config = OCIO.Config.CreateFromFile(ocioVar)
     ocioVersion = "{}.{}".format(config.getMajorVersion(), config.getMinorVersion())
     disp, view = ocioDisplay.split(",")
-
-    # Log print to check if corred is set
-    #print("ocio Out var {}".format(ocioOut))
-    #print("ocio In var {}".format(ocioIn))
-    #print("ocio Display var {}".format(ocioDisplay))
 
     # Colorpsace conversion if the in and out colorspaces are different
     if ocioIn != ocioOut:
@@ -591,10 +579,12 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
 
     return(img)
 
-
 def clampImg(img):
+    '''
+    Clamping 8 bit RGB values above 255 and below 0 to avoid errors
+    '''
     img[img>255] = 255
-    img[img<1] = 1
+    img[img<0] = 0
     return(img)
 
 def ocio(img):
@@ -614,10 +604,6 @@ def ocio(img):
     processor = config.getProcessor("Linear", "sRGB")
     cpu = processor.getDefaultCPUProcessor()
     img = cpu.applyRGB(img)
-
-
-    # Calling filmicBaseContrast
-    #filmicBaseContrast(img)
 
 def createVideoWriter(imgDict, frameList, current, destination):
 
@@ -685,7 +671,7 @@ def convertForVideo(path, ocioIn, ocioOut, ocioLook, exposure, saturation, chann
 
     # SaturationChange
     if (saturation != 1):
-        img = saturationTweak(img, saturation)
+        img = saturationTweak(img, saturation, ocioVar)
 
     #ExposureChange
     if (exposure != 0):

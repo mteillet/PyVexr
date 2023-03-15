@@ -495,9 +495,9 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
         else:
             img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
         if (ocioIn == "Linear"):
-            ocioIn = "Raw"
+            ocioIn = "sRGB"
         # Convert img to float 32
-        #img = np.float32(img/255)
+        img = np.float32(img/255)
 
     # For debugging purpose, if you need to display the image in open cv to compare
     '''

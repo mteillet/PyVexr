@@ -2031,7 +2031,7 @@ class InfosPopup(QtWidgets.QWidget):
         self.contactLabel = QtWidgets.QLabel("\nContact :")
         self.mailLabel = QtWidgets.QLabel("Mail : <a href='mailto::martin.teillet@hotmail.fr'>martin.teillet@hotmail.fr</a>")
         self.githubLabel = QtWidgets.QLabel("Github : <a href='https://github.com/mteillet/PyVexr'>https://github.com/mteillet/PyVexr</a>")
-        self.versionLabel = QtWidgets.QLabel("PyVexr - Python Open Exr Viewer - version 0.0.4-Alpha.\nDeveloped by Martin Teillet.")
+        self.versionLabel = QtWidgets.QLabel("PyVexr - Python Open Exr Viewer - version 0.0.5-Alpha.\nDeveloped by Martin Teillet.")
         self.mailLabel.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
         self.githubLabel.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
 

@@ -1530,12 +1530,9 @@ class MyWidget(QtWidgets.QWidget):
         self.checkIfBufferStateChanged()
 
         currentPos = (self.frameNumber.slider.value())
-        # DEPRECATED, since the versioning has been added.
-        # REPLACED by the seqDict access you'll find under
-        #frame = self.frameNumber.returnFrame(currentPos)
-        #print(frame)
-        #self.imgDict["path"] = [frame]
 
+        print(currentPos)
+        print(self.timeLineDict)
         shot =  self.timeLineDict[currentPos]["shot"]
         # Finding the index of the frame relative to current shot
         posRelativeToShot = self.getRelativeFrameIndex()

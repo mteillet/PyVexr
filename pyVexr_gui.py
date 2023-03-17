@@ -1058,7 +1058,7 @@ class MyWidget(QtWidgets.QWidget):
         frame = self.frameNumber.returnFrame(currentPos)
         #print(self.frameNumber)
         positionMax = (self.frameNumber.slider.maximum())
-        #isSameShot = True
+        isSameShot = True
 
         # Updating the layers on the new shot
         # Adding exception in case first drag and drop and the timeLineDict has not been created yet (avoid errors on splashcreen)
@@ -1531,8 +1531,6 @@ class MyWidget(QtWidgets.QWidget):
 
         currentPos = (self.frameNumber.slider.value())
 
-        print(currentPos)
-        print(self.timeLineDict)
         shot =  self.timeLineDict[currentPos]["shot"]
         # Finding the index of the frame relative to current shot
         posRelativeToShot = self.getRelativeFrameIndex()

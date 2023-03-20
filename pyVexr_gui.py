@@ -1123,6 +1123,8 @@ class MyWidget(QtWidgets.QWidget):
         toCheckBuffer = self.frameNumber.slider.value()+1
         if toCheckBuffer > self.frameNumber.slider.maximum():
             toCheckBuffer = self.frameNumber.slider.minimum()
+        if toCheckBuffer > (len(self.timeLineDict) - 1):
+            toCheckBuffer = (len(self.timeLineDict) - 1)
 
         if self.imgDict["buffer"][toCheckBuffer] != None:
             #print("buffer ok")
@@ -1143,6 +1145,9 @@ class MyWidget(QtWidgets.QWidget):
         toCheckBuffer = self.frameNumber.slider.value()-1
         if toCheckBuffer < self.frameNumber.slider.minimum():
             toCheckBuffer = self.frameNumber.slider.maximum()
+        if toCheckBuffer > (len(self.timeLineDict) - 1):
+            toCheckBuffer = (len(self.timeLineDict) - 1)
+
         if self.imgDict["buffer"][toCheckBuffer] != None:
             if ((self.frameNumber.slider.value() - 1) < self.frameNumber.slider.minimum()):
                 self.frameNumber.slider.setValue(self.frameNumber.slider.maximum())

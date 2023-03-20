@@ -203,7 +203,13 @@ class graphicsView(QtWidgets.QGraphicsView):
                     self.lastAction["click"] = "saturation"
                 # Frame slide
                 else:
-                    widget.frameNumber.slider.setValue(widget.frameNumber.slider.value() + mouseMoveX)
+                    # Allowing looping in the timeline while scrubbing
+                    if (mouseMoveX > 0) and (mouseMoveX + widget.frameNumber.slider.value() > widget.frameNumber.slider.maximum()):
+                        widget.frameNumber.slider.setValue(widget.frameNumber.slider.minimum())
+                    elif (mouseMoveX < 0) and (mouseMoveX + widget.frameNumber.slider.value() < widget.frameNumber.slider.minimum()):
+                        widget.frameNumber.slider.setValue(widget.frameNumber.slider.maximum())
+                    else:
+                        widget.frameNumber.slider.setValue(widget.frameNumber.slider.value() + mouseMoveX)
                 # Reset mouse move X
                 self.mouseMove[0] = []
                 #print(mouseMoveX)

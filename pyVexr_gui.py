@@ -1058,7 +1058,7 @@ class MyWidget(QtWidgets.QWidget):
         frame = self.frameNumber.returnFrame(currentPos)
         #print(self.frameNumber)
         positionMax = (self.frameNumber.slider.maximum())
-        #isSameShot = True
+        isSameShot = True
 
         # Updating the layers on the new shot
         # Adding exception in case first drag and drop and the timeLineDict has not been created yet (avoid errors on splashcreen)
@@ -1123,6 +1123,8 @@ class MyWidget(QtWidgets.QWidget):
         toCheckBuffer = self.frameNumber.slider.value()+1
         if toCheckBuffer > self.frameNumber.slider.maximum():
             toCheckBuffer = self.frameNumber.slider.minimum()
+        if toCheckBuffer > (len(self.timeLineDict) - 1):
+            toCheckBuffer = (len(self.timeLineDict) - 1)
 
         if self.imgDict["buffer"][toCheckBuffer] != None:
             #print("buffer ok")
@@ -1143,6 +1145,9 @@ class MyWidget(QtWidgets.QWidget):
         toCheckBuffer = self.frameNumber.slider.value()-1
         if toCheckBuffer < self.frameNumber.slider.minimum():
             toCheckBuffer = self.frameNumber.slider.maximum()
+        if toCheckBuffer > (len(self.timeLineDict) - 1):
+            toCheckBuffer = (len(self.timeLineDict) - 1)
+
         if self.imgDict["buffer"][toCheckBuffer] != None:
             if ((self.frameNumber.slider.value() - 1) < self.frameNumber.slider.minimum()):
                 self.frameNumber.slider.setValue(self.frameNumber.slider.maximum())
@@ -1517,6 +1522,9 @@ class MyWidget(QtWidgets.QWidget):
     def getRelativeFrameIndex(self):
         currentPos = (self.frameNumber.slider.value())
 
+        if currentPos > (len(self.timeLineDict) - 1):
+            currentPos = (len(self.timeLineDict) - 1)
+
         shot =  self.timeLineDict[currentPos]["shot"]
         posRelativeToShot = 0
         for anyshot in self.seqDict:
@@ -1530,12 +1538,9 @@ class MyWidget(QtWidgets.QWidget):
         self.checkIfBufferStateChanged()
 
         currentPos = (self.frameNumber.slider.value())
-        # DEPRECATED, since the versioning has been added.
-        # REPLACED by the seqDict access you'll find under
-        #frame = self.frameNumber.returnFrame(currentPos)
-        #print(frame)
-        #self.imgDict["path"] = [frame]
 
+        if currentPos > (len(self.timeLineDict) - 1):
+            currentPos = (len(self.timeLineDict) - 1)
         shot =  self.timeLineDict[currentPos]["shot"]
         # Finding the index of the frame relative to current shot
         posRelativeToShot = self.getRelativeFrameIndex()
@@ -2031,7 +2036,7 @@ class InfosPopup(QtWidgets.QWidget):
         self.contactLabel = QtWidgets.QLabel("\nContact :")
         self.mailLabel = QtWidgets.QLabel("Mail : <a href='mailto::martin.teillet@hotmail.fr'>martin.teillet@hotmail.fr</a>")
         self.githubLabel = QtWidgets.QLabel("Github : <a href='https://github.com/mteillet/PyVexr'>https://github.com/mteillet/PyVexr</a>")
-        self.versionLabel = QtWidgets.QLabel("PyVexr - Python Open Exr Viewer - version 0.0.4-Alpha.\nDeveloped by Martin Teillet.")
+        self.versionLabel = QtWidgets.QLabel("PyVexr - Python Open Exr Viewer - version 0.0.5-Alpha.\nDeveloped by Martin Teillet.")
         self.mailLabel.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
         self.githubLabel.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
 

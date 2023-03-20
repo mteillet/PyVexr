@@ -1517,6 +1517,9 @@ class MyWidget(QtWidgets.QWidget):
     def getRelativeFrameIndex(self):
         currentPos = (self.frameNumber.slider.value())
 
+        if currentPos > (len(self.timeLineDict) - 1):
+            currentPos = (len(self.timeLineDict) - 1)
+
         shot =  self.timeLineDict[currentPos]["shot"]
         posRelativeToShot = 0
         for anyshot in self.seqDict:
@@ -1532,7 +1535,7 @@ class MyWidget(QtWidgets.QWidget):
         currentPos = (self.frameNumber.slider.value())
 
         if currentPos > (len(self.timeLineDict) - 1):
-            currentPos += -1
+            currentPos = (len(self.timeLineDict) - 1)
         shot =  self.timeLineDict[currentPos]["shot"]
         # Finding the index of the frame relative to current shot
         posRelativeToShot = self.getRelativeFrameIndex()

@@ -281,7 +281,7 @@ class graphicsView(QtWidgets.QGraphicsView):
         #print(filenames)
         widget.updateImgDict(filenames)
         widget.totalFrameLabel.setText("{}".format(widget.frameNumber.slider.maximum()))
-
+        widget.initOnDrop()
         event.accept()
 
     def openFilesShortcut(self):
@@ -895,6 +895,13 @@ class MyWidget(QtWidgets.QWidget):
 
         self.updateImgDict(newShotList)
 
+    def initOnDrop(self):
+        '''
+        Resetting the slider back to its first frame after an image is dropped
+        '''
+        #print("Setting the slider to {}".format(self.frameNumber.slider.minimum()))
+        self.frameNumber.slider.setValue(self.frameNumber.slider.minimum() + 1)
+        self.frameNumber.slider.setValue(self.frameNumber.slider.minimum())
 
     def exportPlaylist(self):
         '''
@@ -1374,6 +1381,7 @@ class MyWidget(QtWidgets.QWidget):
             self.loadFile()
             self.listChannels()
             self.listVersions()
+        self.initOnDrop()
 
     def channelsClicked(self):
         #print(self.channelsDock.isVisible())

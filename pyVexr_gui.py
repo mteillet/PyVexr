@@ -391,6 +391,9 @@ class MyWidget(QtWidgets.QWidget):
         self.fileMenu.addSeparator()
         self.exit = self.fileMenu.addAction("Exit PyVexr")
         # Mirror Action
+        self.autoLoadMenu = QtWidgets.QAction("Auto load sequences", self.editMenu, checkable=True)
+        self.autoLoadMenu.setChecked(True)
+        self.autoLoadMenuTrigger = self.editMenu.addAction(self.autoLoadMenu)
         self.channelMenu = self.editMenu.addMenu("Current Channel")
         self.channelRGBA = self.channelMenu.addAction("RGBA")
         self.channelRGBA.triggered.connect(self.switchChannelRGBA)

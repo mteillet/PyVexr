@@ -134,9 +134,6 @@ def fileSearchPath(filepath):
     else:
         seqName = filename[0]
     searchPath = "{0}/{1}".format("/".join(filepath[:-1]), seqName)
-    #print(searchPath)
-    #print(seqName, searchPath, "is -> {}".format(extension))
- 
     return(seqName, searchPath, extension)
 
 def autoRangeFromPath(pathList):
@@ -154,8 +151,14 @@ def autoRangeFromPath(pathList):
         # Returning the exr without frame number in case it hasn't been found with a frame number
         if len(fileList) == 0:
             fileList = glob.glob(str(searchPath)+"." + extension)
-        fileList.sort()
-        seqDict[i] = fileList
+        # Not passing elements that don't match the len of the original file to avoid finding many frames due to prefixes
+        filteredFileList = []
+        for found in fileList:
+            if (len(pathList[i][0]) == len(found)):
+                filteredFileList.append(found)
+        # Reoredering frame order
+        filteredFileList.sort()
+        seqDict[i] = filteredFileList 
 
     return(seqDict)
 

@@ -62,7 +62,7 @@ def bufferBackEnd(imgDict, frameList, current):
     #return(test)
 
 
-def seqFromPath(path):
+def seqFromPath(path, autoLoad):
     '''
     Looking for the list of paths
     for each path, compare if the string before the exr is the same or not
@@ -86,7 +86,7 @@ def seqFromPath(path):
                 pathList[seqName] = [i]
 
 
-    seqDict = autoRangeFromPath(pathList)
+    seqDict = autoRangeFromPath(pathList, autoLoad)
     # Adding the movies to the seqDict
     for mov in movList:
         seqDict[mov] = movList[mov]
@@ -136,7 +136,7 @@ def fileSearchPath(filepath):
     searchPath = "{0}/{1}".format("/".join(filepath[:-1]), seqName)
     return(seqName, searchPath, extension)
 
-def autoRangeFromPath(pathList):
+def autoRangeFromPath(pathList, autoLoad):
     '''
     Auto - detecting the exrs having the same path but with different frame numbers from the ones that were opened / drag and dropped
     '''
@@ -147,7 +147,11 @@ def autoRangeFromPath(pathList):
         extension = extension[len(extension) -1]
         #print("{} is extension {}".format(i, extension))
         seqName, searchPath , extension= fileSearchPath(pathList[i][0])
-        fileList = glob.glob(str(searchPath)+".*."+ extension)
+        # Returning every matching files in the folder only is autoLoad is toggled
+        if (autoLoad == True):
+            fileList = glob.glob(str(searchPath)+".*."+ extension)
+        else:
+            fileList = pathList[i]
         # Returning the exr without frame number in case it hasn't been found with a frame number
         if len(fileList) == 0:
             fileList = glob.glob(str(searchPath)+"." + extension)

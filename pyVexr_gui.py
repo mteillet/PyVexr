@@ -278,7 +278,6 @@ class graphicsView(QtWidgets.QGraphicsView):
             else:
                 # Append the default pyVexr logo
                 filenames.append("{}imgs/pyVexrSplashScreen_v002.exr".format(absPath))
-        #print(filenames)
         widget.updateImgDict(filenames)
         widget.totalFrameLabel.setText("{}".format(widget.frameNumber.slider.maximum()))
         widget.initOnDrop()
@@ -1003,7 +1002,7 @@ class MyWidget(QtWidgets.QWidget):
 
     def loadFile(self):
         #Loading frames from same nomenclature
-        seqDict = seqFromPath(self.imgDict["path"])
+        seqDict = seqFromPath(self.imgDict["path"], self.autoLoadMenu.isChecked())
         self.seqDict = seqDict
 
         self.bufferInit(seqDict)
@@ -1403,7 +1402,7 @@ class MyWidget(QtWidgets.QWidget):
         openDialog = QtWidgets.QFileDialog.getOpenFileName(self, "New Version")
         newVersion = [(openDialog[0])]
 
-        imagesFromNewVersion = list((seqFromPath(newVersion)).values())[0]
+        imagesFromNewVersion = list((seqFromPath(newVersion, self.autoLoadMenu.isChecked())).values())[0]
 
         currentPos = self.frameNumber.slider.value()
         shot = self.timeLineDict[currentPos]["shot"]

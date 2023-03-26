@@ -363,14 +363,14 @@ class MyWidget(QtWidgets.QWidget):
         self.ociioMenu = self.menuBar.addMenu('&OCIO')
         self.bufferMenu = self.menuBar.addMenu('&Buffer')
         # Buffer menu & actions
-        self.stopBufferAction = self.bufferMenu.addAction("Stop Buffer")
+        self.bufferAllAction = self.bufferMenu.addAction("Cache all frames             &-&C&t&r&l&+&R")
+        self.bufferAllAction.triggered.connect(self.cacheAllFrames)
+        self.stopBufferAction = self.bufferMenu.addAction("Stop Buffer                      &-&E&s&c")
         self.stopBufferAction.triggered.connect(self.stopBuffer)
-        self.reloadFrameAction = self.bufferMenu.addAction("Reload Current Frame")
+        self.reloadFrameAction = self.bufferMenu.addAction("Reload Current Frame  &-&R")
         self.reloadFrameAction.triggered.connect(self.cacheCurrentFrame)
         self.resetBufferAction = self.bufferMenu.addAction("Reset Buffer")
         self.resetBufferAction.triggered.connect(self.resetBuffer)
-        self.bufferAllAction = self.bufferMenu.addAction("Cache all frames")
-        self.bufferAllAction.triggered.connect(self.cacheAllFrames)
         self.bufferSettingsAction = self.bufferMenu.addAction("Buffer settings")
         self.bufferSettingsAction.triggered.connect(self.bufferPopup)
         # File Menu & Action

@@ -1547,16 +1547,21 @@ class MyWidget(QtWidgets.QWidget):
         self.imageUpdate()
 
     def getRelativeFrameIndex(self):
+        '''
+        Returns the index of the frame on the specific shot it is on
+        '''
         currentPos = (self.frameNumber.slider.value())
 
         if currentPos > (len(self.timeLineDict) - 1):
             currentPos = (len(self.timeLineDict) - 1)
 
-        shot =  self.timeLineDict[currentPos]["shot"]
         posRelativeToShot = 0
+        offset = 0
         for anyshot in self.seqDict:
-            if len(self.seqDict[anyshot]) < currentPos:
-                 #print("Not in shot {}, continuing".format(anyshot))
+            if currentPos < (len(self.seqDict[anyshot]) + offset):
+                break
+            elif len(self.seqDict[anyshot]) < currentPos:
+                offset += len(self.seqDict[anyshot])
                 posRelativeToShot += - len(self.seqDict[anyshot])
         posRelativeToShot += currentPos
         return(posRelativeToShot)

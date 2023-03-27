@@ -126,14 +126,19 @@ class graphicsView(QtWidgets.QGraphicsView):
             # Boost expo
             widget.exposureChange(event.key())
             widget.satChange(event.key())
-        # Mirror image on X if Shift + X
-        if ((self.activeKeys[16777248]) & (event.key() == 88)):
-            widget.mirrorXToggle()
-        if ((self.activeKeys[16777248]) & (event.key() == 89)):
-            widget.mirrorYToggle()
-        # RGBA switch channels
-        if (event.key() == 82):
-            widget.switchChannelR()
+        # Buffer key actions
+        # TODO
+        if (event.key() == 16777216):
+            widget.stopBuffer()
+        if ((event.key() == QtCore.Qt.Key_R) & (self.activeKeys[16777249] == True)):
+            if (self.activeKeys[16777248] == True):
+                widget.cacheCurrentFrame()
+            else:
+                widget.cacheAllFrames()
+        else:
+            # RGBA switch channels
+            if (event.key() == 82):
+                widget.switchChannelR()
         if (event.key() == 71):
             widget.switchChannelG()
         if (event.key() == 66):
@@ -142,6 +147,12 @@ class graphicsView(QtWidgets.QGraphicsView):
             widget.switchChannelA()
         if (event.key() == 76):
             widget.switchChannelY()
+        # Mirror image on X if Shift + X
+        if ((self.activeKeys[16777248]) & (event.key() == 88)):
+            widget.mirrorXToggle()
+        if ((self.activeKeys[16777248]) & (event.key() == 89)):
+            widget.mirrorYToggle()
+
         # Play and frame jumps
         if (event.key() == 32):
             widget.playBtn.click()
@@ -367,7 +378,7 @@ class MyWidget(QtWidgets.QWidget):
         self.bufferAllAction.triggered.connect(self.cacheAllFrames)
         self.stopBufferAction = self.bufferMenu.addAction("Stop Buffer                      &-&E&s&c")
         self.stopBufferAction.triggered.connect(self.stopBuffer)
-        self.reloadFrameAction = self.bufferMenu.addAction("Reload Current Frame  &-&R")
+        self.reloadFrameAction = self.bufferMenu.addAction("Reload Current Frame  &-&S&h&i&f&t&+&C&t&r&l&+&R")
         self.reloadFrameAction.triggered.connect(self.cacheCurrentFrame)
         self.resetBufferAction = self.bufferMenu.addAction("Reset Buffer")
         self.resetBufferAction.triggered.connect(self.resetBuffer)

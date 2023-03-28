@@ -519,6 +519,8 @@ class MyWidget(QtWidgets.QWidget):
         
         # Putting the objects in the scene
         self.image = QtWidgets.QGraphicsPixmapItem()
+        # Allowing antialiasing on the QGraphicsPixmap
+        self.image.setTransformationMode(QtCore.Qt.SmoothTransformation)
         self.imgZone.addItem(self.margins)
         self.imgZone.addItem(self.image)
         self.imgZone.addItem(self.viewArea)

@@ -802,23 +802,28 @@ class MyWidget(QtWidgets.QWidget):
 
     def cacheAllFrames(self):
         '''
-        Caching all frames in the timeline
+        Caching all frames in the timeline from the current cursor position
         '''
-        print("cache all frames")
         # First clear the cache
         self.resetBuffer()
+
+        currentPosition = self.frameNumber.slider.value()
         
         frameList = []
         for shot in self.seqDict:
             for frame in self.seqDict[shot]:
                 frameList.append(frame)
 
-        current = self.frameNumber.slider.minimum()
+        minimum = self.frameNumber.slider.minimum()
+        maximum = self.frameNumber.slider.maximum()
         for i in frameList:
-            worker = Worker(frameList, current, **self.imgDict)
+            worker = Worker(frameList, currentPosition, **self.imgDict)
             worker.signals.result.connect(self.queueResult)
             self.threadpool.start(worker)
-            current += 1
+            if currentPosition < maximum:
+                currentPosition += 1
+            else:
+                currentPosition = minimum
 
 
     def bufferLoad(self, seqDict):
@@ -1122,8 +1127,8 @@ class MyWidget(QtWidgets.QWidget):
             self.playThreadpool.setMaxThreadCount(1)
             for i in range(self.frameNumber.slider.maximum() - self.frameNumber.slider.minimum()):
                 nextWorker = NextWorker()
-                nextWorker.signals.result.connect(self.jumpFrameForward)
                 self.playThreadpool.start(nextWorker)
+                nextWorker.signals.result.connect(self.jumpFrameForward)
         else:
             self.playBtn.setText(">")
             self.playThreadpool.clear()

@@ -827,7 +827,6 @@ class MyWidget(QtWidgets.QWidget):
 
 
     def bufferLoad(self, seqDict):
-        #print("bufferload")
         # Clear the queue if any workers have not been created yet
         self.threadpool.clear()
         # Frame path list from seqDict

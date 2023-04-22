@@ -820,9 +820,8 @@ class MyWidget(QtWidgets.QWidget):
             worker = Worker(frameList, currentPosition, **self.imgDict)
             worker.signals.result.connect(self.queueResult)
             self.threadpool.start(worker)
-            if currentPosition < maximum:
-                currentPosition += 1
-            else:
+            currentPosition += 1
+            if currentPosition > maximum:
                 currentPosition = minimum
 
 

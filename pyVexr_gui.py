@@ -6,6 +6,7 @@ import sys
 import os
 import json
 import time
+import cProfile
 from math import sqrt
 from PyQt5 import QtWidgets, QtCore, QtGui
 from pyVexr_main import loadImg, interpretRectangle, exrListChannels, seqFromPath, initOcio2, getLooks, bufferBackEnd, layerContactSheetBackend, createVideoWriter, createImgWriter
@@ -817,12 +818,14 @@ class MyWidget(QtWidgets.QWidget):
         minimum = self.frameNumber.slider.minimum()
         maximum = self.frameNumber.slider.maximum()
         for i in frameList:
+            t0 = time.time()
             worker = Worker(frameList, currentPosition, **self.imgDict)
             worker.signals.result.connect(self.queueResult)
             self.threadpool.start(worker)
             currentPosition += 1
             if currentPosition > maximum:
                 currentPosition = minimum
+            print("Finished cache all frames loop iter in %s " % (time.time() - t0))
 
 
     def bufferLoad(self, seqDict):
@@ -866,8 +869,10 @@ class MyWidget(QtWidgets.QWidget):
                     count += 1
 
     def queueResult(self, resultA, resultB):
+        t0 = time.time()
         self.imgDict["buffer"][resultB] = resultA
         self.frameNumber._timeline.paintBuffer(resultB, len(self.imgDict["buffer"]))
+        print("Finished buffer load in %s" % (time.time() - t0))
         #print(("Multithreading with maximum {} threads").format(self.threadpool.maxThreadCount()))
         #print("Finished loading buffer at pos {}".format(resultB))
 
@@ -1125,8 +1130,8 @@ class MyWidget(QtWidgets.QWidget):
             self.playThreadpool.setMaxThreadCount(1)
             for i in range(self.frameNumber.slider.maximum() - self.frameNumber.slider.minimum()):
                 nextWorker = NextWorker()
-                self.playThreadpool.start(nextWorker)
                 nextWorker.signals.result.connect(self.jumpFrameForward)
+                self.playThreadpool.start(nextWorker)
         else:
             self.playBtn.setText(">")
             self.playThreadpool.clear()
@@ -1436,8 +1441,8 @@ class MyWidget(QtWidgets.QWidget):
             self.imgDict["version"][i]["v_0000"] = self.seqDict[i]
 
     def listVersions(self):
+        t0 = time.time()
         currentPos = (self.frameNumber.slider.value())
-        frame = self.frameNumber.returnFrame(currentPos)
         shot = (self.timeLineDict[currentPos]["shot"])
 
         #print(self.imgDict["version"][shot].keys())
@@ -1463,6 +1468,7 @@ class MyWidget(QtWidgets.QWidget):
         # Adding versions button
         for btn in versionsButtonList:
              self.versionsLayout.addWidget(btn)
+        print("Finished execution listVersions in %s" % (time.time()-t0))
 
     def switchVersion(self):
         currentPos = (self.frameNumber.slider.value())
@@ -1555,6 +1561,7 @@ class MyWidget(QtWidgets.QWidget):
         '''
         Returns the index of the frame on the specific shot it is on
         '''
+        t0 = time.time()
         currentPos = (self.frameNumber.slider.value())
 
         if currentPos > (len(self.timeLineDict) - 1):
@@ -1569,6 +1576,7 @@ class MyWidget(QtWidgets.QWidget):
                 offset += len(self.seqDict[anyshot])
                 posRelativeToShot += - len(self.seqDict[anyshot])
         posRelativeToShot += currentPos
+        print("getRelativeFrameIndex ran in %s" % (time.time() - t0))
         return(posRelativeToShot)
 
     def refreshImg(self):

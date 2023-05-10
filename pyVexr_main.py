@@ -468,6 +468,7 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
     '''
     Main core code
     '''
+    t0 = time.time()
     path = [path]
 
     # Checking if a switch back to RGB / default channel will be needed
@@ -539,6 +540,7 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
     h,w,ch = rgb_image.shape
     bytes_per_line = ch * w
     convertedImg = rgb_image.data, w, h, bytes_per_line
+    print("ConvertExr function run in %s" % (time.time()-t0))
     return(convertedImg)
 
 def ocioTransformDefault(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):

@@ -818,14 +818,14 @@ class MyWidget(QtWidgets.QWidget):
         minimum = self.frameNumber.slider.minimum()
         maximum = self.frameNumber.slider.maximum()
         for i in frameList:
-            t0 = time.time()
+            # t0 = time.time()
             worker = Worker(frameList, currentPosition, **self.imgDict)
             worker.signals.result.connect(self.queueResult)
             self.threadpool.start(worker)
             currentPosition += 1
             if currentPosition > maximum:
                 currentPosition = minimum
-            print("Finished cache all frames loop iter in %s " % (time.time() - t0))
+            # print("Finished cache all frames loop iter in %s " % (time.time() - t0))
 
 
     def bufferLoad(self, seqDict):
@@ -869,10 +869,10 @@ class MyWidget(QtWidgets.QWidget):
                     count += 1
 
     def queueResult(self, resultA, resultB):
-        t0 = time.time()
+        # t0 = time.time()
         self.imgDict["buffer"][resultB] = resultA
         self.frameNumber._timeline.paintBuffer(resultB, len(self.imgDict["buffer"]))
-        print("Finished buffer load in %s" % (time.time() - t0))
+        # print("Finished buffer load in %s" % (time.time() - t0))
         #print(("Multithreading with maximum {} threads").format(self.threadpool.maxThreadCount()))
         #print("Finished loading buffer at pos {}".format(resultB))
 
@@ -1468,7 +1468,7 @@ class MyWidget(QtWidgets.QWidget):
         # Adding versions button
         for btn in versionsButtonList:
              self.versionsLayout.addWidget(btn)
-        print("Finished execution listVersions in %s" % (time.time()-t0))
+        # print("Finished execution listVersions in %s" % (time.time()-t0))
 
     def switchVersion(self):
         currentPos = (self.frameNumber.slider.value())

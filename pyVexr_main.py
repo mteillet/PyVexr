@@ -471,6 +471,11 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
     t0 = time.time()
     path = [path]
 
+    # TODO
+    # IT SEEMS EXR CONVERT FUNCTION IS A LOT SLOWER ON MULTI CHANNELS
+    # EVEN THOUGH AFTER THE CV.MERGE FUNCTION, IT SHOULD BE AS LIGHT AND FAST AS WITH 
+    # A SINGLE LAYER EXR 
+
     # Checking if a switch back to RGB / default channel will be needed
     if path[0].endswith(".exr"):
         channel = checkFirstExrChannel(path, channel, channelRGBA)
@@ -478,10 +483,12 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
         if (channel in [None, "RGB", "RGBA"]) & (channelRGBA == "rgba"):
             # No channel merge will be needed
             img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
+            # print("Finished reading exr data using openCV in %s" % (time.time()-t0))
         else:
             splitImg = exrSwitchChannel(path, channel, channelRGBA)
             # Merging the splitted exr channel (in a different order a openCV expects BGR by default)
             img = cv.merge([splitImg[2], splitImg[1], splitImg[0]])
+
     else:
         if path[0].lower().endswith(".dpx"):
             print("DPX file found")
@@ -523,6 +530,7 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
     if (exposure != 0):
         img = exposureUp.expoUp(img, exposure)
 
+    t1 = time.time()
     if(img.dtype == "float32"):
         # Making the actual OCIO Transform
         if ocioToggle == True:
@@ -535,6 +543,7 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
         img = clampImg(img)
         # Conversion to the QPixmap format
         img = img.astype(np.uint8)
+        # print("Finished ocio conversion in %s" % (time.time()-t1))
 
     rgb_image = cv.cvtColor(img, cv.COLOR_BGR2RGB)
     h,w,ch = rgb_image.shape
@@ -557,15 +566,21 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     Custom Ocio transform following the ocio prefs set by user when ocio button is toggled
     '''
     # Need to shuffle the channel order in ocio in order to switch the R and B channels (thanks openCV)
+    # t0 = time.time()
     img = img[...,::-1]
+    # print("Channel shuffling done in %s" % (time.time() - t0))
 
+    # t0 = time.time()
     config = OCIO.Config.CreateFromFile(ocioVar)
-    ocioVersion = "{}.{}".format(config.getMajorVersion(), config.getMinorVersion())
+    # print("Get ocio config done in   %s" % (time.time() - t0))
+    # ocioVersion = "{}.{}".format(config.getMajorVersion(), config.getMinorVersion())
     disp, view = ocioDisplay.split(",")
 
+
+    # t0 = time.time()
     # Colorpsace conversion if the in and out colorspaces are different
     if ocioIn != ocioOut:
-        #print("Conversion from {} to {}".format(ocioIn, ocioOut))
+        print("Conversion from {} to {}".format(ocioIn, ocioOut))
         transform = OCIO.ColorSpaceTransform()
         processor = config.getProcessor(ocioIn, ocioOut)
         cpu = processor.getDefaultCPUProcessor()
@@ -582,9 +597,13 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     if ocioLook != "None":
         viewer.setLooksOverrideEnabled(True)
         viewer.setLooksOverride(ocioLook)
+
     processor = viewer.getProcessor(config, config.getCurrentContext())
     cpu = processor.getDefaultCPUProcessor()
+    # print("Get ocio needed infos in  %s" % (time.time() - t0))
+    # t0 = time.time()
     img = cpu.applyRGB(img)
+    # print("Make the actual ocio tr : %s" % (time.time() - t0))
 
     return(img)
 

@@ -43,7 +43,7 @@ Built using Python, C++, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 		- [x] Windows
 - [x] Image support :
 	- [x] Open EXR
-		- [ ] Need optimization for multilayered EXRs
+		- [ ] Need optimization for multilayered / multipart EXRs
 	- [x] Jpeg/Jpg
 	- [x] Png
 	- [x] Tiff (16 bits not tested yet)

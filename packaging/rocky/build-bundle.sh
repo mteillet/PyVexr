@@ -325,7 +325,10 @@ smoke_test() {
 package() {
     mkdir -p "${OUT_DIR}"
     local version archive
-    version="${PYVEXR_VERSION:-$(git -C "${REPO_ROOT}" describe --tags --always --dirty 2>/dev/null || date +%Y%m%d)}"
+    # Volontairement pas de git describe : les tags du depot portent des noms de
+    # plateforme (v0.0.5-Alpha-Windows) qui n'ont aucun sens ici. Date + commit,
+    # ou PYVEXR_VERSION si on veut nommer la release soi-meme.
+    version="${PYVEXR_VERSION:-$(date +%Y%m%d)-g$(git -C "${REPO_ROOT}" rev-parse --short HEAD 2>/dev/null || echo unknown)}"
     archive="${OUT_DIR}/PyVexr-${version}-rocky${EL_VERSION}-x86_64.tar.gz"
     log "creation de ${archive}"
     tar -czf "${archive}" -C "${WORK_DIR}/dist" PyVexr

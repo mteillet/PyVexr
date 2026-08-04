@@ -41,7 +41,7 @@ fi
 
 BASE_IMAGE="${BASE_IMAGE:-quay.io/rockylinux/rockylinux:${ROCKY_VERSION}}"
 TAG="pyvexr-rocky${ROCKY_VERSION}:builder"
-VERSION="${PYVEXR_VERSION:-$(git -C "${REPO_ROOT}" describe --tags --always --dirty 2>/dev/null || date +%Y%m%d)}"
+VERSION="${PYVEXR_VERSION:-$(date +%Y%m%d)-g$(git -C "${REPO_ROOT}" rev-parse --short HEAD 2>/dev/null || echo unknown)}"
 
 echo "==> construction (${ENGINE}, ${BASE_IMAGE}, version ${VERSION})"
 "${ENGINE}" build \

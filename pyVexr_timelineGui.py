@@ -41,7 +41,9 @@ class _Timeline(QtWidgets.QWidget):
         slider = self.parent().slider
         vmin, vmax = slider.minimum(), slider.maximum()
         value = slider.value()
-        tickValue = value * painter.device().width() / vmax
+        # int() obligatoire : les versions recentes de PyQt5/sip refusent les
+        # flottants la ou Qt attend des entiers (QRect, drawText, ...)
+        tickValue = int(value * painter.device().width() / vmax)
         if self.maxBuffer >> 2:
             lenMax = self.maxBuffer - 1
         else:
@@ -49,23 +51,23 @@ class _Timeline(QtWidgets.QWidget):
 
         # Painting the current frame background
         brush.setColor(QtGui.QColor(50,50,50))
-        endFrameCurrent = (painter.device().width() / lenMax + 1)
+        endFrameCurrent = int(painter.device().width() / lenMax + 1)
         rect = QtCore.QRect(tickValue,0,endFrameCurrent, painter.device().height())
         painter.fillRect(rect, brush)
 
 
         # Painting the lower bar
         brush.setColor(QtGui.QColor(225,225,225))
-        rect = QtCore.QRect(0 ,painter.device().height()-0.5 , painter.device().width(), painter.device().height())
+        rect = QtCore.QRect(0, int(painter.device().height() - 0.5), painter.device().width(), painter.device().height())
         painter.fillRect(rect, brush)
 
         # Painting the green buffer
         brush.setColor(QtGui.QColor(10,125,10))
         for i in self.cachePos :
             #brush.setColor(tempList[i%2])
-            xStart = ( (i) * painter.device().width() / lenMax )
-            xEnd = (painter.device().width() / lenMax + 1)
-            rect = QtCore.QRect(xStart, painter.device().height() - 0.5, xEnd, painter.device().height())
+            xStart = int((i) * painter.device().width() / lenMax)
+            xEnd = int(painter.device().width() / lenMax + 1)
+            rect = QtCore.QRect(xStart, int(painter.device().height() - 0.5), xEnd, painter.device().height())
             painter.fillRect(rect, brush)
 
         # Color back to white
@@ -95,28 +97,29 @@ class _Timeline(QtWidgets.QWidget):
             current = 0
             previousName = "pyVexrTempName"
             for i in timelineDictInfos["slider"]:
+                itemPos = int(item * current)
                 if (timelineDictInfos["slider"][current]["shot"] != previousName):
                     # Drawing the bigger lines and the shot names for every new shot
-                    shotRect = QtCore.QRect(item*current, 0, 1, painter.device().height()-1)
+                    shotRect = QtCore.QRect(itemPos, 0, 1, painter.device().height()-1)
                     brush.setColor(QtGui.QColor(100,100,100))
                     painter.fillRect(shotRect, brush)
                     # Drawing the shot name
                     font = QtGui.QFont("Serif", 10, QtGui.QFont.Bold)
                     painter.setPen(QtGui.QColor(200,200,200))
-                    painter.drawText(item*current+1, 30, "Shot : {}".format(timelineDictInfos["slider"][current]["shot"]))
+                    painter.drawText(itemPos+1, 30, "Shot : {}".format(timelineDictInfos["slider"][current]["shot"]))
 
                     previousName = timelineDictInfos["slider"][current]["shot"]
                 elif (((int(timelineDictInfos["slider"][current]["frame"])) % 5) == 0):
                     # Drawing the bigger lines every 5 frames
                     brush.setColor(QtGui.QColor(100,100,100))
-                    rect = QtCore.QRect(item*current, 6, 1, 19)
+                    rect = QtCore.QRect(itemPos, 6, 1, 19)
                     font = QtGui.QFont("Serif", 5, QtGui.QFont.Light)
                     painter.setPen(QtGui.QColor(100,100,100)) 
-                    painter.drawText(item*current+1, 18, "{}".format(timelineDictInfos["slider"][current]["frame"]))
+                    painter.drawText(itemPos+1, 18, "{}".format(timelineDictInfos["slider"][current]["frame"]))
                 else:
                     # Drawing the other individual frames
                     brush.setColor(QtGui.QColor(100,100,100))
-                    rect = QtCore.QRect(item*current, 13, 1, 5)
+                    rect = QtCore.QRect(itemPos, 13, 1, 5)
                 painter.fillRect(rect, brush)
                 current += 1
         except KeyError:

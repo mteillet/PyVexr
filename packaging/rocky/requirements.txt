@@ -1,0 +1,24 @@
+# Dependances Python du bundle Rocky Linux (CPython 3.9, x86_64).
+# Toutes ces versions existent en wheel manylinux : aucune compilation n'est
+# necessaire cote Python, seuls les modules C++ de cppModules sont compiles.
+
+# --- Runtime ---
+numpy==1.26.4
+PyQt5==5.15.11
+PyQt5-Qt5==5.15.19
+PyQt5-sip==12.17.1
+# headless : la version "opencv-python" embarque son propre Qt et entre en
+# conflit avec PyQt5 dans le meme process. PyVexr n'utilise aucune fenetre
+# OpenCV (les appels cv.imshow du code sont commentes), donc headless suffit.
+opencv-python-headless==4.10.0.84
+imageio==2.35.1
+pillow==11.3.0
+opencolorio==2.3.2
+# Bindings Python officiels OpenEXR : fournissent OpenEXR et le module de
+# compatibilite Imath utilises par pyVexr_main.py
+OpenEXR==3.4.13
+
+# --- Build uniquement ---
+pybind11==2.13.6
+pyinstaller==6.11.1
+pyinstaller-hooks-contrib==2026.6

@@ -40,6 +40,7 @@ Built using Python, C++, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 - [x] Full Python code available
 	- [x] Compiled versions
 		- [x] Linux (Tested on Ubuntu)
+		- [x] Rocky Linux 8 / 9 self contained bundle (see `packaging/rocky`)
 		- [x] Windows
 - [x] Image support :
 	- [x] Open EXR
@@ -74,6 +75,25 @@ If you want to build the python version in order to modify or plug it in and exi
 ### WARNING 
 If you are not on a x64 linux distribution, the custom c++ python modules will not run, you will need to recompile the using the tasks.py file in the cppModules folder
 Meanwhile, you can use the latest Windows compile release you can find on this github
+
+## Rocky Linux (self contained build)
+A build chain producing a fully self contained bundle for Rocky Linux 8 and 9 lives in
+`packaging/rocky`. The resulting archive ships Python, PyQt5 and its Qt, OpenCV, OCIO, the
+OpenEXR bindings, the compiled C++ modules, the OCIO configs and the images: nothing has to be
+installed with `pip` or `dnf` on the target machine.
+
+```sh
+	# in a container (docker or podman)
+	packaging/rocky/build-docker.sh             # Rocky 8, also runs on Rocky 9
+	packaging/rocky/build-docker.sh --rocky 9
+
+	# or directly on a Rocky machine
+	sudo bash packaging/rocky/build-bundle.sh --install-deps --smoke-test
+```
+
+The archive lands in `dist/`. Unpack it and run `./PyVexr`, or `./install.sh` to get a launcher
+and a menu entry. The GitHub Actions workflow `Build Rocky Linux bundle` builds both versions and
+publishes them as artifacts. See `packaging/rocky/README.md` for details.
 
 ## License
 Distributed under the MIT License. See `LICENSE.txt` for more information

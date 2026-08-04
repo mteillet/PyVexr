@@ -1,0 +1,55 @@
+name: Build Rocky Linux bundle
+
+# Produit une archive PyVexr autonome (toutes dependances incluses) pour
+# Rocky Linux 8 et 9. Les archives sont attachees au run en tant qu'artifacts.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+    paths:
+      - '*.py'
+      - 'cppModules/**'
+      - 'ocio/**'
+      - 'imgs/**'
+      - 'packaging/rocky/**'
+      - '.github/workflows/build-rocky.yml'
+
+jobs:
+  bundle:
+    name: Rocky ${{ matrix.rocky }}
+    runs-on: ubuntu-latest
+    container:
+      image: quay.io/rockylinux/rockylinux:${{ matrix.rocky }}
+    strategy:
+      fail-fast: false
+      matrix:
+        rocky: ['8', '9']
+
+    steps:
+      - name: Outils requis par actions/checkout
+        run: dnf -y install git tar gzip which
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Autoriser git dans le conteneur
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Construire le bundle
+        run: bash packaging/rocky/build-bundle.sh --install-deps --smoke-test
+
+      - name: Contenu de l'archive
+        run: |
+          ls -lh dist/
+          tar -tzf dist/*.tar.gz | head -40
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PyVexr-rocky${{ matrix.rocky }}-x86_64
+          path: dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 30

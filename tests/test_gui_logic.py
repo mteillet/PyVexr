@@ -60,11 +60,6 @@ def test_matchListLenKeepsEqualLengthsUntouched():
     assert result == ["a", "b", "c"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="bug connu : matchListLen modifie la liste de versions stockee "
-           "(corrige en phase 2)",
-)
 def test_matchListLenDoesNotMutateItsInput():
     versions = ["a", "b", "c", "d", "e"]
 

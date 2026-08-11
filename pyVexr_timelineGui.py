@@ -8,6 +8,19 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 
 timelineDictInfos = {}
 
+
+def isFrameNumber(value):
+    '''
+    The frame label comes from the filename, so for a movie it can be the
+    basename rather than a number : int() on it used to raise ValueError in
+    the middle of the paint and left the ruler half drawn.
+    '''
+    try:
+        int(value)
+    except (TypeError, ValueError):
+        return(False)
+    return(True)
+
 class _Timeline(QtWidgets.QWidget):
     """
     Here is the modified slider to get the actual timeline
@@ -17,6 +30,11 @@ class _Timeline(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.cachePos = []
         self.maxBuffer = 1
+        # Built once : they used to be constructed for every tick of every
+        # repaint, and never passed to painter.setFont anyway.
+        self.frameFont = QtGui.QFont("Serif", 7, QtGui.QFont.Light)
+        self.shotFont = QtGui.QFont("Serif", 10, QtGui.QFont.Bold)
+        self.tickFont = QtGui.QFont("Serif", 5, QtGui.QFont.Light)
         self.setSizePolicy(
             QtWidgets.QSizePolicy.MinimumExpanding,
             QtWidgets.QSizePolicy.MinimumExpanding
@@ -44,7 +62,7 @@ class _Timeline(QtWidgets.QWidget):
         # int() obligatoire : les versions recentes de PyQt5/sip refusent les
         # flottants la ou Qt attend des entiers (QRect, drawText, ...)
         tickValue = int(value * painter.device().width() / vmax)
-        if self.maxBuffer >> 2:
+        if self.maxBuffer > 2:
             lenMax = self.maxBuffer - 1
         else:
             lenMax = self.maxBuffer
@@ -77,8 +95,7 @@ class _Timeline(QtWidgets.QWidget):
         painter.setPen(pen)
 
         # Text following slider
-        font = QtGui.QFont("Serif", 7, QtGui.QFont.Light)
-        painter.setFont(font)
+        painter.setFont(self.frameFont)
         try:
             (timelineDictInfos["slider"][0])
             painter.drawText(tickValue+2, 13, "{}".format(timelineDictInfos["slider"][value]["frame"]))
@@ -96,31 +113,35 @@ class _Timeline(QtWidgets.QWidget):
             item = painter.device().width() / (total+0.00001)
             current = 0
             previousName = "pyVexrTempName"
+            # Each branch fills its own rectangle : the shared fillRect at the
+            # end used to re-fill whatever rect was left over from a previous
+            # iteration, repainting the playhead grey on the first one.
+            brush.setColor(QtGui.QColor(100,100,100))
             for i in timelineDictInfos["slider"]:
                 itemPos = int(item * current)
-                if (timelineDictInfos["slider"][current]["shot"] != previousName):
-                    # Drawing the bigger lines and the shot names for every new shot
-                    shotRect = QtCore.QRect(itemPos, 0, 1, painter.device().height()-1)
-                    brush.setColor(QtGui.QColor(100,100,100))
-                    painter.fillRect(shotRect, brush)
-                    # Drawing the shot name
-                    font = QtGui.QFont("Serif", 10, QtGui.QFont.Bold)
-                    painter.setPen(QtGui.QColor(200,200,200))
-                    painter.drawText(itemPos+1, 30, "Shot : {}".format(timelineDictInfos["slider"][current]["shot"]))
+                shotName = timelineDictInfos["slider"][current]["shot"]
+                frameName = timelineDictInfos["slider"][current]["frame"]
 
-                    previousName = timelineDictInfos["slider"][current]["shot"]
-                elif (((int(timelineDictInfos["slider"][current]["frame"])) % 5) == 0):
+                if (shotName != previousName):
+                    # Drawing the bigger lines and the shot names for every new shot
+                    painter.fillRect(
+                        QtCore.QRect(itemPos, 0, 1, painter.device().height()-1),
+                        brush)
+                    # Drawing the shot name
+                    painter.setFont(self.shotFont)
+                    painter.setPen(QtGui.QColor(200,200,200))
+                    painter.drawText(itemPos+1, 30, "Shot : {}".format(shotName))
+
+                    previousName = shotName
+                elif isFrameNumber(frameName) and ((int(frameName) % 5) == 0):
                     # Drawing the bigger lines every 5 frames
-                    brush.setColor(QtGui.QColor(100,100,100))
-                    rect = QtCore.QRect(itemPos, 6, 1, 19)
-                    font = QtGui.QFont("Serif", 5, QtGui.QFont.Light)
-                    painter.setPen(QtGui.QColor(100,100,100)) 
-                    painter.drawText(itemPos+1, 18, "{}".format(timelineDictInfos["slider"][current]["frame"]))
+                    painter.fillRect(QtCore.QRect(itemPos, 6, 1, 19), brush)
+                    painter.setFont(self.tickFont)
+                    painter.setPen(QtGui.QColor(100,100,100))
+                    painter.drawText(itemPos+1, 18, "{}".format(frameName))
                 else:
                     # Drawing the other individual frames
-                    brush.setColor(QtGui.QColor(100,100,100))
-                    rect = QtCore.QRect(itemPos, 13, 1, 5)
-                painter.fillRect(rect, brush)
+                    painter.fillRect(QtCore.QRect(itemPos, 13, 1, 5), brush)
                 current += 1
         except KeyError:
             pass

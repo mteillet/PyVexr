@@ -43,7 +43,7 @@ def bufferBackEnd(imgDict, frameList, current):
     buffer
     """
     # Check buffer len is ok
-    if len(imgDict["buffer"]) >> 0:
+    if len(imgDict["buffer"]) > 0:
         # Check current buffer address is not already computed
         try:
             if (imgDict["buffer"][current] == None):
@@ -191,6 +191,20 @@ def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure, saturation, channel, 
     return (convertedImg)
 
 
+def normaliseToFloat(img):
+    '''
+    Converts a freshly read image to float32 in the 0-1 range, using the real
+    range of its dtype : 255 for 8 bits, 65535 for 16 bits, nothing for floats.
+    '''
+    if img.dtype.kind == "f":
+        return(img.astype(np.float32))
+
+    scale = np.float32(np.iinfo(img.dtype).max)
+    converted = img.astype(np.float32)
+    converted /= scale
+    return(converted)
+
+
 def applyExposure(img, exposure):
     '''
     Applies an exposure offset in stops, in place when possible.
@@ -199,7 +213,10 @@ def applyExposure(img, exposure):
     '''
     if exposure == 0:
         return(img)
-    if exposureUp is not None:
+    # The C++ module writes in place, so it needs a writable, contiguous
+    # float32 array ; anything else goes through numpy.
+    if (exposureUp is not None) and img.flags.writeable and img.flags.c_contiguous \
+            and (img.dtype == np.float32):
         return(exposureUp.expoUp(img, exposure))
     return(img * np.float32(pow(2, float(exposure))))
 
@@ -240,26 +257,22 @@ def exrListChannels(path):
         # Getting the RAW list of channels
         header = exr.header()
         channelsRaw = (header["channels"])
-        dw =  header["dataWindow"]
         # Printing the raw list of channels (listed in alphabetical order)
         channelList = []
         for channel in channelsRaw:
+            tempChannel = layerNameOf(channel)
 
-            if "." in channel:
-                tempChannel = channel.split(".")
-                tempChannel = ".".join(tempChannel[:-1])
-            else:
-                tempChannel = channel
-
-            if (tempChannel not in channelList) & (channel not in ["R","G","B","A"]):
+            if (tempChannel not in channelList) and (channel not in ["R","G","B","A"]):
                 channelList.append(tempChannel)
-            elif (channel) == "A":
-                channelList.insert(0,"RGBA")
+
+        # The beauty pass, when the file has one. It used to be listed only if
+        # a channel literally named "A" existed, so an EXR with R, G and B but
+        # no alpha offered no way back to the beauty at all.
+        names = set(channelsRaw)
+        if {"R", "G", "B"}.issubset(names):
+            channelList.insert(0, "RGBA" if "A" in names else "RGB")
     else:
         channelList = ["RGBA"]
-    # If RGBA is not in the channel list, then insert RGB, as it means the alpha channel was never found
-    #if "RGBA" not in channelList:
-    #    channelList.insert(0, "RGB")
     #print(channelList)
     return(channelList)
 
@@ -467,6 +480,18 @@ def getLooks(ocioVar, colorSpace):
     return(looksList)
 
 
+def layerNameOf(channelName):
+    '''
+    Layer a channel belongs to : "diffuse.R" -> "diffuse", "Zback" -> "Zback".
+    Splitting blindly on "." used to turn a channel without a dot into an
+    empty name, which then matched every channel of the file.
+    '''
+    parts = channelName.split(".")
+    if len(parts) > 1:
+        return(".".join(parts[:-1]))
+    return(channelName)
+
+
 def checkFirstExrChannel(path, channel, channelRGBA):
     '''
     Checks if the channel RGB exists in the exr, otherwise returns the first channel
@@ -476,19 +501,16 @@ def checkFirstExrChannel(path, channel, channelRGBA):
     channelsRaw = header["channels"]
     #print(channelsRaw)
 
-    current = 0
-    if channel in [None, "rgb", "rgba"]:
+    # The channel list of the interface uses upper case ("RGBA"), this test
+    # used to compare against lower case only, so picking RGBA on a file
+    # without a top level R never fell back to the first layer.
+    if (channel or "").lower() in ["", "rgb", "rgba"]:
         if "R" not in channelsRaw:
-            if ((list(channelsRaw.keys())[current]) == "Z"):
-                current += 1
-                tempChan = ((list(channelsRaw.keys())[current]).split("."))[:-1]
-                channel = ".".join(tempChan)
-            elif (len((list(channelsRaw.keys())[current]).split(".")) == 0) :
-                print("Channel Length is not long enough to be read")
-                print("Check checkFirstExrChannel in main to fix")
-            elif (len((list(channelsRaw.keys())[current]).split(".")) >> 0) :
-                tempChan = ((list(channelsRaw.keys())[current]).split("."))[:-1]
-                channel = ".".join(tempChan)
+            names = list(channelsRaw.keys())
+            # Z alone is not a displayable layer, take the next one.
+            candidates = [name for name in names if name != "Z"] or names
+            if candidates:
+                channel = layerNameOf(candidates[0])
     #print("channel will be {}".format(channel))
 
     return(channel)
@@ -516,25 +538,40 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
             print("DPX file found")
         elif (path[0].lower().endswith(".mov"))|(path[0].lower().endswith(".mp4")):
             #print(".mov file found")
+            # The timeline appends a frame number to the movie path, so
+            # movie.mov becomes movie.0012.mov. Removing that component is
+            # only valid when it really parsed as a number, otherwise a plain
+            # movie.mov was turned into "mov".
             split = path[0].split(".")
+            moviePath = path[0]
+            frameNumber = 1
             try:
                 frameNumber = int(split[-2])
-            except:
-                frameNumber = 1
-            del split[-2]
-            split =".".join(split)
-            if len(split) > 3 :
-                capture = cv.VideoCapture(split)
-            else:
-                capture = cv.VideoCapture(path[0])
-            capture.set(cv.CAP_PROP_POS_FRAMES, frameNumber)
-            success, img = capture.read()
+                del split[-2]
+                moviePath = ".".join(split)
+            except (ValueError, IndexError):
+                pass
+
+            capture = cv.VideoCapture(moviePath)
+            try:
+                # detectFrameNumberMov numbers frames from 1, OpenCV from 0.
+                capture.set(cv.CAP_PROP_POS_FRAMES, max(0, frameNumber - 1))
+                success, img = capture.read()
+            finally:
+                capture.release()
+            if success == False:
+                raise ValueError(
+                    "Could not read frame {} of {}".format(frameNumber, moviePath)
+                )
         else:
             img = cv.imread(path[0], cv.IMREAD_ANYCOLOR | cv.IMREAD_ANYDEPTH)
+            if img is None:
+                raise ValueError("Could not read {}".format(path[0]))
         if (ocioIn == "Linear"):
             ocioIn = "sRGB"
-        # Convert img to float 32
-        img = np.float32(img/255)
+        # Convert img to float 32, scaled by the real depth of the file : a
+        # hardcoded /255 made 16 bit png and tiff 257 times too bright.
+        img = normaliseToFloat(img)
 
     # For debugging purpose, if you need to display the image in open cv to compare
     '''
@@ -583,21 +620,24 @@ def ocioTransformDefault(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
 def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     '''
     Custom Ocio transform following the ocio prefs set by user when ocio button is toggled
+
+    img comes in as BGR (that is what cv.merge produced) and is transformed in
+    place. OCIO reads its input as a packed RGB buffer and ignores the strides,
+    so it must be handed a contiguous RGB copy : passing the reversed view
+    img[...,::-1] made it start two floats into the image, transforming every
+    value under the wrong channel and reading past the end of the last pixel.
     '''
-    # Need to shuffle the channel order in ocio in order to switch the R and B channels (thanks openCV)
-    img = img[...,::-1]
+    rgb = np.ascontiguousarray(img[...,::-1])
 
     config = OCIO.Config.CreateFromFile(ocioVar)
-    ocioVersion = "{}.{}".format(config.getMajorVersion(), config.getMinorVersion())
     disp, view = ocioDisplay.split(",")
 
     # Colorpsace conversion if the in and out colorspaces are different
     if ocioIn != ocioOut:
         #print("Conversion from {} to {}".format(ocioIn, ocioOut))
-        transform = OCIO.ColorSpaceTransform()
         processor = config.getProcessor(ocioIn, ocioOut)
         cpu = processor.getDefaultCPUProcessor()
-        cpu.applyRGB(img)
+        cpu.applyRGB(rgb)
 
     # View Transform conversion for display
     transform = OCIO.DisplayViewTransform()
@@ -612,7 +652,12 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
         viewer.setLooksOverride(ocioLook)
     processor = viewer.getProcessor(config, config.getCurrentContext())
     cpu = processor.getDefaultCPUProcessor()
-    img = cpu.applyRGB(img)
+    cpu.applyRGB(rgb)
+
+    # Back into the caller's buffer, in the BGR order the rest of the pipeline
+    # expects. applyRGB returns None, so the previous "img = cpu.applyRGB(img)"
+    # also made this function return None.
+    img[...] = rgb[...,::-1]
 
     return(img)
 
@@ -712,7 +757,7 @@ def convertForVideo(path, ocioIn, ocioOut, ocioLook, exposure, saturation, chann
 
     #ExposureChange
     if (exposure != 0):
-        img = img * pow(2,float(exposure))
+        img = applyExposure(img, exposure)
 
 
     if(img.dtype == "float32"):
@@ -720,7 +765,10 @@ def convertForVideo(path, ocioIn, ocioOut, ocioLook, exposure, saturation, chann
         if ocioToggle == True:
             ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay)
         else:
-            ocioTransformDefault(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay)
+            # ocioTransformDefault returns a new array and does not touch its
+            # input : dropping the result exported raw linear data, so every
+            # mp4 and jpeg came out much darker than what the viewer showed.
+            img = ocioTransformDefault(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay)
         #ocioTransform(img, ocioIn, ocioOut, ocioLook)
         img *= 255
         # Clamping the values to avoid artifacts if values go over 255
@@ -902,7 +950,7 @@ def layerContactSheetBackend(chanList, imgDict):
 
             start = end 
 
-            if ((end+diff) << numImgs):
+            if ((end+diff) < numImgs):
                 end += diff
             else:
                 end = numImgs - 1

@@ -8,13 +8,13 @@
   "ocio_filmic": {
     "bytesPerLine": 48,
     "height": 12,
-    "sha256": "734f6246efd5dc055ca772fa04b73aa943b1349ce31f35c5d6aed5c1e4773657",
+    "sha256": "123a1be2ef9e31899ef7a83e5dcd8b4014b1a661ff1615c59785787ab48fd003",
     "width": 16
   },
   "ocio_srgb_standard": {
     "bytesPerLine": 48,
     "height": 12,
-    "sha256": "bd2794a90ff3a20434261f5bd2e60cc05d4d57d4dd57df1f5ed7ef82ec0eba55",
+    "sha256": "ee97b19437e722543c64b4c7aac349d5b192a07e0ecf4e11d4f1c04b748a2a5a",
     "width": 16
   },
   "rgba_exposition": {

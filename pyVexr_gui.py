@@ -685,7 +685,7 @@ class MyWidget(QtWidgets.QWidget):
         #Stopping the queue if workers are not created yet
         self.threadpool.clear()
 
-        if (len(self.imgDict["buffer"]) >> 0):
+        if (len(self.imgDict["buffer"]) > 0):
             self.imgDict["buffer"] = []
 
         # Empty buffer slots
@@ -709,9 +709,9 @@ class MyWidget(QtWidgets.QWidget):
 
         count = 0
         self.threadpool.setMaxThreadCount(self.maxThreads - 6)
-        if (len(frameList) >> 0):
+        if (len(frameList) > 0):
             # First check to see how much time a thread takes to finish
-            if (current+count >> self.frameNumber.slider.maximum()):
+            if (current+count > self.frameNumber.slider.maximum()):
                 #print("NEED TO RESET THE CURRENT + COUNT")
                 current = self.frameNumber.slider.minimum()
                 count = 0
@@ -721,28 +721,37 @@ class MyWidget(QtWidgets.QWidget):
             self.threadpool.start(worker)
             count += 1
 
+    def snapshotBufferState(self):
+        '''
+        Snapshot of everything the cached images depend on.
+        The shot list is copied with list() : storing self.seqDict.keys() kept
+        a live view of the dictionary, so the stored state and the current one
+        always compared equal on that key and adding or removing a shot never
+        invalidated the buffer.
+        '''
+        return {
+            "frame": list(self.seqDict.keys()),
+            "ocioIn": self.imgDict["ocio"]["ocioIn"],
+            "ocioOut": self.imgDict["ocio"]["ocioOut"],
+            "ocioLook": self.imgDict["ocio"]["ocioLook"],
+            "ocioDisplay": self.imgDict["ocio"]["ocioDisplay"],
+            "ocioToggle": self.imgDict["ocioToggle"],
+            "channel": self.imgDict["channel"],
+            "exposure": self.imgDict["exposure"],
+            "saturation": self.imgDict["saturation"],
+            "RGBA": self.imgDict["RGBA"],
+            "ContactSheet": self.imgDict["ContactSheet"],
+            "ContactSheetChannels": list(self.imgDict["ContactSheetChannels"]),
+        }
+
     def createBufferState(self):
         '''
         Creating a buffer state that will be used to compare
         Buffer settings and know if it needs to be reset
         '''
         # Check if there are frames in the seqDict
-        if (len(self.seqDict) >> 0):
-            self.bufferState = {}
-            self.bufferState["frame"] = (self.seqDict.keys())
-            self.bufferState["ocioIn"] = self.imgDict["ocio"]["ocioIn"]
-            self.bufferState["ocioOut"] = self.imgDict["ocio"]["ocioOut"]
-            self.bufferState["ocioLook"] = self.imgDict["ocio"]["ocioLook"] 
-            self.bufferState["ocioDisplay"] = self.imgDict["ocio"]["ocioDisplay"]
-            self.bufferState["ocioToggle"] = self.imgDict["ocioToggle"]
-            self.bufferState["channel"] = self.imgDict["channel"]
-            self.bufferState["exposure"] = self.imgDict["exposure"]
-            self.bufferState["saturation"] = self.imgDict["saturation"]
-            self.bufferState["RGBA"] = self.imgDict["RGBA"]
-            self.bufferState["ContactSheet"] = self.imgDict["ContactSheet"]
-            self.bufferState["ContactSheetChannels"] = self.imgDict["ContactSheetChannels"]
-
-            #print(self.bufferState)
+        if (len(self.seqDict) > 0):
+            self.bufferState = self.snapshotBufferState()
 
     def checkIfBufferStateChanged(self):
         '''
@@ -750,20 +759,8 @@ class MyWidget(QtWidgets.QWidget):
         in order to see if buffer needs to be reset or not
         '''
         # Compare bufferState
-        if (len(self.seqDict) >> 0):
-            currentState = {}
-            currentState["frame"] = (self.seqDict.keys())
-            currentState["ocioIn"] = self.imgDict["ocio"]["ocioIn"]
-            currentState["ocioOut"] = self.imgDict["ocio"]["ocioOut"]
-            currentState["ocioLook"] = self.imgDict["ocio"]["ocioLook"] 
-            currentState["ocioDisplay"] = self.imgDict["ocio"]["ocioDisplay"]
-            currentState["ocioToggle"] = self.imgDict["ocioToggle"]
-            currentState["channel"] = self.imgDict["channel"]
-            currentState["exposure"] = self.imgDict["exposure"]
-            currentState["saturation"] = self.imgDict["saturation"]
-            currentState["RGBA"] = self.imgDict["RGBA"]
-            currentState["ContactSheet"] = self.imgDict["ContactSheet"]
-            currentState["ContactSheetChannels"] = self.imgDict["ContactSheetChannels"]
+        if (len(self.seqDict) > 0):
+            currentState = self.snapshotBufferState()
 
             if (currentState == self.bufferState):
                 #print("No change in buffer state")
@@ -839,13 +836,13 @@ class MyWidget(QtWidgets.QWidget):
         #print(self.diagnostic)
 
         count = 0
-        if (len(frameList) >> 0):
+        if (len(frameList) > 0):
             # First check to see how much time a thread takes to finish
             if (self.diagnostic == False):
                 #print("buffer launch limited")
                 for i in range(self.bufferRange):
                     # Reset the curent + count to not get out of list range
-                    if (current+count >> self.frameNumber.slider.maximum()):
+                    if (current+count > self.frameNumber.slider.maximum()):
                         #print("NEED TO RESET THE CURRENT + COUNT")
                         current = self.frameNumber.slider.minimum()
                         count = 0
@@ -857,7 +854,7 @@ class MyWidget(QtWidgets.QWidget):
                 #print("buffer launch full")
                 for i in range(len(frameList)):
                     # Reset the curent + count to not get out of list range
-                    if (current+count >> self.frameNumber.slider.maximum()):
+                    if (current+count > self.frameNumber.slider.maximum()):
                         #print("NEED TO RESET THE CURRENT + COUNT")
                         current = self.frameNumber.slider.minimum()
                         count = 0
@@ -1057,7 +1054,7 @@ class MyWidget(QtWidgets.QWidget):
         # Calculating the actual image from the backend
         tempImg = loadImg(self.imgDict["ocio"]["ocioIn"],self.imgDict["ocio"]["ocioOut"],self.imgDict["ocio"]["ocioLook"],self.imgDict["path"], self.imgDict["exposure"], self.imgDict["saturation"], self.imgDict["channel"], self.imgDict["RGBA"], self.imgDict["ocioVar"], self.imgDict["ocio"]["ocioDisplay"], self.imgDict["ocioToggle"], self.imgDict)
 
-        if len(self.imgDict["buffer"]) >> 0:
+        if len(self.imgDict["buffer"]) > 0:
             self.imgDict["buffer"][(self.frameNumber.slider.value())] = tempImg
             #print(len(self.imgDict["buffer"]))
 
@@ -1459,9 +1456,13 @@ class MyWidget(QtWidgets.QWidget):
         self.listVersions()
 
     def buildVersioningDict(self):
-        # Building the versioning dictionnary
+        # Building the versioning dictionnary.
+        # Only for shots that are not known yet : this runs again every time a
+        # shot is added, and resetting the whole dict silently threw away every
+        # version the user had registered.
         for i in self.seqDict:
-            self.imgDict["version"][i] = {}
+            if i not in self.imgDict["version"]:
+                self.imgDict["version"][i] = {}
             self.imgDict["version"][i]["v_0000"] = self.seqDict[i]
 
     def listVersions(self):
@@ -1511,8 +1512,14 @@ class MyWidget(QtWidgets.QWidget):
 
     def matchListLen(self, listA, listB):
         '''
-        Modify listA so it matches the len of listB and only contains items from listA
+        Return a copy of listA resized to the len of listB, containing only
+        items from listA.
+
+        The copy matters : switchVersion passes the list stored in
+        self.imgDict["version"], and inserting or deleting in place destroyed
+        that version's frame list for good after a couple of switches.
         '''
+        listA = list(listA)
         lenA = len(listA)
         lenB = len(listB)
 
@@ -2018,9 +2025,11 @@ class ContactSheetPopup(QtWidgets.QWidget):
 
         self.toggleBtn = QtWidgets.QPushButton("Toggle Layer Contact Sheet Mode")
         self.toggleBtn.setCheckable(True)
+        self.toggleBtn.setChecked(widget.imgDict["ContactSheet"])
         self.toggleBtn.clicked.connect(self.contactSheetMode)
-        if self.toggleBtn.isChecked() == False:
-            self.toggleBtn.click()
+        # No synthetic click here : a fresh checkable button is always
+        # unchecked, so this used to switch the viewer into contact sheet mode
+        # and reset the whole cache merely by opening the window.
         self.okBtn = QtWidgets.QPushButton("Ok")
         self.okBtn.clicked.connect(self.okBtnClicked)
 
@@ -2244,10 +2253,17 @@ class OcioPopup(QtWidgets.QWidget):
 
         
 
+        # Settings as they were when the window opened, so Cancel can put them
+        # back. Filling the combos below emits currentIndexChanged, which used
+        # to overwrite the viewer settings with the first item of each list
+        # before the user had touched anything.
+        self.previousOcio = dict(widget.imgDict["ocio"])
+
         # Clearing the previous contents of menus
-        self.comboCS.clear()
-        self.comboInput.clear()
-        self.comboDisplay.clear()
+        for combo in (self.comboCS, self.comboInput, self.comboDisplay,
+                      self.comboView):
+            combo.blockSignals(True)
+            combo.clear()
 
         colorSpaces,inputInterp,displays = initOcio2(widget.imgDict["ocioVar"])
         for i in colorSpaces:
@@ -2256,6 +2272,19 @@ class OcioPopup(QtWidgets.QWidget):
             self.comboInput.addItem(i)
         for i in displays:
             self.comboDisplay.addItem(i)
+
+        # Show what the viewer is actually using rather than the first entry.
+        self.comboCS.setCurrentText(self.previousOcio["ocioOut"])
+        self.comboInput.setCurrentText(self.previousOcio["ocioIn"])
+        self.comboDisplay.setCurrentText(self.previousOcio["ocioDisplay"])
+        for look in getLooks(widget.imgDict["ocioVar"],
+                             self.comboCS.currentText()):
+            self.comboView.addItem(look)
+        self.comboView.setCurrentText(self.previousOcio["ocioLook"])
+
+        for combo in (self.comboCS, self.comboInput, self.comboDisplay,
+                      self.comboView):
+            combo.blockSignals(False)
 
 
         self.okBtn = QtWidgets.QPushButton("Ok")
@@ -2361,13 +2390,20 @@ class OcioPopup(QtWidgets.QWidget):
         widget.refreshImg()
 
     def saveConfigClicked(self):
-        # Check if a config.json exists 
-        jsonPath = "config.json"
+        jsonPath = "{}config.json".format(realPath)
         absoluteOcioPath = (os.path.realpath(self.ocioPath.text()))
-        if (os.path.exists(absoluteOcioPath) == True):
+
+        # The ocio config has to exist, otherwise the saved preferences make
+        # the next start fall back to the defaults anyway.
+        if (os.path.exists(absoluteOcioPath) == False):
+            print("Not saving : {} does not exist".format(absoluteOcioPath))
+            return
+
+        if (os.path.exists(jsonPath) == True):
             print("Config exists, overriding")
         else:
             print("Creating new config")
+
         jsonData = {}
         jsonData["ocioVar"] = absoluteOcioPath
         jsonData["ocioIn"] = self.comboInput.currentText()
@@ -2375,9 +2411,12 @@ class OcioPopup(QtWidgets.QWidget):
         jsonData["ocioDisplay"] = self.comboDisplay.currentText()
         jsonData["ocioLook"] = self.comboView.currentText()
         #print(jsonData)
-        with open("{}{}".format(realPath, jsonPath), "w") as file:
-            json.dump(jsonData, file)
-        file.close()
+        try:
+            with open(jsonPath, "w") as file:
+                json.dump(jsonData, file)
+        except OSError as error:
+            # Happens on a read only install (system package, /opt...).
+            print("Could not save the preferences : {}".format(error))
 
     def checkIfJsonExists(self):
         jsonPath = "config.json"
@@ -2395,6 +2434,11 @@ class OcioPopup(QtWidgets.QWidget):
 
 
     def cancelClicked(self):
+        # Put back the settings the viewer had when the window opened : the
+        # combos apply their changes live, so closing without this left the
+        # image on whatever was last hovered in the menus.
+        widget.imgDict["ocio"].update(self.previousOcio)
+        widget.refreshImg()
         self.close()
 
 

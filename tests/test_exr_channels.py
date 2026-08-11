@@ -24,11 +24,6 @@ def test_listChannelsOnNonExrFallsBackToRgba(tmp_path):
     assert main.exrListChannels([str(tmp_path / "image.png")]) == ["RGBA"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="bug connu : un EXR R/G/B sans alpha ne propose aucune couche "
-           "(corrige en phase 2)",
-)
 def test_listChannelsOnRgbWithoutAlphaStillOffersTheBeautyLayer(rgbExr):
     assert main.exrListChannels([rgbExr]) == ["RGB"]
 

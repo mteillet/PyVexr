@@ -7,7 +7,6 @@ plutot que d'instancier MyWidget, ce qui garde ces tests instantanes.
 
 import types
 
-import pytest
 from PyQt5 import QtCore
 
 import pyVexr_gui as gui

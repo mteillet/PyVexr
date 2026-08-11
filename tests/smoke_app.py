@@ -73,6 +73,24 @@ def main():
     widget.refreshImg()
     app.processEvents()
 
+    # Fenetres secondaires : elles vivent dans pyVexr_popups et recoivent la
+    # fenetre principale en argument, on verifie qu'elles s'ouvrent toutes.
+    for opener, attribute in (
+        (widget.bufferPopup, "bufPopup"),
+        (widget.infosPopup, "infPopup"),
+        (widget.customExpoMenu, "expoPop"),
+        (widget.customSatMenu, "satPop"),
+        (widget.contactSheetWindow, "contactSheetPop"),
+        (widget.ocioMenu, "ocioPop"),
+    ):
+        opener()
+        app.processEvents()
+        popup = getattr(widget, attribute)
+        if popup.viewer is not widget:
+            raise SystemExit("{} n'a pas recu la fenetre principale".format(attribute))
+        popup.close()
+        app.processEvents()
+
     # Lecture : demarre la minuterie, la laisse tourner, puis l'arrete.
     widget.playBtn.setChecked(True)
     widget.playForward()

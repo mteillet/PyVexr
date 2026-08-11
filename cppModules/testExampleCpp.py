@@ -1,7 +1,6 @@
 # importing the cpp example
 import exposureUp
 import time
-import math
 
 
 def main():

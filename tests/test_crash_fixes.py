@@ -10,6 +10,7 @@ import types
 import numpy as np
 import pyVexr_gui as gui
 import pyVexr_main as main
+import pyVexr_paths as paths
 from conftest import writeExr
 
 
@@ -191,7 +192,7 @@ def savedConfigWidget(monkeypatch, tmp_path, payload):
     path = tmp_path / "config.json"
     if payload is not None:
         path.write_text(payload)
-    monkeypatch.setattr(gui, "readableConfigPath", lambda: str(path))
+    monkeypatch.setattr(paths, "readableConfigPath", lambda: str(path))
     return types.SimpleNamespace()
 
 
@@ -200,13 +201,13 @@ def test_incompleteConfigIsIgnoredInsteadOfBreakingStartup(monkeypatch, tmp_path
         monkeypatch, tmp_path, json.dumps({"ocioVar": "/nowhere/config.ocio"})
     )
 
-    assert gui.MyWidget.readSavedConfig(widget) is None
+    assert paths.readPreferences() is None
 
 
 def test_corruptedConfigIsIgnored(monkeypatch, tmp_path):
     widget = savedConfigWidget(monkeypatch, tmp_path, "{not json")
 
-    assert gui.MyWidget.readSavedConfig(widget) is None
+    assert paths.readPreferences() is None
 
 
 def test_configPointingAtAMissingOcioFileIsIgnored(monkeypatch, tmp_path):
@@ -216,7 +217,7 @@ def test_configPointingAtAMissingOcioFileIsIgnored(monkeypatch, tmp_path):
     })
     widget = savedConfigWidget(monkeypatch, tmp_path, payload)
 
-    assert gui.MyWidget.readSavedConfig(widget) is None
+    assert paths.readPreferences() is None
 
 
 def test_completeConfigIsLoaded(monkeypatch, tmp_path, ocioConfigPath):
@@ -226,7 +227,7 @@ def test_completeConfigIsLoaded(monkeypatch, tmp_path, ocioConfigPath):
     })
     widget = savedConfigWidget(monkeypatch, tmp_path, payload)
 
-    config = gui.MyWidget.readSavedConfig(widget)
+    config = paths.readPreferences()
 
     assert config["ocioVar"] == ocioConfigPath
     assert config["ocioIn"] == "Linear"

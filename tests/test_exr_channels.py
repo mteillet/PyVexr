@@ -4,7 +4,6 @@ extraction des pixels d'une couche donnee.
 """
 
 import numpy as np
-import pytest
 
 import pyVexr_main as main
 

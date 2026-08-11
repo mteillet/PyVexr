@@ -2,8 +2,6 @@
 
 # pyVexr_timelineGui.py
 
-import sys
-import os
 from PyQt5 import QtWidgets, QtCore, QtGui
 
 from pyVexr_paths import resource
@@ -68,7 +66,7 @@ class _Timeline(QtWidgets.QWidget):
 
         # Get Values from the slider
         slider = self.parent().slider
-        vmin, vmax = slider.minimum(), slider.maximum()
+        vmax = slider.maximum()
         value = slider.value()
         # int() obligatoire : les versions recentes de PyQt5/sip refusent les
         # flottants la ou Qt attend des entiers (QRect, drawText, ...)
@@ -128,7 +126,7 @@ class _Timeline(QtWidgets.QWidget):
             # end used to re-fill whatever rect was left over from a previous
             # iteration, repainting the playhead grey on the first one.
             brush.setColor(QtGui.QColor(100,100,100))
-            for i in timelineDictInfos["slider"]:
+            for _ in timelineDictInfos["slider"]:
                 itemPos = int(item * current)
                 shotName = timelineDictInfos["slider"][current]["shot"]
                 frameName = timelineDictInfos["slider"][current]["frame"]
@@ -255,7 +253,7 @@ class Timeline(QtWidgets.QWidget):
             self.leftBtnClicked = False
 
     def mouseMoveEvent(self, event):
-        if(self.leftBtnClicked == True):
+        if(self.leftBtnClicked):
             val = self.pixelPosToRangeValue(event.pos())
             self.slider.setValue(val)
 

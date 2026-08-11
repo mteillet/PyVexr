@@ -11,6 +11,7 @@ OCIO config, and the manual split on "/" did not hold on Windows.
 Everything goes through this module now.
 """
 
+import json
 import os
 import sys
 
@@ -83,3 +84,37 @@ def writableConfigPath():
     path = userConfigPath()
     os.makedirs(os.path.dirname(path), exist_ok=True)
     return path
+
+
+def readPreferences():
+    """
+    Saved preferences, or None when they are missing, unreadable, incomplete,
+    or point at an OCIO config that no longer exists.
+
+    This runs while the main window is being built, so anything raising here
+    used to make the application impossible to start.
+    """
+    jsonPath = readableConfigPath()
+    if not os.path.exists(jsonPath):
+        return None
+
+    try:
+        with open(jsonPath, "r") as handle:
+            preferences = json.load(handle)
+    except (OSError, ValueError) as error:
+        print("Ignoring unreadable config.json : {}".format(error))
+        return None
+
+    expected = ["ocioVar", "ocioIn", "ocioOut", "ocioDisplay", "ocioLook"]
+    missing = [key for key in expected if key not in preferences]
+    if missing:
+        print("Ignoring incomplete config.json, missing {}".format(
+            ", ".join(missing)))
+        return None
+
+    if not os.path.exists(preferences["ocioVar"]):
+        print("Ignoring config.json, the ocio config {} is gone".format(
+            preferences["ocioVar"]))
+        return None
+
+    return preferences

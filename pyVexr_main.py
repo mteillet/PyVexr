@@ -6,16 +6,13 @@
 import os
 import numpy as np
 import PyOpenColorIO as OCIO
-import imageio
 import OpenEXR as EXR
-import array
-import time
 import Imath
 import math
 import glob
 import sys
 import functools
-from pyVexr_paths import APP_DIR, ocioConfigPath, resource
+from pyVexr_paths import resource
 # Adding the cppModules dir to the search path
 sys.path.append(resource("cppModules"))
 # The C++ extensions are optional: they are built for one specific CPython
@@ -47,7 +44,7 @@ def bufferBackEnd(imgDict, frameList, current):
     if (current < 0) or (current >= len(frameList)):
         return(None)
 
-    if (imgDict["ContactSheet"] == False):
+    if (not imgDict["ContactSheet"]):
         convertedImg = convertExr(frameList[current], imgDict["ocio"]["ocioIn"], imgDict["ocio"]["ocioOut"], imgDict["ocio"]["ocioLook"], imgDict["exposure"], imgDict["saturation"], imgDict["channel"], imgDict["RGBA"], imgDict["ocioVar"], imgDict["ocio"]["ocioDisplay"], imgDict["ocioToggle"])
     else:
         imgDict["path"] = [frameList[current]]
@@ -105,7 +102,7 @@ def detectFrameNumberMov(filepath):
     movStruct = {}
     movStruct[seqName] = []
     current = 0
-    for i in range(frameCount):
+    for _ in range(frameCount):
         framedPath = filepath.split(".")
         framedPath.insert(-1, str(current+1).zfill(4))
         framedPath = ".".join(framedPath)
@@ -142,7 +139,7 @@ def autoRangeFromPath(pathList, autoLoad):
         #print("{} is extension {}".format(i, extension))
         seqName, searchPath , extension= fileSearchPath(pathList[i][0])
         # Returning every matching files in the folder only is autoLoad is toggled
-        if (autoLoad == True):
+        if (autoLoad):
             fileList = glob.glob(str(searchPath)+".*."+ extension)
         else:
             fileList = pathList[i]
@@ -167,7 +164,7 @@ def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure, saturation, channel, 
     Main function responsible for the loading of IMGs
     '''
     temporaryImg = fileList[0]
-    if (imgDict["ContactSheet"] == False):
+    if (not imgDict["ContactSheet"]):
         convertedImg = convertExr(temporaryImg, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, channelRGBA, ocioVar, ocioDisplay, ocioToggle)
     else:
         imgDict["path"] = [fileList[0]]
@@ -237,7 +234,7 @@ def exrListChannels(path):
     '''
     Function responsible for returning the EXR Channels to the channel pannel
     '''
-    if path[0].endswith(".exr") == True:
+    if path[0].endswith(".exr"):
         exr = EXR.InputFile(path[0])
         try:
             # Getting the RAW list of channels
@@ -312,12 +309,12 @@ def readExrChannels(exr, path, channel, channelRGBA):
     # Otherwise, goes to None by default
     channelExists = False
     for i in channelsRaw:
-        if channel == None: 
+        if channel is None: 
             pass
-        elif i.startswith(channel) == True:
+        elif i.startswith(channel):
             channelExists = True
 
-    if (channel != None) & (channelExists != True):
+    if (channel is not None) & (not channelExists):
         print("{} not found, going back to RGB".format(channel))
         channel = None
 
@@ -331,7 +328,7 @@ def readExrChannels(exr, path, channel, channelRGBA):
 
     emptyAlpha = False
     # Additionnal tests if R,G,B,A or all channels are selected
-    if (channel == "RGBA") | (channel == None):
+    if (channel == "RGBA") | (channel is None):
         if (channelRGBA == "rgba") | (channelRGBA == "luma"):
             foundChannelList = casing[:3]
         elif (channelRGBA == "red"):
@@ -350,7 +347,7 @@ def readExrChannels(exr, path, channel, channelRGBA):
                 emptyAlpha = True
     else:
         for i in channelsRaw:
-            if i.startswith(channel) == True:
+            if i.startswith(channel):
                 foundChannelList.append(i)
             if (channelRGBA == "alpha"):
                 defaultAlpha = "{}.{}".format(channel,casing[3])
@@ -393,7 +390,7 @@ def readExrChannels(exr, path, channel, channelRGBA):
         channelR = np.reshape(channelR, isize)
         channelG = channelR
         channelB = channelR
-    elif emptyAlpha == False:
+    elif not emptyAlpha:
         # Nothing matched : fail with the channel name instead of an
         # UnboundLocalError further down.
         raise ValueError(
@@ -406,7 +403,7 @@ def readExrChannels(exr, path, channel, channelRGBA):
     if (channelRGBA == "rgba"):
         pass
     elif channelRGBA == "alpha":
-        if emptyAlpha == True:
+        if emptyAlpha:
             # No alpha in this layer : show black instead of crashing on
             # channelR/G/B, which are never assigned when no channel was found.
             channelR = np.zeros(isize, dtype = np.float32)
@@ -543,11 +540,11 @@ def getLooks(ocioVar, colorSpace):
     looksList = []
     looksList.append("None")
 
-    for i in looks:
+    for look in looks:
         #print("{} - {}".format(i.getProcessSpace(), i.getName()))
-        if colorSpace in i.getProcessSpace():
+        if colorSpace in look.getProcessSpace():
             #print("MATCH !! - {}".format(i.getName()))
-            looksList.append(i.getName())
+            looksList.append(look.getName())
 
 
     return(looksList)
@@ -634,7 +631,7 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
                 success, img = capture.read()
             finally:
                 capture.release()
-            if success == False:
+            if not success:
                 raise ValueError(
                     "Could not read frame {} of {}".format(frameNumber, moviePath)
                 )
@@ -666,7 +663,7 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
 
     if(img.dtype == "float32"):
         # Making the actual OCIO Transform
-        if ocioToggle == True:
+        if ocioToggle:
             ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay)
         else:
             img = ocioTransformDefault(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay)
@@ -731,29 +728,11 @@ def clampImg(img):
     img[img<0] = 0
     return(img)
 
-def ocio(img):
-    print("OCIO -- {}".format("Version 2"))
-
-    ocioVar = ocioConfigPath()
-    config = OCIO.Config.CreateFromFile(ocioVar)
-    #print(config)
-
-    # Getting displays list from ocio setup
-    displays = config.getActiveDisplays()
-    #print(displays)
-
-    # Getting views available for display
-    views = config.getViews("sRGB")
-
-    processor = config.getProcessor("Linear", "sRGB")
-    cpu = processor.getDefaultCPUProcessor()
-    img = cpu.applyRGB(img)
-
 def createVideoWriter(imgDict, frameList, current, destination):
 
     frameArray = []
     current = 0
-    for i in imgDict["buffer"]:
+    for _ in imgDict["buffer"]:
 
         imgResult = videoFirstFrameInit(imgDict, frameList, current)
 
@@ -824,7 +803,7 @@ def convertForVideo(path, ocioIn, ocioOut, ocioLook, exposure, saturation, chann
 
     if(img.dtype == "float32"):
         # Making the actual OCIO Transform
-        if ocioToggle == True:
+        if ocioToggle:
             ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay)
         else:
             # ocioTransformDefault returns a new array and does not touch its
@@ -846,15 +825,22 @@ def convertForVideo(path, ocioIn, ocioOut, ocioLook, exposure, saturation, chann
 
 
 
-def interpretRectangle(str):
-    temp = str.split("(")
-    temp = temp[1][:-1]
-    temp = temp.split(",")
-    offsetX = float(temp[0])
-    offsetY = float(temp[1])
-    lenX = float(temp[2])
-    lenY = float(temp[3])
-    return(offsetX, offsetY, lenX, lenY)
+def interpretRectangle(rectangle):
+    '''
+    Position and size of a QRect or QRectF.
+
+    This used to parse the repr() of the object : that text is not an API, it
+    changes between PyQt and sip versions, and it was recomputed on every
+    mouse move. It still accepts a string so the older calls keep working.
+    '''
+    if isinstance(rectangle, str):
+        temp = rectangle.split("(")
+        temp = temp[1][:-1]
+        temp = temp.split(",")
+        return(float(temp[0]), float(temp[1]), float(temp[2]), float(temp[3]))
+
+    return(float(rectangle.x()), float(rectangle.y()),
+           float(rectangle.width()), float(rectangle.height()))
 
 def layerContactSheetBackend(chanList, imgDict):
     #print(chanList)
@@ -965,7 +951,7 @@ def contactSheetFromExr(exr, chanList, imgDict):
     # Merge the different channel returned as images
     imgList = []
     current = 0
-    for image in redChannels:
+    for _ in redChannels:
         currentchannel = cv.merge([blueChannels[current], greenChannels[current], redChannels[current]])
         # Adding text overlay on the image
         cv.putText(currentchannel, chanList[current], (0,25), cv.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2, cv.LINE_AA)
@@ -994,7 +980,7 @@ def contactSheetFromExr(exr, chanList, imgDict):
         #print(iterations)
         
         imgLine = []
-        for i in range(iterations):
+        for _ in range(iterations):
             if (end-1 < numImgs):
                 #print("starting with image {} up to {}".format(start, end-1))
                 #print("multi image")
@@ -1006,11 +992,11 @@ def contactSheetFromExr(exr, chanList, imgDict):
                 lastLine = []
                 #print("{} : {}".format(start, numImgs - 1))
                 current = start
-                for i in range( (numImgs-1) - start + 1 ):
+                for _ in range( (numImgs-1) - start + 1 ):
                     lastLine.append(imgList[current])
                     current += 1
 
-                for i in range( diff - len(lastLine) ):
+                for _ in range( diff - len(lastLine) ):
                     lastLine.append(blackImg)
 
                 #print(len(lastLine))
@@ -1027,7 +1013,7 @@ def contactSheetFromExr(exr, chanList, imgDict):
         #print(len(imgLine))
 
         #print(imgLine)
-        for i in imgLine:
+        for _ in imgLine:
             #img = cv.vconcat([imgLine[0],imgLine[1], imgLine[2]])
             img = cv.vconcat(imgLine)
         # Debuggin showing only last line
@@ -1045,7 +1031,7 @@ def contactSheetFromExr(exr, chanList, imgDict):
 
     if(img.dtype == "float32"):
         # Making the actual OCIO Transform
-        if imgDict["ocioToggle"] == True:
+        if imgDict["ocioToggle"]:
             ocioTransform2(img, imgDict["ocio"]["ocioIn"], imgDict["ocio"]["ocioOut"], imgDict["ocio"]["ocioLook"], imgDict["ocioVar"], imgDict["ocio"]["ocioDisplay"])
         #ocioTransform(img, ocioIn, ocioOut, ocioLook)
         img *= 255

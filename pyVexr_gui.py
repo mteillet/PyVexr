@@ -8,11 +8,14 @@ import json
 import time
 import getpass
 from PyQt5 import QtWidgets, QtCore, QtGui
-from pyVexr_main import loadImg, interpretRectangle, exrListChannels, seqFromPath, initOcio2, getLooks, bufferBackEnd, layerContactSheetBackend, createVideoWriter, createImgWriter
+from pyVexr_main import (createImgWriter, createVideoWriter, exrListChannels,
+                         initOcio2, interpretRectangle, loadImg, seqFromPath)
+from pyVexr_buffer import Worker
+from pyVexr_popups import (BufferPopup, ContactSheetPopup, ExposurePopup,
+                           InfosPopup, OcioPopup, SaturationPopup)
 from pyVexr_timelineGui import Timeline
 
-from pyVexr_paths import (ocioConfigPath, readableConfigPath, resource,
-                          writableConfigPath)
+from pyVexr_paths import ocioConfigPath, readPreferences, resource
 
 # Subclassing graphicsView in order to be able to track mouse movements in the scene
 class graphicsView(QtWidgets.QGraphicsView):
@@ -45,14 +48,14 @@ class graphicsView(QtWidgets.QGraphicsView):
         self.activeKeys[QtCore.Qt.Key_E] = False
         self.activeKeys[QtCore.Qt.Key_F] = False
         # Alt key
-        self.activeKeys[16777251] = False
+        self.activeKeys[QtCore.Qt.Key_Alt] = False
         # Ctrl key
-        self.activeKeys[16777249] = False
+        self.activeKeys[QtCore.Qt.Key_Control] = False
         # Shitf key 
-        self.activeKeys[16777248] = False
+        self.activeKeys[QtCore.Qt.Key_Shift] = False
         # + and - keys
-        self.activeKeys[43] = False
-        self.activeKeys[45] = False
+        self.activeKeys[QtCore.Qt.Key_Plus] = False
+        self.activeKeys[QtCore.Qt.Key_Minus] = False
 
 
         # Active mouse dictionnary
@@ -80,10 +83,10 @@ class graphicsView(QtWidgets.QGraphicsView):
         '''
         if event.type() == QtCore.QEvent.FocusIn:
             pass
-        elif (event.type() == QtCore.QEvent.FocusOut) & (self.activeKeys[16777251] == True):
+        elif (event.type() == QtCore.QEvent.FocusOut) & (self.activeKeys[QtCore.Qt.Key_Alt]):
             #print("Focus is lost")
             self.setFocus()
-            self.activeKeys[16777251] = False
+            self.activeKeys[QtCore.Qt.Key_Alt] = False
             #print(app.focusWidget().objectName())
 
         return(False)
@@ -104,8 +107,10 @@ class graphicsView(QtWidgets.QGraphicsView):
             
         if (self.lastAction["click"] == "exposure") | (self.lastAction["click"] == "saturation"):
             widget.refreshImg()
-            # Reset the last action
-            self.lastAction["click"] == None
+            # Reset the last action. This was written "== None", a comparison
+            # that does nothing, so the flag stayed set and every later mouse
+            # release triggered a full reload of the image.
+            self.lastAction["click"] = None
 
         self.update()
 
@@ -119,54 +124,56 @@ class graphicsView(QtWidgets.QGraphicsView):
         if event.key() == QtCore.Qt.Key_S:
             widget.showSaturationText()
         # Expo change if key hit is + of -
-        if (event.key() == 43) | (event.key() == 45) | (event.key() == 48):
+        if (event.key() == QtCore.Qt.Key_Plus) | (event.key() == QtCore.Qt.Key_Minus) | (event.key() == QtCore.Qt.Key_0):
             # Boost expo
             widget.exposureChange(event.key())
             widget.satChange(event.key())
         # Buffer key actions
         # TODO
-        if (event.key() == 16777216):
+        if (event.key() == QtCore.Qt.Key_Escape):
             widget.stopBuffer()
-        if ((event.key() == QtCore.Qt.Key_R) & (self.activeKeys[16777249] == True)):
-            if (self.activeKeys[16777248] == True):
+        if ((event.key() == QtCore.Qt.Key_R) & (self.activeKeys[QtCore.Qt.Key_Control])):
+            if (self.activeKeys[QtCore.Qt.Key_Shift]):
                 widget.cacheCurrentFrame()
             else:
                 widget.cacheAllFrames()
         else:
             # RGBA switch channels
-            if (event.key() == 82):
+            if (event.key() == QtCore.Qt.Key_R):
                 widget.switchChannelR()
-        if (event.key() == 71):
+        if (event.key() == QtCore.Qt.Key_G):
             widget.switchChannelG()
-        if (event.key() == 66):
+        if (event.key() == QtCore.Qt.Key_B):
             widget.switchChannelB()
-        if (event.key() == 65):
+        if (event.key() == QtCore.Qt.Key_A):
             widget.switchChannelA()
-        if (event.key() == 76):
+        if (event.key() == QtCore.Qt.Key_L):
             widget.switchChannelY()
         # Mirror image on X if Shift + X
-        if ((self.activeKeys[16777248]) & (event.key() == 88)):
+        if ((self.activeKeys[QtCore.Qt.Key_Shift]) & (event.key() == QtCore.Qt.Key_X)):
             widget.mirrorXToggle()
-        if ((self.activeKeys[16777248]) & (event.key() == 89)):
+        if ((self.activeKeys[QtCore.Qt.Key_Shift]) & (event.key() == QtCore.Qt.Key_Y)):
             widget.mirrorYToggle()
 
         # Play and frame jumps
-        if (event.key() == 32):
+        if (event.key() == QtCore.Qt.Key_Space):
             widget.playBtn.click()
-        if (event.key() == 16777236):
-            if (self.activeKeys[16777248]):
+        if (event.key() == QtCore.Qt.Key_Right):
+            if (self.activeKeys[QtCore.Qt.Key_Shift]):
                 widget.jumpGapForward()
-            elif (self.activeKeys[16777249]):
+            elif (self.activeKeys[QtCore.Qt.Key_Control]):
                 print("jump end of shot")
             else:
                 widget.jumpFrameForward()
-        if (event.key() == 16777234):
-            if (self.activeKeys[16777248]):
+        if (event.key() == QtCore.Qt.Key_Left):
+            if (self.activeKeys[QtCore.Qt.Key_Shift]):
                 widget.jumpGapBackward()
-            elif (self.activeKeys[16777249]):
+            elif (self.activeKeys[QtCore.Qt.Key_Control]):
                 print("jump start of shot")
             else:
                 widget.jumpFrameBack()
+
+        super().keyPressEvent(event)
 
 
     def keyReleaseEvent(self, event):
@@ -186,25 +193,25 @@ class graphicsView(QtWidgets.QGraphicsView):
     def mouseMoveEvent(self, event):
         # Storing the initial scene rect
         if len(self.defaultSceneRect) == 0:
-            temp = interpretRectangle(str(self.sceneRect()))
+            temp = interpretRectangle(self.sceneRect())
             #print(self.sceneRect())
             for val in temp:
                 self.defaultSceneRect.append(val)
             #print(self.defaultSceneRect)
 
         # Slide values
-        if (self.activeKeys[16777251] == False) & (self.activeMouse[QtCore.Qt.LeftButton] == True) & (self.activeKeys[16777249] == False):
+        if (not self.activeKeys[QtCore.Qt.Key_Alt]) & (self.activeMouse[QtCore.Qt.LeftButton]) & (not self.activeKeys[QtCore.Qt.Key_Control]):
             self.mouseMove[0].append(event.x())
             if (len(self.mouseMove[0]) >= 2):
                 mouseMoveX = (self.mouseMove[0][1] - self.mouseMove[0][0])
                 # Exposure slide
-                if (widget.exposureText.isVisible() == True):
+                if (widget.exposureText.isVisible()):
                     widget.imgDict["exposure"] = widget.imgDict["exposure"] + (mouseMoveX * 0.01)
                     widget.updateExposure()
                     # Setting last action as exposure
                     self.lastAction["click"] = "exposure"
                 # Saturation slide
-                elif (widget.saturationText.isVisible() == True):
+                elif (widget.saturationText.isVisible()):
                     widget.imgDict["saturation"] = widget.imgDict["saturation"] + (mouseMoveX * 0.01)
                     widget.updateSaturation()
                     # Setting last action as exposure
@@ -223,11 +230,8 @@ class graphicsView(QtWidgets.QGraphicsView):
                 #print(mouseMoveX)
 
         # Translate view
-        sceneCoordinates = interpretRectangle(str(self.sceneRect()))
-        if (self.activeKeys[16777251] == True) & (self.activeMouse[QtCore.Qt.LeftButton] == True):
+        if (self.activeKeys[QtCore.Qt.Key_Alt]) & (self.activeMouse[QtCore.Qt.LeftButton]):
             #print("translate {} - {}".format(event.x(), event.y()))
-            sceneCoordinates = interpretRectangle(str(self.sceneRect()))
-            position = QtCore.QPointF(event.pos())
             self.mouseMove[0].append(event.x())
             self.mouseMove[1].append(event.y())
             #print(self.mouseMove)
@@ -236,7 +240,6 @@ class graphicsView(QtWidgets.QGraphicsView):
                 mouseMoveX =  (self.mouseMove[0][1] - self.mouseMove[0][0])
                 mouseMoveY =  (self.mouseMove[1][1] - self.mouseMove[1][0]) 
                 # Moving the Graphics view adding the mousemov vars to the current coordinates of the scene rect
-                sceneCoordinates = interpretRectangle(str(self.sceneRect()))
                 #self.setSceneRect(sceneCoordinates[0]-mouseMoveX,sceneCoordinates[1]-mouseMoveY,sceneCoordinates[2]-mouseMoveX,sceneCoordinates[3]-mouseMoveY)
                 self.horizontalScrollBar().setSliderPosition(self.horizontalScrollBar().sliderPosition() - mouseMoveX)
                 self.verticalScrollBar().setSliderPosition(self.verticalScrollBar().sliderPosition() - mouseMoveY)
@@ -244,19 +247,15 @@ class graphicsView(QtWidgets.QGraphicsView):
                 self.mouseMove[1] = []
 
         # Zoom view
-        if (self.activeKeys[16777249] == True) & (self.activeMouse[QtCore.Qt.LeftButton] == True):
+        if (self.activeKeys[QtCore.Qt.Key_Control]) & (self.activeMouse[QtCore.Qt.LeftButton]):
             #print("zoom ! {} - {}".format(event.x(), event.y()))
             # Storing the mouse moves in a declared list
-            position = QtCore.QPointF(event.pos())
-            
             self.mouseMove[0].append(event.x())
             self.mouseMove[1].append(event.y())
 
             if(len(self.mouseMove[0]) >= 2) & (len(self.mouseMove[1]) >= 2):
                 #print("Mouse Moved")
                 direction = (self.mouseMove[1][1] - self.mouseMove[1][0]) + (self.mouseMove[0][1] - self.mouseMove[0][0])
-                sceneCoordinates = interpretRectangle(str(self.sceneRect()))
-
                 # Exception for too high mouse moves
                 if (direction > 10) | (direction < -10):
                     direction = 0
@@ -280,7 +279,7 @@ class graphicsView(QtWidgets.QGraphicsView):
         for url in event.mimeData().urls():
             path = url.toLocalFile()
             # Check if file exists and is an exr
-            if os.path.exists(path) == True:
+            if os.path.exists(path):
                 #print("File exists {}".format(path))
                 filenames.append(url.toLocalFile())
             else:
@@ -369,7 +368,7 @@ class MyWidget(QtWidgets.QWidget):
         ####################################
 
         # Focus Tracking
-        app.focusChanged.connect(self.on_focusChanged)
+        QtWidgets.QApplication.instance().focusChanged.connect(self.on_focusChanged)
 
         # Menu bar area
         self.file = QtWidgets.QLabel(alignment = QtCore.Qt.AlignCenter)
@@ -566,7 +565,6 @@ class MyWidget(QtWidgets.QWidget):
         self.playBackBtn.setCheckable(True)
         self.playBackBtn.clicked.connect(self.playBack)
         self.frameCurrent = QtWidgets.QLabel("101")
-        currentPos = (self.frameNumber.slider.value())
         self.frameCurrent.setText(str(self.frameNumber.slider.value()).zfill(4))
         self.playBtn = QtWidgets.QPushButton(">")
         self.playBtn.setCheckable(True)
@@ -715,8 +713,7 @@ class MyWidget(QtWidgets.QWidget):
 
         # Empty buffer slots
         for shot in self.seqDict:
-            for frame in self.seqDict[shot]:
-                self.imgDict["buffer"].append(None)
+            self.imgDict["buffer"].extend([None] * len(self.seqDict[shot]))
 
         self.frameNumber._timeline.resetCacheDraw()
 
@@ -808,8 +805,7 @@ class MyWidget(QtWidgets.QWidget):
 
         frameList = []
         for shot in self.seqDict:
-            for frame in self.seqDict[shot]:
-                frameList.append(frame)
+            frameList.extend(self.seqDict[shot])
 
         current = self.frameNumber.slider.value()
 
@@ -829,12 +825,11 @@ class MyWidget(QtWidgets.QWidget):
         
         frameList = []
         for shot in self.seqDict:
-            for frame in self.seqDict[shot]:
-                frameList.append(frame)
+            frameList.extend(self.seqDict[shot])
 
         minimum = self.frameNumber.slider.minimum()
         maximum = self.frameNumber.slider.maximum()
-        for i in frameList:
+        for _ in frameList:
             self.startBufferWorker(frameList, currentPosition)
             if currentPosition < maximum:
                 currentPosition += 1
@@ -857,9 +852,9 @@ class MyWidget(QtWidgets.QWidget):
         count = 0
         if (len(frameList) > 0):
             # First check to see how much time a thread takes to finish
-            if (self.diagnostic == False):
+            if (not self.diagnostic):
                 #print("buffer launch limited")
-                for i in range(self.bufferRange):
+                for _ in range(self.bufferRange):
                     # Reset the curent + count to not get out of list range
                     if (current+count > self.frameNumber.slider.maximum()):
                         #print("NEED TO RESET THE CURRENT + COUNT")
@@ -869,7 +864,7 @@ class MyWidget(QtWidgets.QWidget):
                     count += 1
             else:
                 #print("buffer launch full")
-                for i in range(len(frameList)):
+                for _ in range(len(frameList)):
                     # Reset the curent + count to not get out of list range
                     if (current+count > self.frameNumber.slider.maximum()):
                         #print("NEED TO RESET THE CURRENT + COUNT")
@@ -990,11 +985,11 @@ class MyWidget(QtWidgets.QWidget):
         #print("diagnostic has been set to : ".format(self.diagnostic))
 
     def bufferPopup(self):
-        self.bufPopup = BufferPopup()
+        self.bufPopup = BufferPopup(self)
         self.bufPopup.show()
 
     def infosPopup(self):
-        self.infPopup = InfosPopup()
+        self.infPopup = InfosPopup(self)
         self.infPopup.show()
         self.infPopup.resize(500,400)
 
@@ -1051,7 +1046,7 @@ class MyWidget(QtWidgets.QWidget):
             return
 
         # Ensuring there is an extension
-        if destination.endswith(".pyVexr") == False:
+        if not destination.endswith(".pyVexr"):
             destination = "{}.pyVexr".format(destination)
 
 
@@ -1100,14 +1095,13 @@ class MyWidget(QtWidgets.QWidget):
         if not destination:
             return
         # Adding the mp4 extension if it was forgotten
-        if destination.endswith(".mp4") == False:
+        if not destination.endswith(".mp4"):
             destination ="{}.mp4".format(destination)
             
         current = self.frameNumber.slider.value()
         frameList = []
         for shot in self.seqDict:
-            for frame in self.seqDict[shot]:
-                frameList.append(frame)
+            frameList.extend(self.seqDict[shot])
 
         createVideoWriter(self.imgDict, frameList, current, destination)
 
@@ -1122,8 +1116,7 @@ class MyWidget(QtWidgets.QWidget):
         current = self.frameNumber.slider.value()
         frameList = []
         for shot in self.seqDict:
-            for frame in self.seqDict[shot]:
-                frameList.append(frame)
+            frameList.extend(self.seqDict[shot])
 
         # Creating a window for export destination
         exportDiag = QtWidgets.QFileDialog.getSaveFileName(self, "Export Jpeg Image")
@@ -1131,7 +1124,7 @@ class MyWidget(QtWidgets.QWidget):
         if not destination:
             return
         # Adding jpeg extension if forgotten
-        if destination.endswith(".jpg") == False:
+        if not destination.endswith(".jpg"):
             destination = "{}.jpg".format(destination)
 
         createImgWriter(self.imgDict, frameList, current, destination)
@@ -1163,7 +1156,7 @@ class MyWidget(QtWidgets.QWidget):
 
 
         # Give the rectangle view area the coordinates of the pixmap image after the image has been loaded
-        imgCoordinates = interpretRectangle(str(self.image.boundingRect()))
+        imgCoordinates = interpretRectangle(self.image.boundingRect())
         self.margins.setRect(imgCoordinates[0]-imgCoordinates[2],imgCoordinates[1]-imgCoordinates[3],imgCoordinates[2] * 3,imgCoordinates[3]*3)
         self.viewArea.setRect(imgCoordinates[0]-(imgCoordinates[2]/3),imgCoordinates[1]-(imgCoordinates[3]/3),imgCoordinates[2] * 1.66,imgCoordinates[3]*1.66)
 
@@ -1181,11 +1174,10 @@ class MyWidget(QtWidgets.QWidget):
         self.imgViewer.fitInView(self.viewArea, QtCore.Qt.KeepAspectRatio)
 
     def changeFrame(self, frame, currentPos):
-        t0 = (time.time())
         #print(self.imgDict["buffer"][currentPos])
         # Checking if the position is not out of range from the list
         if (currentPos < len(self.imgDict["buffer"])):
-            if (self.imgDict["buffer"][currentPos] != None):
+            if (self.imgDict["buffer"][currentPos] is not None):
                 tempImg = self.imgDict["buffer"][currentPos]
             else:
                 self.imgDict["path"][0] = frame
@@ -1197,11 +1189,8 @@ class MyWidget(QtWidgets.QWidget):
             # Set pixmap in self.image
             self.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
 
-            t1 = time.time()
-            #print(t1 - t0)
-
             # Give the rectangle view area the coordinates of the pixmap image after the image has been loaded
-            imgCoordinates = interpretRectangle(str(self.image.boundingRect()))
+            imgCoordinates = interpretRectangle(self.image.boundingRect())
             self.viewArea.setRect(imgCoordinates[0],imgCoordinates[1],imgCoordinates[2],imgCoordinates[3])
             
 
@@ -1209,7 +1198,6 @@ class MyWidget(QtWidgets.QWidget):
         currentPos = (self.frameNumber.slider.value())
         frame = self.frameNumber.returnFrame(currentPos)
         #print(self.frameNumber)
-        positionMax = (self.frameNumber.slider.maximum())
         isSameShot = True
 
         # Updating the layers on the new shot
@@ -1233,7 +1221,7 @@ class MyWidget(QtWidgets.QWidget):
         self.mirrorToggles()
 
 
-        if isSameShot != True:
+        if not isSameShot:
             self.listChannels()
         
     def startPlayback(self, slot):
@@ -1273,8 +1261,8 @@ class MyWidget(QtWidgets.QWidget):
             pass
 
     def playForward(self):
-        if (self.playBtn.isChecked() == True):
-            if (self.playBackBtn.isChecked() == True):
+        if (self.playBtn.isChecked()):
+            if (self.playBackBtn.isChecked()):
                 self.playBackBtn.click()
             self.playBtn.setText("||")
             self.startPlayback(self.jumpFrameForward)
@@ -1283,8 +1271,8 @@ class MyWidget(QtWidgets.QWidget):
             self.stopPlayback()
 
     def playBack(self):
-        if (self.playBackBtn.isChecked() == True):
-            if (self.playBtn.isChecked() == True):
+        if (self.playBackBtn.isChecked()):
+            if (self.playBtn.isChecked()):
                 self.playBtn.click()
             self.playBackBtn.setText("||")
             self.startPlayback(self.jumpFrameBack)
@@ -1340,7 +1328,6 @@ class MyWidget(QtWidgets.QWidget):
 
 
     def initSlider(self, seqDict):
-        shotRange = {}
         # print(seqDict)
         self.timeLineDict = self.getFrames(seqDict)
 
@@ -1449,7 +1436,7 @@ class MyWidget(QtWidgets.QWidget):
         """
         Toggling the imgDict FlipX 
         """
-        if self.imgDict["flipX"] == False:
+        if not self.imgDict["flipX"]:
             self.imgDict["flipX"] = True
         else:
             self.imgDict["flipX"] = False
@@ -1467,7 +1454,7 @@ class MyWidget(QtWidgets.QWidget):
         """
         Toggling the imgDict FlipX 
         """
-        if self.imgDict["flipY"] == False:
+        if not self.imgDict["flipY"]:
             self.imgDict["flipY"] = True
         else:
             self.imgDict["flipY"] = False
@@ -1483,9 +1470,9 @@ class MyWidget(QtWidgets.QWidget):
 
        
     def mirrorToggles(self):
-        if self.imgDict["flipX"] == True:
+        if self.imgDict["flipX"]:
             self.mirrorXAction()
-        if self.imgDict["flipY"] == True:
+        if self.imgDict["flipY"]:
             self.mirrorYAction()
 
     def getFrames(self,seqDict):
@@ -1511,9 +1498,10 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["channel"] = None
         self.loadFile()
         self.listChannels()
-        try:
-            self.listVersions()
-        except:
+        # listVersions needs the version dict of the shot under the cursor,
+        # which only exists once the shot is loaded. Calling it twice and
+        # swallowing everything hid real errors.
+        if self.timeLineDict:
             self.listVersions()
         self.imgDict["previousShot"] = (self.frameNumber.label.text()[7:])
 
@@ -1544,13 +1532,13 @@ class MyWidget(QtWidgets.QWidget):
 
     def channelsClicked(self):
         #print(self.channelsDock.isVisible())
-        if self.channelsDock.isVisible() == False:
+        if not self.channelsDock.isVisible():
             self.channelsDock.show()
         else:
             self.channelsDock.hide()
 
     def versionsClicked(self):
-        if self.versionsDock.isVisible() == False:
+        if not self.versionsDock.isVisible():
             self.versionsDock.show()
         else:
             self.versionsDock.hide()
@@ -1584,13 +1572,12 @@ class MyWidget(QtWidgets.QWidget):
 
     def listVersions(self):
         currentPos = (self.frameNumber.slider.value())
-        frame = self.frameNumber.returnFrame(currentPos)
         shot = (self.timeLineDict[currentPos]["shot"])
 
         #print(self.imgDict["version"][shot].keys())
         versionsButtonList = []
         current = 0
-        for i in self.imgDict["version"][shot].keys():
+        for _ in self.imgDict["version"][shot].keys():
             #print("Creating versions buttons")
             versionBtn = QtWidgets.QPushButton("v_{}".format(str(current).zfill(4)))
             versionBtn.clicked.connect(self.switchVersion)
@@ -1677,26 +1664,19 @@ class MyWidget(QtWidgets.QWidget):
 
         channels = exrListChannels(self.imgDict["path"])
 
-        # Removing old channelBtns if the channel Btns Var was created
-        removeList = []
-        for i in range(self.channelsLayout.count()):
-            currentWidget = (self.channelsLayout.itemAt(i).widget())
-            #print(currentWidget.__class__.__name__)
-            if ((currentWidget.__class__.__name__) == "QPushButton"):
-                #print("Will remove : {0}".format(currentWidget))
-                removeList.append(currentWidget)
-        if len(removeList) > 1:
-            separator = self.channelsLayout.itemAt(self.channelsLayout.count() - 1).widget()
-            self.channelsLayout.removeWidget(separator)
-        for widget in removeList:
-            widget.setParent(None)
-            #self.channelsLayout.removeWidget(widget)
+        # Emptying the layout, buttons and spacers alike. Only the buttons
+        # used to be removed, and removeWidget() on the trailing spacer is a
+        # no op, so one stretch leaked per shot change and progressively
+        # squashed the channel panel.
+        while self.channelsLayout.count() > 1:
+            item = self.channelsLayout.takeAt(1)
+            if item.widget() is not None:
+                item.widget().setParent(None)
 
-        channelBtns = []
         for chan in channels:
-            self.btn = QtWidgets.QPushButton(chan)
-            self.btn.clicked.connect(self.channelChange)
-            self.channelsLayout.addWidget(self.btn)
+            button = QtWidgets.QPushButton(chan)
+            button.clicked.connect(self.channelChange)
+            self.channelsLayout.addWidget(button)
         self.channelsLayout.addStretch(2)
 
     def channelChange(self):
@@ -1756,7 +1736,7 @@ class MyWidget(QtWidgets.QWidget):
 
 
     def satChange(self, key):
-        if (self.saturationText.isVisible() == True):
+        if (self.saturationText.isVisible()):
             #print("saturation change {}".format(key))
             if key == 43:
                 self.imgDict["saturation"] += 0.1
@@ -1776,7 +1756,7 @@ class MyWidget(QtWidgets.QWidget):
 
     def exposureChange(self, key):
         # Tweak expo only if E has been pressed before, and therefore the text is toggled on
-        if (self.exposureText.isVisible() == True):
+        if (self.exposureText.isVisible()):
             #print(key)
             if key == 43:
                 #print("Boost expo")
@@ -1796,22 +1776,22 @@ class MyWidget(QtWidgets.QWidget):
     def exposureMenu(self):
         menuSent = (self.sender().text())
         
-        if (self.exposureText.isVisible() == False):
+        if (not self.exposureText.isVisible()):
             self.showExposureText()
         key = 0
-        if menuSent.startswith("Increase Exposure") == True:
+        if menuSent.startswith("Increase Exposure"):
             #print("Boost Expo")
             key = 43
-        elif menuSent.startswith("Decrease Exposure") == True:
+        elif menuSent.startswith("Decrease Exposure"):
             #print("Decrease Expo")
             key = 45
-        elif menuSent.startswith("Reset Exposure") == True:
+        elif menuSent.startswith("Reset Exposure"):
             #print("Reset expo")
             key = 48
         self.exposureChange(key)
 
     def customExpoMenu(self):
-        self.expoPop = ExposurePopup()
+        self.expoPop = ExposurePopup(self)
         self.expoPop.show()
         self.expoPop.spin.valueChanged.connect(self.updateCustomExpo)
         
@@ -1821,7 +1801,7 @@ class MyWidget(QtWidgets.QWidget):
         self.refreshImg()
 
     def customSatMenu(self):
-        self.satPop = SaturationPopup()
+        self.satPop = SaturationPopup(self)
         self.satPop.show()
         self.satPop.spin.valueChanged.connect(self.updateCustomSat)
         
@@ -1831,26 +1811,26 @@ class MyWidget(QtWidgets.QWidget):
         self.refreshImg()
 
     def contactSheetWindow(self):
-        self.contactSheetPop = ContactSheetPopup()
+        self.contactSheetPop = ContactSheetPopup(self)
         self.contactSheetPop.resize(600,300)
         self.contactSheetPop.show()
 
     def ocioMenu(self):
-        self.ocioPop = OcioPopup()
+        self.ocioPop = OcioPopup(self)
         self.ocioPop.resize(500, 220)
         self.ocioPop.show()
 
     def saturationMenu(self):
         menuSent = self.sender().text()
 
-        if (self.saturationText.isVisible() == False):
+        if (not self.saturationText.isVisible()):
             self.showSaturationText()
         key = 0
-        if menuSent.startswith("Increase Sat") == True:
+        if menuSent.startswith("Increase Sat"):
             key = 43
-        elif menuSent.startswith("Decrease Sat") == True:
+        elif menuSent.startswith("Decrease Sat"):
             key = 45
-        elif menuSent.startswith("Reset Sat") == True:
+        elif menuSent.startswith("Reset Sat"):
             key = 48
         self.satChange(key)
 
@@ -1861,7 +1841,7 @@ class MyWidget(QtWidgets.QWidget):
         self.saturationText.setPlainText("Saturation : {}".format(round(self.imgDict["saturation"], 2)))
 
     def showExposureText(self):
-        if (self.exposureText.isVisible() == False):
+        if (not self.exposureText.isVisible()):
             self.exposureText.show()
             self.textCard.show()
             self.updateExposure()
@@ -1869,11 +1849,8 @@ class MyWidget(QtWidgets.QWidget):
             self.exposureText.hide()
             self.textCard.hide()
 
-    def updateSaturation(self):
-        self.saturationText.setPlainText("Saturation : {}".format(round(self.imgDict["saturation"], 2)))
-
     def showSaturationText(self):
-        if (self.saturationText.isVisible() == False):
+        if (not self.saturationText.isVisible()):
             self.saturationText.show()
             self.textCard.show()
             self.updateSaturation()
@@ -1907,37 +1884,14 @@ class MyWidget(QtWidgets.QWidget):
 
     def readSavedConfig(self):
         '''
-        Returns the saved preferences when they are complete and usable,
-        None otherwise.
+        Saved preferences, or None when they cannot be used.
         '''
-        jsonPath = readableConfigPath()
-        if os.path.exists(jsonPath) == False:
-            return(None)
+        return(readPreferences())
 
-        try:
-            with open(jsonPath, "r") as file:
-                config = json.load(file)
-        except (OSError, ValueError) as error:
-            print("Ignoring unreadable config.json : {}".format(error))
-            return(None)
-
-        expected = ["ocioVar", "ocioIn", "ocioOut", "ocioDisplay", "ocioLook"]
-        missing = [key for key in expected if key not in config]
-        if missing:
-            print("Ignoring incomplete config.json, missing {}".format(
-                ", ".join(missing)))
-            return(None)
-
-        if os.path.exists(config["ocioVar"]) == False:
-            print("Ignoring config.json, the ocio config {} is gone".format(
-                config["ocioVar"]))
-            return(None)
-
-        return(config)
 
 
     def ocioToggleClicked(self):
-        if (self.ocioToggle.isChecked() == True):
+        if (self.ocioToggle.isChecked()):
             self.ocioToggle.setStyleSheet("background-color : blue")
             self.imgDict["ocioToggle"] = True
         else:
@@ -1947,586 +1901,20 @@ class MyWidget(QtWidgets.QWidget):
         self.refreshImg()
 
 
-class WorkerSignals(QtCore.QObject):
-    '''
-    Defines signals available from running worker thread
-
-    finished
-        No data
-
-    result
-        tuple, int, int (img, its buffer index, and the buffer generation it
-        was computed for)
-    '''
-    finished = QtCore.pyqtSignal()
-    result = QtCore.pyqtSignal(tuple, object, object)
-
-class Worker(QtCore.QRunnable):
-    '''
-    Worker thread computing one frame of the buffer.
-
-    settings is a snapshot : the worker never sees the live imgDict, so the
-    GUI thread can mutate the buffer, the OCIO settings or the shot list while
-    workers are running.
-    '''
-
-    def __init__(self, frameList, index, settings, epoch):
-        super(Worker, self).__init__()
-        self.frameList = frameList
-        self.index = index
-        self.settings = settings
-        self.epoch = epoch
-        self.signals = WorkerSignals()
-
-    def run(self):
-        img = bufferBackEnd(self.settings, self.frameList, self.index)
-
-        self.signals.finished.emit()
-        if isinstance(img, tuple):
-            self.signals.result.emit(img[0], img[1], self.epoch)
-
-
-
-class ExposurePopup(QtWidgets.QWidget):
-    def __init__(self, *args, **kwargs):
-        super(ExposurePopup, self).__init__(*args, **kwargs)
-        self.setWindowTitle("Set custom Exposure")
-        self.setFixedWidth(500)
-        self.setFixedHeight(50)
-
-        self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
-
-        layout = QtWidgets.QVBoxLayout()
-        textLayout = QtWidgets.QHBoxLayout()
-
-        self.label = QtWidgets.QLabel("Enter Exposure : ")
-        self.spin = QtWidgets.QDoubleSpinBox()
-        self.spin.setLocale(QtCore.QLocale("English"))
-        self.spin.setSingleStep(0.5)
-        self.spin.setMinimum(-1000)
-        self.spin.setMaximum(1000)
-
-        textLayout.addWidget(self.label)
-        textLayout.addStretch()
-        textLayout.addWidget(self.spin)
-        
-        layout.addLayout(textLayout)
-
-        self.setLayout(layout)
-
-class SaturationPopup(QtWidgets.QWidget):
-    def __init__(self, *args, **kwargs):
-        super(SaturationPopup, self).__init__(*args, **kwargs)
-        self.setWindowTitle("Set custom saturation")
-        self.setFixedWidth(500)
-        self.setFixedHeight(50)
-
-        self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
-
-        layout = QtWidgets.QVBoxLayout()
-        textLayout = QtWidgets.QHBoxLayout()
-
-        self.label = QtWidgets.QLabel("Enter Saturation : ")
-        self.spin = QtWidgets.QDoubleSpinBox()
-        self.spin.setLocale(QtCore.QLocale("English"))
-        self.spin.setSingleStep(0.25)
-        self.spin.setValue(1)
-        self.spin.setMinimum(0)
-        self.spin.setMaximum(1000)
-
-        textLayout.addWidget(self.label)
-        textLayout.addStretch()
-        textLayout.addWidget(self.spin)
-        
-        layout.addLayout(textLayout)
-
-        self.setLayout(layout)
-
-class ContactSheetPopup(QtWidgets.QWidget):
-    def __init__(self, *args, **kwargs):
-        super(ContactSheetPopup, self).__init__()
-        self.setWindowTitle("Layer Contact Sheet Menu")
-
-        self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
-
-        self.channelSelection = []
-
-        layout = QtWidgets.QVBoxLayout()
-
-        self.toggleLayout = QtWidgets.QHBoxLayout()
-        self.titleLayout = QtWidgets.QHBoxLayout()
-        self.channelsLayout = QtWidgets.QGridLayout()
-        self.okLayout = QtWidgets.QHBoxLayout()
-
-        self.titleLabel = QtWidgets.QLabel("Select layers you want to have for contact sheet \n Warning, the more layers you select, the slower it will be to compute")
-        #self.hintLabel = QtWidgets.QLabel("Warning, the more layers you select, the slower it will be to compute")
-
-        # Listing the channels
-        currentPos = (widget.frameNumber.slider.value())
-        frame = widget.frameNumber.returnFrame(currentPos)
-        investigate = [frame]
-        channelList = exrListChannels(investigate)
-        #print(channels)
-        channelBtns = []
-        for chan in channelList:
-            currentBtn = QtWidgets.QPushButton(chan)
-            currentBtn.setCheckable(True)
-            currentBtn.clicked.connect(self.chanBtnClicked)
-            channelBtns.append(currentBtn)
-
-        self.toggleBtn = QtWidgets.QPushButton("Toggle Layer Contact Sheet Mode")
-        self.toggleBtn.setCheckable(True)
-        self.toggleBtn.setChecked(widget.imgDict["ContactSheet"])
-        self.toggleBtn.clicked.connect(self.contactSheetMode)
-        # No synthetic click here : a fresh checkable button is always
-        # unchecked, so this used to switch the viewer into contact sheet mode
-        # and reset the whole cache merely by opening the window.
-        self.okBtn = QtWidgets.QPushButton("Ok")
-        self.okBtn.clicked.connect(self.okBtnClicked)
-
-        
-        # LAYOUT
-        self.toggleLayout.addWidget(self.toggleBtn)
-        self.titleLayout.addStretch()
-        self.titleLayout.addWidget(self.titleLabel)
-        #self.titleLayout.addWidget(self.hintLabel)
-        self.titleLayout.addStretch()
-
-        #self.channelsLayout.addStretch()
-        for i in channelBtns:
-            self.channelsLayout.addWidget(i)
-        #self.channelsLayout.addStretch()
-        
-        self.okLayout.addStretch()
-        self.okLayout.addWidget(self.okBtn)
-        self.okLayout.addStretch()
-
-        layout.addLayout(self.toggleLayout)
-        layout.addStretch()
-        layout.addLayout(self.titleLayout)
-        layout.addStretch()
-        layout.addLayout(self.channelsLayout)
-        layout.addStretch()
-        layout.addLayout(self.okLayout)
-
-
-        self.setLayout(layout)
-
-    ###############################
-    # Code for the Slot functions #
-    ###############################
-    @QtCore.pyqtSlot()
-    def chanBtnClicked(self):
-        '''
-        Responsible for adding the selected channels to the self.channelSelection list
-        Also changes the btns color depending on their pressed state
-        '''
-        #self.channelSelection
-        sender = self.sender()
-        chanClicked = sender.text()
-
-        #print(sender.isChecked())
-        if (sender.isChecked() == True):
-            sender.setStyleSheet("background-color: rgb(1,1,221)")
-        else:
-            sender.setStyleSheet("background-color: rgb(11,11,11)")
-
-
-        if (chanClicked in self.channelSelection):
-            self.channelSelection.remove(chanClicked)
-        else:
-            self.channelSelection.append(chanClicked)
-
-        widget.imgDict["ContactSheetChannels"] = self.channelSelection
-
-    def contactSheetMode(self):
-        '''
-        Responsible for switching the image buffer generation to layercontactsheet mode
-        '''
-        if self.toggleBtn.isChecked() == True:
-            #print("LayerContactSheet mode is on")
-            self.toggleBtn.setStyleSheet("background-color: rgb(1,1,221)")
-            widget.imgDict["ContactSheet"] = True
-        else:
-            #print("LayerContactSheet mode is off")
-            self.toggleBtn.setStyleSheet("background-color: rgb(11,11,11)")
-            widget.imgDict["ContactSheet"] = False
-            
-        # Reset buffer for change
-        widget.checkIfBufferStateChanged()
-
-    def okBtnClicked(self):
-        '''
-        Responsible for sending the list to backend and returning the image to put in the viewer
-        '''
-        currentPos = (widget.frameNumber.slider.value())
-        frame = widget.frameNumber.returnFrame(currentPos)
-
-        # Passing the chan list again to the widget imgList dict
-        widget.imgDict["ContactSheetChannels"] = self.channelSelection
-
-        widget.imgDict["path"] = [frame]
-
-        #print(self.channelSelection)
-        tempImg = layerContactSheetBackend(self.channelSelection, widget.imgDict)
-        
-        convertToQt = QtGui.QImage(tempImg[0], tempImg[1], tempImg[2], tempImg[3], QtGui.QImage.Format_RGB888)
-        widget.image.setPixmap(QtGui.QPixmap.fromImage(convertToQt))
-
-        widget.checkIfBufferStateChanged()
-
-        widget.imgDict["buffer"][currentPos] = tempImg 
-
-
-class InfosPopup(QtWidgets.QWidget):
-    def __init__(self, *args,**kwargs):
-        super(InfosPopup, self).__init__(*args, **kwargs)
-        self.setWindowTitle("Infos:")
-
-        self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
-
-        layout = QtWidgets.QVBoxLayout()
-        self.titleLayout = QtWidgets.QHBoxLayout()
-        self.aboutLayout = QtWidgets.QHBoxLayout()
-        self.thanksLayout = QtWidgets.QHBoxLayout()
-        self.contactLayout = QtWidgets.QVBoxLayout()
-        self.versionLayout = QtWidgets.QHBoxLayout()
-
-        self.infoTitle = QtWidgets.QLabel("About:")
-        self.aboutLabel = QtWidgets.QLabel("PyVexr is a lighthweight, simple GUI application to preview your EXR shots\nor sequences easily with an easy to access OCIO setup.\n\nBuilt using Python, C++, PyQt5, OpenCV2, OpenExr, and OCIO version2.")
-        self.thanksLabel = QtWidgets.QLabel("\nThanks to Dorian Douaud for making the PyVexr logo.\nThanks to Elsksa and MrLixm for their feedback, advices,\nand help concerning OCIO and how it is handleld in the PyVexr.\nThanks to Sacha Duru for his help regarding PyQt.")
-        self.contactLabel = QtWidgets.QLabel("\nContact :")
-        self.mailLabel = QtWidgets.QLabel("Mail : <a href='mailto::martin.teillet@hotmail.fr'>martin.teillet@hotmail.fr</a>")
-        self.githubLabel = QtWidgets.QLabel("Github : <a href='https://github.com/mteillet/PyVexr'>https://github.com/mteillet/PyVexr</a>")
-        self.versionLabel = QtWidgets.QLabel("PyVexr - Python Open Exr Viewer - version 0.0.5-Alpha.\nDeveloped by Martin Teillet.")
-        self.mailLabel.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
-        self.githubLabel.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
-
-        self.titleLayout.addWidget(self.infoTitle)
-        self.aboutLayout.addWidget(self.aboutLabel)
-        self.thanksLayout.addWidget(self.thanksLabel)
-        self.contactLayout.addWidget(self.contactLabel)
-        self.contactLayout.addWidget(self.mailLabel)
-        self.contactLayout.addWidget(self.githubLabel)
-        self.versionLayout.addWidget(self.versionLabel)
-        self.titleLayout.setAlignment(QtCore.Qt.AlignCenter)
-        self.aboutLayout.setAlignment(QtCore.Qt.AlignCenter)
-        self.thanksLayout.setAlignment(QtCore.Qt.AlignCenter)
-        self.versionLayout.setAlignment(QtCore.Qt.AlignCenter)
-
-        layout.addLayout(self.titleLayout)
-        layout.addLayout(self.aboutLayout)
-        layout.addStretch()
-        layout.addLayout(self.thanksLayout)
-        layout.addStretch()
-        layout.addLayout(self.contactLayout)
-        layout.addStretch()
-        layout.addLayout(self.versionLayout)
-        self.setLayout(layout)
-
-class BufferPopup(QtWidgets.QWidget):
-    def __init__(self, *args, **kwargs):
-        super(BufferPopup, self).__init__(*args, **kwargs)
-        self.setWindowTitle("Buffer Settings")
-
-        self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
-
-        layout = QtWidgets.QVBoxLayout()
-        self.threadLayout = QtWidgets.QHBoxLayout()
-        self.batchLayout = QtWidgets.QHBoxLayout()
-        self.memoryLayout = QtWidgets.QHBoxLayout()
-
-        # Number of threads. The minimum is one and the signal is connected
-        # after setValue : the box used to accept zero, which stops buffering
-        # for good, and applied its default value on the way in.
-        self.threadNumberLabel = QtWidgets.QLabel("Number of threads :")
-        self.threadNumber = QtWidgets.QSpinBox()
-        self.threadNumber.setMinimum(1)
-        self.threadNumber.setMaximum(max(1, widget.maxThreads))
-        self.threadNumber.setValue(widget.threadpool.maxThreadCount())
-        self.threadNumber.valueChanged.connect(self.updateThreads)
-
-        # Size of buffer batch
-        self.threadBatchLabel = QtWidgets.QLabel("Buffer Batch Size for heavy EXRs :")
-        self.threadBatch = QtWidgets.QSpinBox()
-        self.threadBatch.setMinimum(1)
-        self.threadBatch.setMaximum(9999)
-        self.threadBatch.setValue(widget.bufferRange)
-        self.threadBatch.valueChanged.connect(self.updateBatchSize)
-
-        # Memory the cache is allowed to hold
-        self.memoryLabel = QtWidgets.QLabel("Cache memory budget (MB) :")
-        self.memoryBudget = QtWidgets.QSpinBox()
-        self.memoryBudget.setMinimum(64)
-        self.memoryBudget.setMaximum(1024 * 1024)
-        self.memoryBudget.setSingleStep(256)
-        self.memoryBudget.setValue(int(widget.bufferBudgetBytes / (1024 * 1024)))
-        self.memoryBudget.valueChanged.connect(self.updateMemoryBudget)
-
-        self.threadLayout.addWidget(self.threadNumberLabel)
-        self.threadLayout.addStretch()
-        self.threadLayout.addWidget(self.threadNumber)
-        self.batchLayout.addWidget(self.threadBatchLabel)
-        self.batchLayout.addStretch()
-        self.batchLayout.addWidget(self.threadBatch)
-        self.memoryLayout.addWidget(self.memoryLabel)
-        self.memoryLayout.addStretch()
-        self.memoryLayout.addWidget(self.memoryBudget)
-        layout.addLayout(self.threadLayout)
-        layout.addLayout(self.batchLayout)
-        layout.addLayout(self.memoryLayout)
-        self.setLayout(layout)
-
-    ###############################
-    # Code for the Slot functions #
-    ###############################
-    @QtCore.pyqtSlot()
-    def updateThreads(self):
-        #print("updating thread numbers")
-        #print(self.threadNumber.value())
-        widget.threadpool.setMaxThreadCount(self.threadNumber.value())
-
-    def updateBatchSize(self):
-        #print(self.threadBatch.value())
-        widget.bufferRange = self.threadBatch.value()
-
-    def updateMemoryBudget(self):
-        widget.bufferBudgetBytes = self.memoryBudget.value() * 1024 * 1024
-        widget.enforceBufferBudget()
- 
-class OcioPopup(QtWidgets.QWidget):
-    def __init__(self, *args, **kwargs):
-        super(OcioPopup, self).__init__(*args, **kwargs)
-        self.setWindowTitle("OpenColorIO Settings")
-
-        self.setStyleSheet("color: white; background-color: rgb(11,11,11)")
-
-        layout = QtWidgets.QVBoxLayout()
-        self.dropDownLayout = QtWidgets.QVBoxLayout()
-        self.ocioLayout = QtWidgets.QHBoxLayout()
-        self.csLayout = QtWidgets.QHBoxLayout()
-        self.inputLayout = QtWidgets.QHBoxLayout()
-        self.displayLayout = QtWidgets.QHBoxLayout()
-        self.viewLayout = QtWidgets.QHBoxLayout()
-        self.btnsLayout = QtWidgets.QHBoxLayout()
-
-        self.ocioLabel = QtWidgets.QLabel("Ocio Path")
-        self.ocioPath = QtWidgets.QLineEdit(widget.imgDict["ocioVar"])
-        self.ocioPath.returnPressed.connect(self.pathChanged)
-        self.labelCS = QtWidgets.QLabel("Color Space")
-        self.comboCS = QtWidgets.QComboBox()
-        self.comboCS.currentIndexChanged.connect(self.onCsChanged)
-        self.labelInput = QtWidgets.QLabel("Input Interpretation")
-        self.comboInput = QtWidgets.QComboBox()
-        self.comboInput.currentIndexChanged.connect(self.onAnyChanged)
-        self.labelDisplay = QtWidgets.QLabel("Display")
-        self.comboDisplay = QtWidgets.QComboBox()
-        self.comboDisplay.currentIndexChanged.connect(self.onAnyChanged)
-        self.labelView = QtWidgets.QLabel("Look")
-        self.comboView = QtWidgets.QComboBox()
-        self.comboView.currentIndexChanged.connect(self.onAnyChanged)
-
-        
-
-        # Settings as they were when the window opened, so Cancel can put them
-        # back. Filling the combos below emits currentIndexChanged, which used
-        # to overwrite the viewer settings with the first item of each list
-        # before the user had touched anything.
-        self.previousOcio = dict(widget.imgDict["ocio"])
-
-        # Clearing the previous contents of menus
-        for combo in (self.comboCS, self.comboInput, self.comboDisplay,
-                      self.comboView):
-            combo.blockSignals(True)
-            combo.clear()
-
-        colorSpaces,inputInterp,displays = initOcio2(widget.imgDict["ocioVar"])
-        for i in colorSpaces:
-            self.comboCS.addItem(i)
-        for i in inputInterp:
-            self.comboInput.addItem(i)
-        for i in displays:
-            self.comboDisplay.addItem(i)
-
-        # Show what the viewer is actually using rather than the first entry.
-        self.comboCS.setCurrentText(self.previousOcio["ocioOut"])
-        self.comboInput.setCurrentText(self.previousOcio["ocioIn"])
-        self.comboDisplay.setCurrentText(self.previousOcio["ocioDisplay"])
-        for look in getLooks(widget.imgDict["ocioVar"],
-                             self.comboCS.currentText()):
-            self.comboView.addItem(look)
-        self.comboView.setCurrentText(self.previousOcio["ocioLook"])
-
-        for combo in (self.comboCS, self.comboInput, self.comboDisplay,
-                      self.comboView):
-            combo.blockSignals(False)
-
-
-        self.okBtn = QtWidgets.QPushButton("Ok")
-        self.okBtn.clicked.connect(self.okClicked)
-        self.cancelBtn = QtWidgets.QPushButton("Cancel")
-        self.cancelBtn.clicked.connect(self.cancelClicked)
-        self.saveBtn = QtWidgets.QPushButton("Save Config")
-        self.saveBtn.clicked.connect(self.saveConfigClicked)
-        self.okBtn.setFocus()
-
-        self.checkIfJsonExists()
-
-        self.ocioLayout.addWidget(self.ocioLabel)
-        self.ocioLayout.addStretch()
-        self.ocioLayout.addWidget(self.ocioPath)
-        self.csLayout.addWidget(self.labelCS)
-        self.csLayout.addStretch()
-        self.csLayout.addWidget(self.comboCS)
-        self.inputLayout.addWidget(self.labelInput)
-        self.inputLayout.addStretch()
-        self.inputLayout.addWidget(self.comboInput)
-        self.displayLayout.addWidget(self.labelDisplay) 
-        self.displayLayout.addStretch()
-        self.displayLayout.addWidget(self.comboDisplay)
-        self.viewLayout.addWidget(self.labelView)
-        self.viewLayout.addStretch()
-        self.viewLayout.addWidget(self.comboView)
-        self.btnsLayout.addWidget(self.okBtn)
-        self.btnsLayout.addStretch()
-        self.btnsLayout.addWidget(self.saveBtn)
-        self.btnsLayout.addStretch()
-        self.btnsLayout.addWidget(self.cancelBtn)
-
-        self.dropDownLayout.addLayout(self.ocioLayout)
-        self.dropDownLayout.addStretch()
-        self.dropDownLayout.addLayout(self.csLayout)
-        self.dropDownLayout.addLayout(self.inputLayout)
-        self.dropDownLayout.addLayout(self.viewLayout)
-        self.dropDownLayout.addLayout(self.displayLayout)
-        self.dropDownLayout.addStretch()
-        self.dropDownLayout.addLayout(self.btnsLayout)
-
-        layout.addLayout(self.dropDownLayout)
-
-        self.setLayout(layout)
-
-    ###############################
-    # Code for the Slot functions #
-    ###############################
-    @QtCore.pyqtSlot()
-    def pathChanged(self):
-        previousOCIOvar = widget.imgDict["ocioVar"]
-        widget.imgDict["ocioVar"] = self.ocioPath.text()
-
-        try :
-            colorSpaces,inputInterp,displays = initOcio2(widget.imgDict["ocioVar"])
-            #print(colorSpaces)
-            #print(inputInterp)
-            #print(displays)
-            self.comboCS.clear()
-            self.comboInput.clear()
-            self.comboDisplay.clear()
-            self.comboView.clear()
-            for i in colorSpaces:
-                self.comboCS.addItem(i)
-            for i in inputInterp:
-                self.comboInput.addItem(i)
-            for i in displays:
-                self.comboDisplay.addItem(i)
-
-            self.onCsChanged()
-            self.onAnyChanged()
-        except :
-            self.errorOcio(widget.imgDict["ocioVar"])
-            widget.imgDict["ocioVar"] = previousOCIOvar
-            # Turn off OCIO button
-            #if widget.ocioToggle.isChecked():
-            #    widget.ocioToggle.click()
-
-    def errorOcio(self, path):
-        err = QtWidgets.QMessageBox()
-        err.setIcon(QtWidgets.QMessageBox.Critical)
-        err.setText("ERROR : {} is not a valid ocio file".format(path))
-        err.setWindowTitle("OCIO path error !")
-        err.exec()
-
-    def onCsChanged(self):
-        cs = (self.comboCS.currentText())
-        looks = getLooks(widget.imgDict["ocioVar"], cs)
-        self.comboView.clear()
-        
-        for i in looks:
-            self.comboView.addItem(i)
-
-    def onAnyChanged(self):
-        #print(self.comboInput.currentText())
-        widget.imgDict["ocio"]["ocioIn"] = self.comboInput.currentText()
-        widget.imgDict["ocio"]["ocioOut"] = self.comboCS.currentText()
-        widget.imgDict["ocio"]["ocioDisplay"] = self.comboDisplay.currentText()
-        widget.imgDict["ocio"]["ocioLook"] = self.comboView.currentText()
-
-    def okClicked(self):
-        widget.refreshImg()
-
-    def saveConfigClicked(self):
-        jsonPath = writableConfigPath()
-        absoluteOcioPath = (os.path.realpath(self.ocioPath.text()))
-
-        # The ocio config has to exist, otherwise the saved preferences make
-        # the next start fall back to the defaults anyway.
-        if (os.path.exists(absoluteOcioPath) == False):
-            print("Not saving : {} does not exist".format(absoluteOcioPath))
-            return
-
-        if (os.path.exists(jsonPath) == True):
-            print("Config exists, overriding")
-        else:
-            print("Creating new config")
-
-        jsonData = {}
-        jsonData["ocioVar"] = absoluteOcioPath
-        jsonData["ocioIn"] = self.comboInput.currentText()
-        jsonData["ocioOut"] = self.comboCS.currentText()
-        jsonData["ocioDisplay"] = self.comboDisplay.currentText()
-        jsonData["ocioLook"] = self.comboView.currentText()
-        #print(jsonData)
-        try:
-            with open(jsonPath, "w") as file:
-                json.dump(jsonData, file)
-        except OSError as error:
-            # Happens on a read only install (system package, /opt...).
-            print("Could not save the preferences : {}".format(error))
-
-    def checkIfJsonExists(self):
-        # Same reader as the main window : incomplete or stale preferences are
-        # ignored rather than raising in the middle of building the window.
-        config = MyWidget.readSavedConfig(self)
-        if config is None:
-            return
-
-        self.ocioPath.setText(config["ocioVar"])
-        self.comboInput.setCurrentText(config["ocioIn"])
-        self.comboCS.setCurrentText(config["ocioOut"])
-        self.comboDisplay.setCurrentText(config["ocioDisplay"])
-        self.comboView.setCurrentText(config["ocioLook"])
-
-
-    def cancelClicked(self):
-        # Put back the settings the viewer had when the window opened : the
-        # combos apply their changes live, so closing without this left the
-        # image on whatever was last hovered in the menus.
-        widget.imgDict["ocio"].update(self.previousOcio)
-        widget.refreshImg()
-        self.close()
-
-
-
-if __name__ == "__main__":
+def main():
     app = QtWidgets.QApplication([])
     app.setStyle("Fusion")
 
+    global widget
     widget = MyWidget()
-    widget.resize(800,600)
+    widget.resize(800, 600)
     widget.show()
 
     # Init the gui with the default pyVexr splashcreen in order to enable drag and drop from the start
-    filenames = [resource("imgs", "pyVexrSplashScreen_v001.exr")]
-    widget.updateImgDict(filenames)
+    widget.updateImgDict([resource("imgs", "pyVexrSplashScreen_v001.exr")])
 
-    sys.exit(app.exec())
+    return app.exec()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,46 @@
+name: Tests
+
+# Tests unitaires, non-regression image et test de fumee de l'interface.
+# Rapide (pas de bundle a construire) : c'est le retour qu'un contributeur
+# doit avoir sur sa pull request.
+
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+  pull_request:
+
+jobs:
+  tests:
+    name: pytest + ruff
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: pip
+
+      - name: Bibliotheques systeme pour Qt (plateforme offscreen)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1 libegl1 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 \
+            libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
+            libxcb-xinerama0 libxcb-xfixes0 libdbus-1-3
+
+      - name: Dependances Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: ruff
+        run: ruff check .
+
+      - name: pytest
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: pytest

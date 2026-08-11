@@ -5,6 +5,12 @@ name: Build Rocky Linux bundle
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '*.py'
+      - 'cppModules/**'
+      - 'packaging/rocky/**'
+      - '.github/workflows/build-rocky.yml'
   push:
     branches:
       - main

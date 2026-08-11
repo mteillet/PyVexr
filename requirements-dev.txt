@@ -1,0 +1,16 @@
+# Outils de developpement : tests et analyse statique.
+#
+#   pip install -r requirements.txt -r requirements-dev.txt
+#   pytest
+#   ruff check .
+#
+# Note : tests/convert_reference.json fige l'image produite par convertExr. Ces
+# empreintes dependent des versions d'OCIO, d'OpenCV et de numpy installees ;
+# en cas de montee de version, verifier visuellement puis regenerer avec
+# python tests/test_convert_regression.py --update
+
+-r requirements.txt
+
+pytest>=7.4
+ruff>=0.5
+pybind11>=2.11

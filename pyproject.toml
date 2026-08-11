@@ -1,0 +1,29 @@
+# Configuration des outils de developpement.
+# PyVexr se lance comme un script (python pyVexr_gui.py), il n'y a donc pas de
+# section [build-system] ni de paquet a installer.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = [
+    "error::DeprecationWarning:pyVexr_main",
+    "error::DeprecationWarning:pyVexr_gui",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+exclude = ["build", "dist", "packaging/rocky/pyvexr.spec"]
+
+[tool.ruff.lint]
+# E/F : erreurs et fautes de frappe, B : pieges courants (bugbear).
+# Les regles de style pur ne sont pas activees : le but est d'attraper les
+# bugs, pas de reformater tout le depot.
+select = ["E", "F", "B"]
+ignore = [
+    "E501",  # longueur de ligne : le code existant en depasse souvent
+    "E741",  # noms de variables courts historiques
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E402"]  # les tests ajustent sys.path avant d'importer

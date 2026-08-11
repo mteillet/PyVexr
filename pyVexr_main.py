@@ -19,9 +19,18 @@ absPath = os.path.dirname(sys.argv[0])
 if absPath:
     absPath = "{}/".format(absPath)
 # Adding the cppModules dir to the search path
-sys.path.append('{}cppModules'.format(absPath)) 
-import exposureUp
-import loadExrChannel
+sys.path.append('{}cppModules'.format(absPath))
+# The C++ extensions are optional: they are built for one specific CPython
+# version, so a checkout without a matching build must still run (with a numpy
+# fallback) instead of failing at import time.
+try:
+    import exposureUp
+except ImportError:
+    exposureUp = None
+try:
+    import loadExrChannel
+except ImportError:
+    loadExrChannel = None
 # Enabling the EXR format in OpenCv for windows platform
 os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"
 import cv2 as cv
@@ -180,6 +189,19 @@ def loadImg(ocioIn, ocioOut, ocioLook, fileList, exposure, saturation, channel, 
         convertedImg = layerContactSheetBackend(imgDict["ContactSheetChannels"], imgDict)
 
     return (convertedImg)
+
+
+def applyExposure(img, exposure):
+    '''
+    Applies an exposure offset in stops, in place when possible.
+    Uses the exposureUp C++ module when it is available for the running
+    interpreter, and falls back to numpy otherwise.
+    '''
+    if exposure == 0:
+        return(img)
+    if exposureUp is not None:
+        return(exposureUp.expoUp(img, exposure))
+    return(img * np.float32(pow(2, float(exposure))))
 
 
 def saturationKernel(img, saturation, coefRGB):
@@ -520,7 +542,7 @@ def convertExr(path, ocioIn, ocioOut, ocioLook, exposure, saturation, channel, c
 
     #ExposureChange
     if (exposure != 0):
-        img = exposureUp.expoUp(img, exposure)
+        img = applyExposure(img, exposure)
 
     if(img.dtype == "float32"):
         # Making the actual OCIO Transform

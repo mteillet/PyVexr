@@ -1,0 +1,18 @@
+# Dependances necessaires pour lancer PyVexr depuis les sources.
+#
+#   python -m venv .venv && . .venv/bin/activate
+#   pip install -r requirements.txt
+#   python pyVexr_gui.py
+#
+# Les modules C++ de cppModules/ sont optionnels (repli numpy) ; pour les
+# compiler : bash cppModules/build.sh
+#
+# Pour le bundle Rocky Linux, ce sont les versions figees de
+# packaging/rocky/requirements.txt qui font foi.
+
+numpy>=1.24,<2
+PyQt5>=5.15,<6
+opencv-python-headless>=4.8,<5
+opencolorio>=2.2,<3
+OpenEXR>=3.2
+imageio>=2.30

@@ -1,0 +1,44 @@
+{
+  "couche_diffuse": {
+    "bytesPerLine": 48,
+    "height": 12,
+    "sha256": "f5247846371af7a87037c7fad9d2d2036d3dd260a5a31735e8b96b67d5459d9d",
+    "width": 16
+  },
+  "ocio_filmic": {
+    "bytesPerLine": 48,
+    "height": 12,
+    "sha256": "734f6246efd5dc055ca772fa04b73aa943b1349ce31f35c5d6aed5c1e4773657",
+    "width": 16
+  },
+  "ocio_srgb_standard": {
+    "bytesPerLine": 48,
+    "height": 12,
+    "sha256": "bd2794a90ff3a20434261f5bd2e60cc05d4d57d4dd57df1f5ed7ef82ec0eba55",
+    "width": 16
+  },
+  "rgba_exposition": {
+    "bytesPerLine": 48,
+    "height": 12,
+    "sha256": "c830360d95585ab1bf75d6f3b5ffd814194c759991ccb5f787582cff3304d5ab",
+    "width": 16
+  },
+  "rgba_luma": {
+    "bytesPerLine": 48,
+    "height": 12,
+    "sha256": "0626960b846d42c4f1fd98b15e2dd1e27fdd9e245a734b0680ed3b178135c472",
+    "width": 16
+  },
+  "rgba_neutre": {
+    "bytesPerLine": 48,
+    "height": 12,
+    "sha256": "0156bec9c3995d8ed85a9540c68170f4dfc3ebbe86ff7986b55250e03507d601",
+    "width": 16
+  },
+  "rgba_saturation": {
+    "bytesPerLine": 48,
+    "height": 12,
+    "sha256": "64fabb7bf32addaa722492a02f5e9821a34d142850b349cc5bb55018d4dd9356",
+    "width": 16
+  }
+}

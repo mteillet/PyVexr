@@ -1,4 +1,12 @@
 __pycache__/
 *.pyc
+*.pyo
+*.so
+*.swp
+*.swo
 build/
 dist/
+.venv/
+venv/
+*.egg-info/
+config.json

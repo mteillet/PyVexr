@@ -62,19 +62,32 @@ Built using Python, C++, PyQt5, OpenCV2, OpenExr, and OCIO v2.
 - [ ] Context Menu on right click to open with PyVexr directly in the explorer
 
 
-## Prerequisites
-If you want to build the python version in order to modify or plug it in and existing pipe, here's what you need:
+## Run from source
 ```sh
-	* Python 3.7 + 
-	* Cpp 11+
-	* PyQt5
-	* OpenCV2
-	* PyOpenColorIO
-	* OpenEXR
+	python -m venv .venv && . .venv/bin/activate
+	pip install -r requirements.txt
+	python pyVexr_gui.py
 ```
-### WARNING 
-If you are not on a x64 linux distribution, the custom c++ python modules will not run, you will need to recompile the using the tasks.py file in the cppModules folder
-Meanwhile, you can use the latest Windows compile release you can find on this github
+Python 3.9 or newer. The dependencies are listed in `requirements.txt` (numpy, PyQt5,
+opencv-python-headless, opencolorio, OpenEXR).
+
+### C++ modules
+`cppModules/` holds two optional pybind11 modules: `exposureUp` (exposure) and
+`loadExrChannel` (multilayer EXR reading). They are **optional**: without them PyVexr falls
+back to numpy and to the OpenEXR python bindings. To build them for your interpreter:
+```sh
+	pip install pybind11        # plus the OpenEXR headers, OpenEXR-devel or libopenexr-dev
+	bash cppModules/build.sh
+```
+The compiled modules are no longer committed: they only work with the exact CPython version
+they were built for.
+
+### Tests
+```sh
+	pip install -r requirements-dev.txt
+	pytest          # unit tests, image regression, headless smoke test
+	ruff check .
+```
 
 ## Rocky Linux (self contained build)
 A build chain producing a fully self contained bundle for Rocky Linux 8 and 9 lives in
@@ -95,8 +108,12 @@ The archive lands in `dist/`. Unpack it and run `./PyVexr`, or `./install.sh` to
 and a menu entry. The GitHub Actions workflow `Build Rocky Linux bundle` builds both versions and
 publishes them as artifacts. See `packaging/rocky/README.md` for details.
 
+## Code audit
+`AUDIT.md` lists what a full review of the code turned up, what was fixed, and what was
+deliberately left alone.
+
 ## License
-Distributed under the MIT License. See `LICENSE.txt` for more information
+Distributed under the MIT License. See `LICENSE` for more information
 
 ## Contact
 Teillet Martin - martin.teillet@hotmail.fr

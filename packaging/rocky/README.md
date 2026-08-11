@@ -13,7 +13,7 @@ Ce qui est embarque dans le bundle :
 | OpenCV (headless) | wheel PyPI | 4.10.0.84 |
 | OpenColorIO | wheel PyPI | 2.3.2 |
 | Bindings OpenEXR + Imath | wheel PyPI | 3.4.13 |
-| numpy, imageio, pillow | wheels PyPI | voir `requirements.txt` |
+| numpy, pillow | wheels PyPI | voir `requirements.txt` |
 | `exposureUp`, `loadExrChannel` | compiles pendant le build | — |
 | Imath / OpenEXR C++ | compiles depuis les sources | 3.1.12 / 3.1.13 |
 | configs OCIO, LUTs, images | depot | — |

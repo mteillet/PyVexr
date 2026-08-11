@@ -11,7 +11,6 @@ PyQt5-sip==12.17.1
 # conflit avec PyQt5 dans le meme process. PyVexr n'utilise aucune fenetre
 # OpenCV (les appels cv.imshow du code sont commentes), donc headless suffit.
 opencv-python-headless==4.10.0.84
-imageio==2.35.1
 pillow==11.3.0
 opencolorio==2.3.2
 # Bindings Python officiels OpenEXR : fournissent OpenEXR et le module de

@@ -261,24 +261,12 @@ build_cpp_modules() {
     log "compilation des modules C++ (pybind11)"
     mkdir -p "${CPP_OUT}"
 
-    local ext_suffix pybind_includes
-    ext_suffix="$("${VENV_PY}" -c 'import sysconfig; print(sysconfig.get_config_var("EXT_SUFFIX"))')"
-    pybind_includes="$("${VENV_PY}" -m pybind11 --includes)"
-
-    # shellcheck disable=SC2086
-    c++ -O3 -Wall -shared -std=c++17 -fPIC ${pybind_includes} \
-        "${REPO_ROOT}/cppModules/exposureUp.cpp" \
-        -o "${CPP_OUT}/exposureUp${ext_suffix}"
-
-    # shellcheck disable=SC2086
-    c++ -O3 -Wall -shared -std=c++17 -fPIC ${pybind_includes} ${OPENEXR_CFLAGS} \
-        "${REPO_ROOT}/cppModules/loadExrChannel.cpp" \
-        -o "${CPP_OUT}/loadExrChannel${ext_suffix}" \
-        ${OPENEXR_LIBS} -Wl,-rpath,'$ORIGIN'
-
-    log "verification de l'import des modules C++"
-    PYTHONPATH="${CPP_OUT}" "${VENV_PY}" -c \
-        'import exposureUp, loadExrChannel; print("  exposureUp et loadExrChannel importes")'
+    # Meme script que pour un build local, avec l'OpenEXR compile plus haut.
+    PYTHON="${VENV_PY}" \
+    OUT_DIR="${CPP_OUT}" \
+    OPENEXR_CFLAGS="${OPENEXR_CFLAGS}" \
+    OPENEXR_LIBS="${OPENEXR_LIBS}" \
+        bash "${REPO_ROOT}/cppModules/build.sh"
 }
 
 # ---------------------------------------------------------------------------

@@ -15,4 +15,3 @@ PyQt5>=5.15,<6
 opencv-python-headless>=4.8,<5
 opencolorio>=2.2,<3
 OpenEXR>=3.2
-imageio>=2.30

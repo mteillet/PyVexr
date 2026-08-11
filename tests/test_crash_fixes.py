@@ -197,7 +197,7 @@ def savedConfigWidget(monkeypatch, tmp_path, payload):
 
 
 def test_incompleteConfigIsIgnoredInsteadOfBreakingStartup(monkeypatch, tmp_path):
-    widget = savedConfigWidget(
+    savedConfigWidget(
         monkeypatch, tmp_path, json.dumps({"ocioVar": "/nowhere/config.ocio"})
     )
 
@@ -205,7 +205,7 @@ def test_incompleteConfigIsIgnoredInsteadOfBreakingStartup(monkeypatch, tmp_path
 
 
 def test_corruptedConfigIsIgnored(monkeypatch, tmp_path):
-    widget = savedConfigWidget(monkeypatch, tmp_path, "{not json")
+    savedConfigWidget(monkeypatch, tmp_path, "{not json")
 
     assert paths.readPreferences() is None
 
@@ -215,7 +215,7 @@ def test_configPointingAtAMissingOcioFileIsIgnored(monkeypatch, tmp_path):
         "ocioVar": "/gone/config.ocio", "ocioIn": "Linear", "ocioOut": "sRGB",
         "ocioDisplay": "sRGB,Standard", "ocioLook": "None",
     })
-    widget = savedConfigWidget(monkeypatch, tmp_path, payload)
+    savedConfigWidget(monkeypatch, tmp_path, payload)
 
     assert paths.readPreferences() is None
 
@@ -225,7 +225,7 @@ def test_completeConfigIsLoaded(monkeypatch, tmp_path, ocioConfigPath):
         "ocioVar": ocioConfigPath, "ocioIn": "Linear", "ocioOut": "sRGB",
         "ocioDisplay": "sRGB,Standard", "ocioLook": "None",
     })
-    widget = savedConfigWidget(monkeypatch, tmp_path, payload)
+    savedConfigWidget(monkeypatch, tmp_path, payload)
 
     config = paths.readPreferences()
 

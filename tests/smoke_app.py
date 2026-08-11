@@ -78,8 +78,22 @@ def main():
     widget.refreshImg()
     app.processEvents()
 
+    # Lecture : demarre la minuterie, la laisse tourner, puis l'arrete.
+    widget.playBtn.setChecked(True)
+    widget.playForward()
+    QtCore.QTimer.singleShot(500, app.quit)
+    app.exec_()
+    playing = widget.playTimer.isActive()
+    widget.playBtn.setChecked(False)
+    widget.playForward()
+
     QtCore.QTimer.singleShot(200, app.quit)
     app.exec_()
+
+    if playing is False:
+        raise SystemExit("la minuterie de lecture ne tournait pas")
+    if widget.playTimer.isActive():
+        raise SystemExit("la minuterie de lecture ne s'est pas arretee")
 
     widget.close()
     print("smoke ok : {} images parcourues".format(maximum + 1))

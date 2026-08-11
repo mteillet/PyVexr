@@ -319,8 +319,7 @@ class MyWidget(QtWidgets.QWidget):
         # ThreadPool
         self.threadpool = QtCore.QThreadPool()
         self.maxThreads = self.threadpool.maxThreadCount()
-        self.threadpool.setMaxThreadCount(self.maxThreads - 4)
-        self.playThreadpool = QtCore.QThreadPool()
+        self.threadpool.setMaxThreadCount(self.bufferThreadCount(4))
         #self.threadpool.setMaxThreadCount(2)
         #print(("Multithreading with maximum {} threads").format(self.threadpool.maxThreadCount()))
 
@@ -350,10 +349,21 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict["ContactSheet"] = False
         self.imgDict["ContactSheetChannels"] = []
         self.imgDict["version"] = {} 
-        self.p = None
         self.diagnostic = False
-        self.playCount = []
         self.bufferRange = 2
+        # Buffer bookkeeping : generation counter used to drop results of
+        # workers started for a previous sequence, and memory accounting so
+        # the cache cannot grow without bound.
+        self.bufferEpoch = 0
+        self.bufferBytes = 0
+        self.bufferBudgetBytes = 4096 * 1024 * 1024
+
+        # Playback is driven by a timer on the GUI thread rather than by a
+        # pool of sleeping runnables.
+        self.playbackFps = 24
+        self.playTimer = QtCore.QTimer(self)
+        self.playTimer.setTimerType(QtCore.Qt.PreciseTimer)
+        self.playTimer.setInterval(int(1000 / self.playbackFps))
 
         self.checkIfJsonExists()
 
@@ -654,6 +664,18 @@ class MyWidget(QtWidgets.QWidget):
         '''
         self.threadpool.clear()
 
+    def closeEvent(self, event):
+        '''
+        Stops playback and waits for the workers before letting Python tear
+        the interpreter down. Quitting mid buffering used to leave running
+        workers touching Python objects during finalisation, which hangs or
+        crashes on exit.
+        '''
+        self.stopPlayback()
+        self.threadpool.clear()
+        self.threadpool.waitForDone(5000)
+        super().closeEvent(event)
+
     def resetShotBuffer(self):
         '''
         Resetting the buffer on the current shot of the timeline
@@ -672,6 +694,8 @@ class MyWidget(QtWidgets.QWidget):
             current += 1
 
         for i in bufferToReset:
+            if self.imgDict["buffer"][i] is not None:
+                self.bufferBytes -= self.frameByteSize(self.imgDict["buffer"][i])
             self.imgDict["buffer"][i] = None
 
         # TODO
@@ -684,6 +708,10 @@ class MyWidget(QtWidgets.QWidget):
         '''
         #Stopping the queue if workers are not created yet
         self.threadpool.clear()
+        # New generation : results of workers that are already running belong
+        # to the buffer being thrown away and will be dropped on arrival.
+        self.bufferEpoch += 1
+        self.bufferBytes = 0
 
         if (len(self.imgDict["buffer"]) > 0):
             self.imgDict["buffer"] = []
@@ -716,9 +744,7 @@ class MyWidget(QtWidgets.QWidget):
                 current = self.frameNumber.slider.minimum()
                 count = 0
             self.t0 = time.time()
-            worker = Worker(frameList, current+count, **self.imgDict)
-            worker.signals.result.connect(self.queueStart)
-            self.threadpool.start(worker)
+            self.startBufferWorker(frameList, current+count, self.queueStart)
             count += 1
 
     def snapshotBufferState(self):
@@ -791,9 +817,7 @@ class MyWidget(QtWidgets.QWidget):
         current = self.frameNumber.slider.value()
 
         # Starting a thread
-        worker = Worker(frameList, current, **self.imgDict)
-        worker.signals.result.connect(self.queueResult)
-        self.threadpool.start(worker)
+        self.startBufferWorker(frameList, current)
 
         self.refreshImg()
 
@@ -814,9 +838,7 @@ class MyWidget(QtWidgets.QWidget):
         minimum = self.frameNumber.slider.minimum()
         maximum = self.frameNumber.slider.maximum()
         for i in frameList:
-            worker = Worker(frameList, currentPosition, **self.imgDict)
-            worker.signals.result.connect(self.queueResult)
-            self.threadpool.start(worker)
+            self.startBufferWorker(frameList, currentPosition)
             if currentPosition < maximum:
                 currentPosition += 1
             else:
@@ -846,9 +868,7 @@ class MyWidget(QtWidgets.QWidget):
                         #print("NEED TO RESET THE CURRENT + COUNT")
                         current = self.frameNumber.slider.minimum()
                         count = 0
-                    worker = Worker(frameList, current+count, **self.imgDict)
-                    worker.signals.result.connect(self.queueResult)
-                    self.threadpool.start(worker)
+                    self.startBufferWorker(frameList, current+count)
                     count += 1
             else:
                 #print("buffer launch full")
@@ -858,38 +878,116 @@ class MyWidget(QtWidgets.QWidget):
                         #print("NEED TO RESET THE CURRENT + COUNT")
                         current = self.frameNumber.slider.minimum()
                         count = 0
-                    worker = Worker(frameList, current+count, **self.imgDict)
-                    worker.signals.result.connect(self.queueResult)
-                    self.threadpool.start(worker)
+                    self.startBufferWorker(frameList, current+count)
                     count += 1
 
-    def storeBufferResult(self, image, position):
+    def bufferThreadCount(self, reserved):
         '''
-        Stores a worker result in the buffer.
-        Workers that were still running when the buffer was reset come back
-        with a position that belongs to the previous sequence, so the bounds
-        have to be checked here rather than trusting the sender.
+        Threads left for buffering after keeping some cores for the interface.
+        Never below one : on a four core machine "maxThreads - 4" gave a pool
+        of zero, where Qt queues every worker forever and nothing is ever
+        cached, with no message.
         '''
-        if (position < 0) | (position >= len(self.imgDict["buffer"])):
+        return(max(1, self.maxThreads - reserved))
+
+    def bufferSettings(self):
+        '''
+        Immutable snapshot of everything a worker needs.
+        Workers used to receive **self.imgDict, a shallow copy : "buffer",
+        "ocio" and "path" were the very same objects the GUI thread keeps
+        mutating while the workers read them.
+        '''
+        settings = dict(self.imgDict)
+        settings["ocio"] = dict(self.imgDict["ocio"])
+        settings["ContactSheetChannels"] = list(self.imgDict["ContactSheetChannels"])
+        settings["path"] = list(self.imgDict["path"])
+        # The buffer belongs to the GUI thread only.
+        settings.pop("buffer", None)
+        settings.pop("version", None)
+        return(settings)
+
+    def startBufferWorker(self, frameList, index, slot=None):
+        '''
+        Starts one worker for the frame at index, unless it is already cached.
+        Returns True when a worker was actually started.
+        '''
+        if (index < 0) or (index >= len(frameList)):
             return(False)
-        self.imgDict["buffer"][position] = image
-        self.frameNumber._timeline.paintBuffer(position, len(self.imgDict["buffer"]))
+        if (index < len(self.imgDict["buffer"])) and (self.imgDict["buffer"][index] is not None):
+            return(False)
+
+        worker = Worker(frameList, index, self.bufferSettings(), self.bufferEpoch)
+        worker.signals.result.connect(slot if slot is not None else self.queueResult)
+        self.threadpool.start(worker)
         return(True)
 
-    def queueResult(self, resultA, resultB):
-        self.storeBufferResult(resultA, resultB)
+    def storeBufferResult(self, image, position, epoch):
+        '''
+        Stores a worker result in the buffer.
+        Workers still running when the buffer was reset come back with a
+        position, and pixels, that belong to the previous sequence : both the
+        generation and the bounds are checked here rather than trusting the
+        sender. threadpool.clear() only drops what has not started yet.
+        '''
+        if epoch != self.bufferEpoch:
+            return(False)
+        if (position < 0) or (position >= len(self.imgDict["buffer"])):
+            return(False)
+
+        if self.imgDict["buffer"][position] is None:
+            self.bufferBytes += self.frameByteSize(image)
+        self.imgDict["buffer"][position] = image
+        self.frameNumber._timeline.paintBuffer(position, len(self.imgDict["buffer"]))
+        self.enforceBufferBudget()
+        return(True)
+
+    def frameByteSize(self, image):
+        '''
+        Memory held by one cached frame : (pixels, width, height, bytesPerLine)
+        '''
+        try:
+            return(int(image[2]) * int(image[3]))
+        except (TypeError, IndexError, ValueError):
+            return(0)
+
+    def enforceBufferBudget(self):
+        '''
+        Drops the frames furthest from the playhead until the cache fits in
+        the memory budget. Without this a 200 frame 4K timeline holds several
+        gigabytes and nothing ever frees them but the Reset Buffer menu.
+        '''
+        if self.bufferBytes <= self.bufferBudgetBytes:
+            return
+
+        current = self.frameNumber.slider.value()
+        cached = [index for index, image in enumerate(self.imgDict["buffer"])
+                  if image is not None]
+        # Furthest from the playhead first.
+        cached.sort(key=lambda index: abs(index - current), reverse=True)
+
+        for index in cached:
+            if self.bufferBytes <= self.bufferBudgetBytes:
+                break
+            if index == current:
+                continue
+            self.bufferBytes -= self.frameByteSize(self.imgDict["buffer"][index])
+            self.imgDict["buffer"][index] = None
+            self.frameNumber._timeline.unpaintBuffer(index)
+
+    def queueResult(self, resultA, resultB, epoch):
+        self.storeBufferResult(resultA, resultB, epoch)
         #print(("Multithreading with maximum {} threads").format(self.threadpool.maxThreadCount()))
         #print("Finished loading buffer at pos {}".format(resultB))
 
-    def queueStart(self, resultA, resultB):
-        self.storeBufferResult(resultA, resultB)
+    def queueStart(self, resultA, resultB, epoch):
+        self.storeBufferResult(resultA, resultB, epoch)
         t1 = time.time()
         #print(t1 - self.t0)
         if (t1 - self.t0) < 0.2:
-            self.threadpool.setMaxThreadCount(self.maxThreads - 2)
+            self.threadpool.setMaxThreadCount(self.bufferThreadCount(2))
             self.diagnostic = True
         else:
-            self.threadpool.setMaxThreadCount(self.maxThreads - 6)
+            self.threadpool.setMaxThreadCount(self.bufferThreadCount(6))
             self.diagnostic = False
             self.threadpool.clear()
         #print("diagnostic has been set to : ".format(self.diagnostic))
@@ -996,6 +1094,7 @@ class MyWidget(QtWidgets.QWidget):
         Exporting a movie from the written cache
         '''
         # First clear threadpool in order to focus writing power to the mp4 generation
+        self.stopPlaybackButtons()
         self.threadpool.clear()
 
         # Creating window for export destination
@@ -1020,6 +1119,7 @@ class MyWidget(QtWidgets.QWidget):
         Exporting a single frame from the written cache
         '''
         # Clear threadpool in order to focus writing the image to disk
+        self.stopPlaybackButtons()
         self.threadpool.clear()
 
         current = self.frameNumber.slider.value()
@@ -1139,80 +1239,100 @@ class MyWidget(QtWidgets.QWidget):
         if isSameShot != True:
             self.listChannels()
         
+    def startPlayback(self, slot):
+        '''
+        Drives playback with a single timer on the GUI thread.
+        It used to queue one sleeping QRunnable per frame of the timeline in a
+        one thread pool : the sleep was serialised in front of the decode so
+        the real rate always drifted below the nominal one, the connect
+        happened after start() so the first tick could be lost, and clear()
+        could not stop the runnable already sleeping, which gave one extra
+        frame after pause.
+        '''
+        self.stopPlayback()
+        self.playTimer.setInterval(int(1000 / self.playbackFps))
+        self.playTimer.timeout.connect(slot)
+        self.playTimer.start()
+
+    def stopPlaybackButtons(self):
+        '''
+        Stops playback and releases both buttons. The export dialogs are modal
+        and run the event loop, so a running playback would keep advancing the
+        timeline while the file is being written.
+        '''
+        for button in (self.playBtn, self.playBackBtn):
+            if button.isChecked():
+                button.setChecked(False)
+        self.playBtn.setText(">")
+        self.playBackBtn.setText("<")
+        self.stopPlayback()
+
+    def stopPlayback(self):
+        self.playTimer.stop()
+        try:
+            self.playTimer.timeout.disconnect()
+        except TypeError:
+            # Nothing was connected yet.
+            pass
+
     def playForward(self):
         if (self.playBtn.isChecked() == True):
             if (self.playBackBtn.isChecked() == True):
                 self.playBackBtn.click()
-            self.playCount = []
             self.playBtn.setText("||")
-            self.playThreadpool.clear()
-            self.playThreadpool.setMaxThreadCount(1)
-            for i in range(self.frameNumber.slider.maximum() - self.frameNumber.slider.minimum()):
-                nextWorker = NextWorker()
-                self.playThreadpool.start(nextWorker)
-                nextWorker.signals.result.connect(self.jumpFrameForward)
+            self.startPlayback(self.jumpFrameForward)
         else:
             self.playBtn.setText(">")
-            self.playThreadpool.clear()
+            self.stopPlayback()
 
     def playBack(self):
         if (self.playBackBtn.isChecked() == True):
             if (self.playBtn.isChecked() == True):
                 self.playBtn.click()
-            self.playCount = []
             self.playBackBtn.setText("||")
-            self.playThreadpool.clear()
-            self.playThreadpool.setMaxThreadCount(1)
-            for i in range(self.frameNumber.slider.maximum() - self.frameNumber.slider.minimum()):
-                nextWorker = NextWorker()
-                nextWorker.signals.result.connect(self.jumpFrameBack)
-                self.playThreadpool.start(nextWorker)
+            self.startPlayback(self.jumpFrameBack)
         else:
             self.playBackBtn.setText("<")
-            self.playThreadpool.clear()
+            self.stopPlayback()
 
+
+    def nextPlaybackFrame(self, step):
+        '''
+        Frame the playhead would move to, wrapping around the timeline.
+        Bounds come from the buffer itself : clamping against len(timeLineDict)
+        and then indexing the buffer used to raise IndexError, since the two
+        lists are built separately and the buffer is momentarily empty during a
+        reset.
+        '''
+        bufferLength = len(self.imgDict["buffer"])
+        if bufferLength == 0:
+            return(None)
+
+        position = self.frameNumber.slider.value() + step
+        if position > self.frameNumber.slider.maximum():
+            position = self.frameNumber.slider.minimum()
+        elif position < self.frameNumber.slider.minimum():
+            position = self.frameNumber.slider.maximum()
+
+        return(max(0, min(position, bufferLength - 1)))
+
+    def advancePlayback(self, step):
+        position = self.nextPlaybackFrame(step)
+        if position is None:
+            return
+
+        if self.imgDict["buffer"][position] is not None:
+            self.frameNumber.slider.setValue(position)
+        else:
+            # Frame not cached yet : wait for the buffer rather than showing
+            # nothing, and ask for it.
+            self.bufferLoad(self.seqDict)
 
     def jumpFrameForward(self):
-        self.playCount.append(True)
-        # Add this in case buffer needs to go back to first frame
-        toCheckBuffer = self.frameNumber.slider.value()+1
-        if toCheckBuffer > self.frameNumber.slider.maximum():
-            toCheckBuffer = self.frameNumber.slider.minimum()
-        if toCheckBuffer > (len(self.timeLineDict) - 1):
-            toCheckBuffer = (len(self.timeLineDict) - 1)
+        self.advancePlayback(1)
 
-        if self.imgDict["buffer"][toCheckBuffer] != None:
-            #print("buffer ok")
-            if ((self.frameNumber.slider.value() + 1) > self.frameNumber.slider.maximum()):
-                self.frameNumber.slider.setValue(self.frameNumber.slider.minimum())
-            else:
-                self.frameNumber.slider.setValue(self.frameNumber.slider.value()+1)
-        else:
-            #print("Nothing in buffer !")
-            self.bufferLoad(self.seqDict)
-
-        if len(self.playCount) == (self.frameNumber.slider.maximum() - self.frameNumber.slider.minimum()):
-            self.playForward()
-        
     def jumpFrameBack(self):
-        self.playCount.append(True)
-        # Add this in case going back on first frame with no buffer on last frame
-        toCheckBuffer = self.frameNumber.slider.value()-1
-        if toCheckBuffer < self.frameNumber.slider.minimum():
-            toCheckBuffer = self.frameNumber.slider.maximum()
-        if toCheckBuffer > (len(self.timeLineDict) - 1):
-            toCheckBuffer = (len(self.timeLineDict) - 1)
-
-        if self.imgDict["buffer"][toCheckBuffer] != None:
-            if ((self.frameNumber.slider.value() - 1) < self.frameNumber.slider.minimum()):
-                self.frameNumber.slider.setValue(self.frameNumber.slider.maximum())
-            else:
-                self.frameNumber.slider.setValue(self.frameNumber.slider.value()-1)
-        else:
-            self.bufferLoad(self.seqDict)
-
-        if len(self.playCount) == (self.frameNumber.slider.maximum() - self.frameNumber.slider.minimum()):
-            self.playBack()
+        self.advancePlayback(-1)
 
 
     def jumpGapForward(self):
@@ -1838,101 +1958,35 @@ class WorkerSignals(QtCore.QObject):
         No data
 
     result
-        tuple, int (img and its buffer index)
+        tuple, int, int (img, its buffer index, and the buffer generation it
+        was computed for)
     '''
     finished = QtCore.pyqtSignal()
-    result = QtCore.pyqtSignal(tuple, object)
+    result = QtCore.pyqtSignal(tuple, object, object)
 
 class Worker(QtCore.QRunnable):
     '''
-    Worker thread
+    Worker thread computing one frame of the buffer.
 
-    :param args: Arguments containing the current and framelist
-    :param kwargs: Keywords arguments containing the imgDict
+    settings is a snapshot : the worker never sees the live imgDict, so the
+    GUI thread can mutate the buffer, the OCIO settings or the shot list while
+    workers are running.
     '''
 
-    #result = QtCore.pyqtSignal(tuple, int)
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, frameList, index, settings, epoch):
         super(Worker, self).__init__()
-        self.args = args
-        self.kwargs = kwargs
+        self.frameList = frameList
+        self.index = index
+        self.settings = settings
+        self.epoch = epoch
         self.signals = WorkerSignals()
 
-    def run(self, *args, **kwargs):
-        #print(self.args)
-        #print(self.kwargs)
-        img= bufferBackEnd(self.kwargs, self.args[0], self.args[1])
-        #print(self.kwargs)
-        #print("img obtained in {}".format(t1-t0))
+    def run(self):
+        img = bufferBackEnd(self.settings, self.frameList, self.index)
 
         self.signals.finished.emit()
-        if (type(img) == tuple):
-            self.signals.result.emit(img[0], img[1])
-
-class NextWorkerSignals(QtCore.QObject):
-    '''
-    Defines signals available from running NextWorker Thread
-    
-    result
-        string
-    '''
-    finished = QtCore.pyqtSignal()
-    result = QtCore.pyqtSignal(str)
-
-class NextWorker(QtCore.QRunnable):
-    '''
-    Worker Thread emitting signal every 1/24th of a second
-    '''
-    def __init__(self):
-        super(NextWorker, self).__init__()
-        self.signals = NextWorkerSignals()
-
-    def run(self):
-        time.sleep(1/24)
-
-        self.signals.result.emit("Ok")
-
-
-class QueueThread(QtCore.QThread):
-    '''
-    Thread class responsible for dispatching data to the BufferThread
-    '''
-    queueResult = QtCore.pyqtSignal(tuple, int)
-
-    def __init__(self, *args, **kwargs):
-        super(QueueThread, self).__init__(*args, **kwargs)
-
-    def run(self, *args, **kwargs):
-        thread = BufferThread()
-        thread.result.connect(self.bufferResult)
-        temp = 0
-        for i in range(widget.bufferRange):
-            thread.run(args[0], args[1]+temp, kwargs = kwargs["kwargs"])
-            temp += 1
-
-    def bufferResult(self, resultA, resultB):
-        #print("got something")
-        self.queueResult.emit(resultA, resultB)
-
-
-
-
-class BufferThread(QtCore.QThread):
-    '''
-    Thread class responsible for image calculation
-    '''
-    result = QtCore.pyqtSignal(tuple, int)
-
-    def __init__(self, *args, **kwargs):
-        super(BufferThread, self).__init__(*args, **kwargs)
-
-    def run(self,*args, **kwargs):
-        #time.sleep(1)
-        #img = None
-        img= bufferBackEnd(kwargs["kwargs"], args[0], args[1])
-        if (type(img) == tuple):
-            self.result.emit(img[0], img[1])
+        if isinstance(img, tuple):
+            self.signals.result.emit(img[0], img[1], self.epoch)
 
 
 
@@ -2183,27 +2237,47 @@ class BufferPopup(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout()
         self.threadLayout = QtWidgets.QHBoxLayout()
         self.batchLayout = QtWidgets.QHBoxLayout()
+        self.memoryLayout = QtWidgets.QHBoxLayout()
 
-        # Number of frames
+        # Number of threads. The minimum is one and the signal is connected
+        # after setValue : the box used to accept zero, which stops buffering
+        # for good, and applied its default value on the way in.
         self.threadNumberLabel = QtWidgets.QLabel("Number of threads :")
         self.threadNumber = QtWidgets.QSpinBox()
+        self.threadNumber.setMinimum(1)
+        self.threadNumber.setMaximum(max(1, widget.maxThreads))
+        self.threadNumber.setValue(widget.threadpool.maxThreadCount())
         self.threadNumber.valueChanged.connect(self.updateThreads)
-        # Getting default value of max threads
-        self.threadNumber.setValue(widget.maxThreads - 4)
+
         # Size of buffer batch
         self.threadBatchLabel = QtWidgets.QLabel("Buffer Batch Size for heavy EXRs :")
         self.threadBatch = QtWidgets.QSpinBox()
-        self.threadBatch.setValue(4)
+        self.threadBatch.setMinimum(1)
+        self.threadBatch.setMaximum(9999)
+        self.threadBatch.setValue(widget.bufferRange)
         self.threadBatch.valueChanged.connect(self.updateBatchSize)
-        
+
+        # Memory the cache is allowed to hold
+        self.memoryLabel = QtWidgets.QLabel("Cache memory budget (MB) :")
+        self.memoryBudget = QtWidgets.QSpinBox()
+        self.memoryBudget.setMinimum(64)
+        self.memoryBudget.setMaximum(1024 * 1024)
+        self.memoryBudget.setSingleStep(256)
+        self.memoryBudget.setValue(int(widget.bufferBudgetBytes / (1024 * 1024)))
+        self.memoryBudget.valueChanged.connect(self.updateMemoryBudget)
+
         self.threadLayout.addWidget(self.threadNumberLabel)
         self.threadLayout.addStretch()
         self.threadLayout.addWidget(self.threadNumber)
         self.batchLayout.addWidget(self.threadBatchLabel)
         self.batchLayout.addStretch()
         self.batchLayout.addWidget(self.threadBatch)
+        self.memoryLayout.addWidget(self.memoryLabel)
+        self.memoryLayout.addStretch()
+        self.memoryLayout.addWidget(self.memoryBudget)
         layout.addLayout(self.threadLayout)
         layout.addLayout(self.batchLayout)
+        layout.addLayout(self.memoryLayout)
         self.setLayout(layout)
 
     ###############################
@@ -2218,6 +2292,10 @@ class BufferPopup(QtWidgets.QWidget):
     def updateBatchSize(self):
         #print(self.threadBatch.value())
         widget.bufferRange = self.threadBatch.value()
+
+    def updateMemoryBudget(self):
+        widget.bufferBudgetBytes = self.memoryBudget.value() * 1024 * 1024
+        widget.enforceBufferBudget()
  
 class OcioPopup(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):

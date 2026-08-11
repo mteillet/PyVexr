@@ -28,8 +28,17 @@ class _Timeline(QtWidgets.QWidget):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.cachePos = []
+        # A set : the same index used to be appended again on every re-cache,
+        # so the list grew without bound and the repaint got slower and slower
+        # over a session.
+        self.cachePos = set()
         self.maxBuffer = 1
+        # Repaints are coalesced : one completed frame no longer means one
+        # full repaint of the ruler.
+        self.refreshTimer = QtCore.QTimer(self)
+        self.refreshTimer.setSingleShot(True)
+        self.refreshTimer.setInterval(50)
+        self.refreshTimer.timeout.connect(self.update)
         # Built once : they used to be constructed for every tick of every
         # repaint, and never passed to painter.setFont anyway.
         self.frameFont = QtGui.QFont("Serif", 7, QtGui.QFont.Light)
@@ -149,12 +158,19 @@ class _Timeline(QtWidgets.QWidget):
         painter.end()
 
     def paintBuffer(self, position, maxBuffer):
-        self.cachePos.append(position)
+        self.cachePos.add(position)
         self.maxBuffer = maxBuffer
-        self._trigger_refresh()
+        self.refreshTimer.start()
+
+    def unpaintBuffer(self, position):
+        '''
+        A frame left the cache (evicted to stay within the memory budget).
+        '''
+        self.cachePos.discard(position)
+        self.refreshTimer.start()
 
     def resetCacheDraw(self):
-        self.cachePos = []
+        self.cachePos = set()
         self._trigger_refresh()
 
 class Timeline(QtWidgets.QWidget):

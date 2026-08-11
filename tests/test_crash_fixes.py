@@ -82,33 +82,68 @@ def test_contactSheetWithSaturation(tmp_path, ocioConfigPath):
     assert result[1:] == (16, 12, 48)
 
 
-def test_bufferResultOutOfRangeIsDropped():
+def bufferWidget(painted=None, epoch=1):
+    painted = painted if painted is not None else []
     widget = types.SimpleNamespace(
         imgDict={"buffer": [None, None, None]},
+        bufferEpoch=epoch,
+        bufferBytes=0,
+        bufferBudgetBytes=1024 ** 3,
         frameNumber=types.SimpleNamespace(
-            _timeline=types.SimpleNamespace(paintBuffer=lambda *args: None)
+            slider=types.SimpleNamespace(value=lambda: 0),
+            _timeline=types.SimpleNamespace(
+                paintBuffer=lambda position, size: painted.append(position),
+                unpaintBuffer=lambda position: None,
+            ),
         ),
     )
+    # Les vraies methodes, liees a ce faux widget.
+    widget.frameByteSize = lambda image: gui.MyWidget.frameByteSize(widget, image)
+    widget.enforceBufferBudget = lambda: gui.MyWidget.enforceBufferBudget(widget)
+    return widget
 
-    assert gui.MyWidget.storeBufferResult(widget, "image", 7) is False
-    assert gui.MyWidget.storeBufferResult(widget, "image", -1) is False
+
+FRAME = (b"", 2, 2, 6)
+
+
+def test_bufferResultOutOfRangeIsDropped():
+    widget = bufferWidget()
+
+    assert gui.MyWidget.storeBufferResult(widget, FRAME, 7, 1) is False
+    assert gui.MyWidget.storeBufferResult(widget, FRAME, -1, 1) is False
+    assert widget.imgDict["buffer"] == [None, None, None]
+
+
+def test_bufferResultFromAPreviousBufferIsDropped():
+    widget = bufferWidget(epoch=3)
+
+    # Worker started before a resetBuffer : its pixels belong to another shot.
+    assert gui.MyWidget.storeBufferResult(widget, FRAME, 1, 2) is False
     assert widget.imgDict["buffer"] == [None, None, None]
 
 
 def test_bufferResultInRangeIsStored():
     painted = []
-    widget = types.SimpleNamespace(
-        imgDict={"buffer": [None, None, None]},
-        frameNumber=types.SimpleNamespace(
-            _timeline=types.SimpleNamespace(
-                paintBuffer=lambda position, size: painted.append(position)
-            )
-        ),
-    )
+    widget = bufferWidget(painted)
 
-    assert gui.MyWidget.storeBufferResult(widget, "image", 1) is True
-    assert widget.imgDict["buffer"] == [None, "image", None]
+    assert gui.MyWidget.storeBufferResult(widget, FRAME, 1, 1) is True
+    assert widget.imgDict["buffer"] == [None, FRAME, None]
     assert painted == [1]
+
+
+def test_bufferEvictsTheFramesFurthestFromThePlayhead():
+    widget = bufferWidget()
+    widget.bufferBudgetBytes = 2 * 12  # deux images de 12 octets
+
+    for position in range(3):
+        gui.MyWidget.storeBufferResult(widget, FRAME, position, 1)
+
+    cached = [index for index, image in enumerate(widget.imgDict["buffer"])
+              if image is not None]
+    assert widget.bufferBytes <= widget.bufferBudgetBytes
+    # La tete de lecture est en 0, c'est la derniere image conservee.
+    assert 0 in cached
+    assert 2 not in cached
 
 
 def fakeTimeline(width, maximum, minimum=0):

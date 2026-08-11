@@ -38,37 +38,24 @@ import cv2 as cv
 
 def bufferBackEnd(imgDict, frameList, current):
     """
-    Checks if the buffer corresponding to the index is empty
-    If it is empty, calculates the image and sends it back in order to assign it to the
-    buffer
-    """
-    # Check buffer len is ok
-    if len(imgDict["buffer"]) > 0:
-        # Check current buffer address is not already computed
-        try:
-            if (imgDict["buffer"][current] == None):
-                #t0 = time.time()
-                if (imgDict["ContactSheet"] == False):
-                    convertedImg = convertExr(frameList[current], imgDict["ocio"]["ocioIn"], imgDict["ocio"]["ocioOut"], imgDict["ocio"]["ocioLook"], imgDict["exposure"], imgDict["saturation"], imgDict["channel"], imgDict["RGBA"], imgDict["ocioVar"], imgDict["ocio"]["ocioDisplay"], imgDict["ocioToggle"])
-                else:
-                    imgDict["path"] = [frameList[current]]
-                    convertedImg = layerContactSheetBackend(imgDict["ContactSheetChannels"], imgDict)
-                #t1 = time.time()
-                #print("executed in {} seconds".format(t1 - t0))
-                return(convertedImg, current)
-            else:
-                #print("buffer not empty")
-                pass
-            if (current < len(imgDict["buffer"])):
-                current += 1
-        except IndexError:
-            #print("Fame Buffer index out of range")
-            pass
-    else:
-        #print("No buffer needed for range")
-        pass
+    Computes the image at index current and returns it with its index.
 
-    #return(test)
+    imgDict is a snapshot owned by the calling worker : whether the frame is
+    already cached is decided on the GUI thread before the worker is started.
+    Reading the live buffer from here meant several workers could see the same
+    empty slot and decode the same EXR at the same time, and an index left
+    over from a previous sequence was swallowed by a blanket IndexError.
+    """
+    if (current < 0) or (current >= len(frameList)):
+        return(None)
+
+    if (imgDict["ContactSheet"] == False):
+        convertedImg = convertExr(frameList[current], imgDict["ocio"]["ocioIn"], imgDict["ocio"]["ocioOut"], imgDict["ocio"]["ocioLook"], imgDict["exposure"], imgDict["saturation"], imgDict["channel"], imgDict["RGBA"], imgDict["ocioVar"], imgDict["ocio"]["ocioDisplay"], imgDict["ocioToggle"])
+    else:
+        imgDict["path"] = [frameList[current]]
+        convertedImg = layerContactSheetBackend(imgDict["ContactSheetChannels"], imgDict)
+
+    return(convertedImg, current)
 
 
 def seqFromPath(path, autoLoad):

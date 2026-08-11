@@ -94,11 +94,6 @@ def test_relativeFrameIndexClampsBeyondTheTimeline():
     assert gui.MyWidget.getRelativeFrameIndex(widget) == 2
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="bug connu : sur la premiere image du second plan l'index renvoye "
-           "sort de la liste du plan (corrige en phase 1)",
-)
 def test_relativeFrameIndexOnTheFirstFrameOfTheSecondShot():
     seqDict = {"shotA": ["a0", "a1", "a2"], "shotB": ["b0", "b1", "b2"]}
     widget = fakeWidget(seqDict, currentPos=3)

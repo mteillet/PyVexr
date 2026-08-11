@@ -6,7 +6,7 @@ import sys
 import os
 import json
 import time
-from math import sqrt
+import getpass
 from PyQt5 import QtWidgets, QtCore, QtGui
 from pyVexr_main import loadImg, interpretRectangle, exrListChannels, seqFromPath, initOcio2, getLooks, bufferBackEnd, layerContactSheetBackend, createVideoWriter, createImgWriter
 from pyVexr_timelineGui import Timeline
@@ -866,15 +866,26 @@ class MyWidget(QtWidgets.QWidget):
                     self.threadpool.start(worker)
                     count += 1
 
+    def storeBufferResult(self, image, position):
+        '''
+        Stores a worker result in the buffer.
+        Workers that were still running when the buffer was reset come back
+        with a position that belongs to the previous sequence, so the bounds
+        have to be checked here rather than trusting the sender.
+        '''
+        if (position < 0) | (position >= len(self.imgDict["buffer"])):
+            return(False)
+        self.imgDict["buffer"][position] = image
+        self.frameNumber._timeline.paintBuffer(position, len(self.imgDict["buffer"]))
+        return(True)
+
     def queueResult(self, resultA, resultB):
-        self.imgDict["buffer"][resultB] = resultA
-        self.frameNumber._timeline.paintBuffer(resultB, len(self.imgDict["buffer"]))
+        self.storeBufferResult(resultA, resultB)
         #print(("Multithreading with maximum {} threads").format(self.threadpool.maxThreadCount()))
         #print("Finished loading buffer at pos {}".format(resultB))
 
     def queueStart(self, resultA, resultB):
-        self.imgDict["buffer"][resultB] = resultA
-        self.frameNumber._timeline.paintBuffer(resultB, len(self.imgDict["buffer"]))
+        self.storeBufferResult(resultA, resultB)
         t1 = time.time()
         #print(t1 - self.t0)
         if (t1 - self.t0) < 0.2:
@@ -903,6 +914,8 @@ class MyWidget(QtWidgets.QWidget):
         openDialog = QtWidgets.QFileDialog.getOpenFileName(self, "Open new shot")
 
         shotToAdd = (openDialog[0])
+        if not shotToAdd:
+            return
 
         newShotList = []
 
@@ -930,13 +943,20 @@ class MyWidget(QtWidgets.QWidget):
         lt = time.localtime()
         
         jsonData = {}
-        jsonData["user"] = os.getlogin()
+        # getpass and not os.getlogin() : the latter raises when there is no
+        # controlling terminal, which is the case when started from a desktop
+        # launcher or a container.
+        jsonData["user"] = getpass.getuser()
         jsonData["date"] = ("{}/{}/{} - {}:{}".format(lt[0], str(lt[1]).zfill(2), str(lt[2]).zfill(2), str(lt[3]).zfill(2), str(lt[4]).zfill(2)))
         jsonData["shots"] = self.seqDict
 
 
         exportDialog = QtWidgets.QFileDialog.getSaveFileName(self, "Export PyVexrPlaylist")
         destination = (exportDialog[0])
+        # Cancelling the dialog returns an empty path : without this it used to
+        # write a file literally named ".pyVexr" in the current directory.
+        if not destination:
+            return
 
         # Ensuring there is an extension
         if destination.endswith(".pyVexr") == False:
@@ -954,6 +974,8 @@ class MyWidget(QtWidgets.QWidget):
         openDialog = QtWidgets.QFileDialog.getOpenFileName(self, "Open a playlist")
 
         jsonPath = (openDialog[0])
+        if not jsonPath:
+            return
 
         print("Opening {}".format(openDialog[0]))
 
@@ -982,6 +1004,8 @@ class MyWidget(QtWidgets.QWidget):
         # Creating window for export destination
         exportDialog = QtWidgets.QFileDialog.getSaveFileName(self, 'Export MP4 file')
         destination = (exportDialog[0])
+        if not destination:
+            return
         # Adding the mp4 extension if it was forgotten
         if destination.endswith(".mp4") == False:
             destination ="{}.mp4".format(destination)
@@ -1010,6 +1034,8 @@ class MyWidget(QtWidgets.QWidget):
         # Creating a window for export destination
         exportDiag = QtWidgets.QFileDialog.getSaveFileName(self, "Export Jpeg Image")
         destination = exportDiag[0]
+        if not destination:
+            return
         # Adding jpeg extension if forgotten
         if destination.endswith(".jpg") == False:
             destination = "{}.jpg".format(destination)
@@ -1417,6 +1443,8 @@ class MyWidget(QtWidgets.QWidget):
 
     def addNewVersion(self):
         openDialog = QtWidgets.QFileDialog.getOpenFileName(self, "New Version")
+        if not openDialog[0]:
+            return
         newVersion = [(openDialog[0])]
 
         imagesFromNewVersion = list((seqFromPath(newVersion, self.autoLoadMenu.isChecked())).values())[0]
@@ -1561,16 +1589,16 @@ class MyWidget(QtWidgets.QWidget):
         if currentPos > (len(self.timeLineDict) - 1):
             currentPos = (len(self.timeLineDict) - 1)
 
-        posRelativeToShot = 0
+        # Walk the shots keeping a running offset : comparing a shot length
+        # against a global position used to leave the very first frame of a
+        # following shot pointing past the end of its own list.
         offset = 0
         for anyshot in self.seqDict:
-            if currentPos < (len(self.seqDict[anyshot]) + offset):
-                break
-            elif len(self.seqDict[anyshot]) < currentPos:
-                offset += len(self.seqDict[anyshot])
-                posRelativeToShot += - len(self.seqDict[anyshot])
-        posRelativeToShot += currentPos
-        return(posRelativeToShot)
+            shotLength = len(self.seqDict[anyshot])
+            if currentPos < (offset + shotLength):
+                return(currentPos - offset)
+            offset += shotLength
+        return(currentPos - offset)
 
     def refreshImg(self):
         self.checkIfBufferStateChanged()
@@ -1660,7 +1688,7 @@ class MyWidget(QtWidgets.QWidget):
 
     def customExpoMenu(self):
         self.expoPop = ExposurePopup()
-        self.expopop.show()
+        self.expoPop.show()
         self.expoPop.spin.valueChanged.connect(self.updateCustomExpo)
         
     def updateCustomExpo(self):
@@ -1730,22 +1758,58 @@ class MyWidget(QtWidgets.QWidget):
             self.textCard.hide()
 
     def checkIfJsonExists(self):
-        jsonPath = "{}config.json".format(absPath)
-        if (os.path.exists(jsonPath) == True):
+        '''
+        Loads the saved OCIO preferences, falling back to the defaults of the
+        shipped config when the file is missing, unreadable, incomplete, or
+        points at an OCIO config that no longer exists. This runs from
+        __init__, so anything raising here used to make the application
+        impossible to start.
+        '''
+        config = self.readSavedConfig()
+
+        if config is not None:
             print("Loaded ocio config and preferences")
+            self.imgDict["ocioVar"] = config["ocioVar"]
+            self.imgDict["ocio"]["ocioIn"] = config["ocioIn"]
+            self.imgDict["ocio"]["ocioOut"] = config["ocioOut"]
+            self.imgDict["ocio"]["ocioDisplay"] = config["ocioDisplay"]
+            self.imgDict["ocio"]["ocioLook"] = config["ocioLook"]
+            return
+
+        cc, cc, dispView = initOcio2(self.imgDict["ocioVar"])
+        self.imgDict["ocio"]["ocioIn"] = cc[0]
+        self.imgDict["ocio"]["ocioOut"] = cc[0]
+        self.imgDict["ocio"]["ocioDisplay"] = dispView[0]
+
+    def readSavedConfig(self):
+        '''
+        Returns the saved preferences when they are complete and usable,
+        None otherwise.
+        '''
+        jsonPath = "{}config.json".format(absPath)
+        if os.path.exists(jsonPath) == False:
+            return(None)
+
+        try:
             with open(jsonPath, "r") as file:
                 config = json.load(file)
-            file.close()
-            self.imgDict["ocioVar"] = (config["ocioVar"])
-            self.imgDict["ocio"]["ocioIn"] = (config["ocioIn"])
-            self.imgDict["ocio"]["ocioOut"] = (config["ocioOut"])
-            self.imgDict["ocio"]["ocioDisplay"] = (config["ocioDisplay"])
-            self.imgDict["ocio"]["ocioLook"] = (config["ocioLook"])
-        else:
-            cc, cc, dispView = initOcio2(self.imgDict["ocioVar"])
-            self.imgDict["ocio"]["ocioIn"] = cc[0]
-            self.imgDict["ocio"]["ocioOut"] = cc[0]
-            self.imgDict["ocio"]["ocioDisplay"] = dispView[0]
+        except (OSError, ValueError) as error:
+            print("Ignoring unreadable config.json : {}".format(error))
+            return(None)
+
+        expected = ["ocioVar", "ocioIn", "ocioOut", "ocioDisplay", "ocioLook"]
+        missing = [key for key in expected if key not in config]
+        if missing:
+            print("Ignoring incomplete config.json, missing {}".format(
+                ", ".join(missing)))
+            return(None)
+
+        if os.path.exists(config["ocioVar"]) == False:
+            print("Ignoring config.json, the ocio config {} is gone".format(
+                config["ocioVar"]))
+            return(None)
+
+        return(config)
 
 
     def ocioToggleClicked(self):

@@ -221,13 +221,13 @@ class Timeline(QtWidgets.QWidget):
             self.slider.setValue(val)
 
     def pixelPosToRangeValue(self, pos):
-        val = round(pos.x() / self._timeline.size().width() * self.slider.maximum())
-        if (val > self.slider.maximum()):
-            val = self.slider.maximum()
-        elif (val < self.slider.maximum()-1):
-            val -= 1
+        # The width can still be 0 before the first layout, and the previous
+        # clamping decremented almost every position by one, so clicking the
+        # timeline always landed one frame early (and on -1 at the far left).
+        width = max(1, self._timeline.width())
+        val = round(pos.x() / width * self.slider.maximum())
 
-        return(val)
+        return(max(self.slider.minimum(), min(val, self.slider.maximum())))
 
     def returnFrame(self, number):
         #print(number)

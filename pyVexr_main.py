@@ -369,11 +369,17 @@ def exrSwitchChannel(path, channel, channelRGBA):
         channelB = np.zeros((isize[1], isize[0], 1), dtype = np.float32)
         channelB = np.reshape(channelB, isize)
     elif len(foundChannelList) == 1:
-        channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
+        channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT))
         channelR = np.frombuffer(channelR, dtype = np.float32)
         channelR = np.reshape(channelR, isize)
-        channelG = channelR 
+        channelG = channelR
         channelB = channelR
+    elif emptyAlpha == False:
+        # Nothing matched : fail with the channel name instead of an
+        # UnboundLocalError further down.
+        raise ValueError(
+            "No readable channel for '{}' in {}".format(channel, path[0])
+        )
 
     #t1 = time.time()
     #print(t1 - t0)
@@ -382,9 +388,11 @@ def exrSwitchChannel(path, channel, channelRGBA):
         pass
     elif channelRGBA == "alpha":
         if emptyAlpha == True:
-            print("empty")
-            channelA = np.zeros((isize[1], isize[0], 1), dtype = np.float32)
-            channelA = np.reshape(channelA, isize)
+            # No alpha in this layer : show black instead of crashing on
+            # channelR/G/B, which are never assigned when no channel was found.
+            channelR = np.zeros(isize, dtype = np.float32)
+            channelG = channelR
+            channelB = channelR
     elif channelRGBA == "red":
         channelB = channelR
         channelG = channelR
@@ -793,26 +801,26 @@ def layerContactSheetBackend(chanList, imgDict):
 
         if len(foundChannelList) == 3:
             channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
-            channelR = np.fromstring(channelR, dtype = np.float32)
+            channelR = np.frombuffer(channelR, dtype = np.float32)
             channelR = np.reshape(channelR, isize)
             channelG = exr.channel("{}".format(foundChannelList[1]), Imath.PixelType(Imath.PixelType.FLOAT))
-            channelG = np.fromstring(channelG, dtype = np.float32)
+            channelG = np.frombuffer(channelG, dtype = np.float32)
             channelG = np.reshape(channelG, isize)
             channelB = exr.channel("{}".format(foundChannelList[2]), Imath.PixelType(Imath.PixelType.FLOAT))
-            channelB = np.fromstring(channelB, dtype = np.float32)
+            channelB = np.frombuffer(channelB, dtype = np.float32)
             channelB = np.reshape(channelB, isize) 
         elif len(foundChannelList) == 2:
             channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
-            channelR = np.fromstring(channelR, dtype = np.float32)
+            channelR = np.frombuffer(channelR, dtype = np.float32)
             channelR = np.reshape(channelR, isize)
             channelG = exr.channel("{}".format(foundChannelList[1]), Imath.PixelType(Imath.PixelType.FLOAT))
-            channelG = np.fromstring(channelG, dtype = np.float32)
+            channelG = np.frombuffer(channelG, dtype = np.float32)
             channelG = np.reshape(channelG, isize)       
             channelB = np.zeros((isize[1], isize[0], 1), dtype = np.float32)
             channelB = np.reshape(channelB, isize)
         elif len(foundChannelList) == 1:
             channelR = exr.channel("{}".format(foundChannelList[0]), Imath.PixelType(Imath.PixelType.FLOAT)) 
-            channelR = np.fromstring(channelR, dtype = np.float32)
+            channelR = np.frombuffer(channelR, dtype = np.float32)
             channelR = np.reshape(channelR, isize)
             channelG = channelR 
             channelB = channelR
@@ -849,6 +857,12 @@ def layerContactSheetBackend(chanList, imgDict):
 
     numImgs = (len(imgList))
     #print(numImgs)
+
+    if numImgs == 0:
+        raise ValueError("No layer to display in the contact sheet")
+
+    # A single layer needs no tiling ; without this img stays unbound below.
+    img = imgList[0]
 
     if numImgs > 1:
         #print("num imgs is lower than 2")
@@ -904,11 +918,11 @@ def layerContactSheetBackend(chanList, imgDict):
 
     # SaturationChange
     if (imgDict["saturation"] != 1):
-        img = saturationTweak(img, imgDict["saturation"])
+        img = saturationTweak(img, imgDict["saturation"], imgDict["ocioVar"])
 
     #ExposureChange
     if (imgDict["exposure"] != 0):
-        img = img * pow(2,float(imgDict["exposure"]))
+        img = applyExposure(img, imgDict["exposure"])
 
 
 
@@ -935,4 +949,5 @@ def layerContactSheetBackend(chanList, imgDict):
 
 
 if __name__ == "__main__":
-    main()
+    # This module is the backend, the application entry point is pyVexr_gui.py.
+    print("PyVexr backend module, run pyVexr_gui.py to start the viewer")

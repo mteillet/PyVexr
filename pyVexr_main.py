@@ -14,6 +14,7 @@ import Imath
 import math
 import glob
 import sys
+import functools
 # Setting absPath in order to avoid broken file links when using a compiled version on windows
 absPath = os.path.dirname(sys.argv[0])
 if absPath:
@@ -226,7 +227,7 @@ def saturationTweak(img, saturation, ocioVar):
     '''
     if saturation != 1:
         # Getting the actual luma coef RGB from the ocio setup
-        config = OCIO.Config.CreateFromFile(ocioVar)
+        config = ocioConfig(ocioVar)
         coefRGB = config.getDefaultLumaCoefs()
         #coefRGB = [0.2126, 0.7152, 0.0722]
         rgb = saturationKernel(img,saturation, coefRGB)
@@ -241,9 +242,13 @@ def exrListChannels(path):
     '''
     if path[0].endswith(".exr") == True:
         exr = EXR.InputFile(path[0])
-        # Getting the RAW list of channels
-        header = exr.header()
-        channelsRaw = (header["channels"])
+        try:
+            # Getting the RAW list of channels
+            channelsRaw = (exr.header()["channels"])
+        finally:
+            # Not closing these piled up file descriptors under the threaded
+            # buffer, up to EMFILE on long sequences.
+            exr.close()
         # Printing the raw list of channels (listed in alphabetical order)
         channelList = []
         for channel in channelsRaw:
@@ -269,6 +274,35 @@ def exrSwitchChannel(path, channel, channelRGBA):
     a different channel of pass is selected
     '''
     exr = EXR.InputFile(path[0])
+    try:
+        return(readExrChannels(exr, path, channel, channelRGBA))
+    finally:
+        exr.close()
+
+
+def readThreeChannels(exr, filename, names, isize):
+    '''
+    Reads three channels as float32 arrays.
+
+    Uses the loadExrChannel C++ module when it is available, and falls back to
+    the OpenEXR Python bindings otherwise. The C++ reader was dead code : the
+    only call site was commented out, while the import was mandatory.
+    '''
+    if loadExrChannel is not None:
+        try:
+            arrays = loadExrChannel.loadExrChan(filename, list(names))
+            return([np.reshape(array, isize) for array in arrays])
+        except Exception as error:
+            # Never let the native path break a read : fall back and say why.
+            print("loadExrChannel unusable on {} ({}), using the python reader"
+                  .format(filename, error))
+
+    raw = exr.channels(list(names), Imath.PixelType(Imath.PixelType.FLOAT))
+    return([np.reshape(np.frombuffer(buffer, dtype=np.float32), isize)
+            for buffer in raw])
+
+
+def readExrChannels(exr, path, channel, channelRGBA):
     header = exr.header()
     channelsRaw = header["channels"]
     dw = header["dataWindow"]
@@ -346,20 +380,8 @@ def exrSwitchChannel(path, channel, channelRGBA):
 
 
     if len(foundChannelList) == 3:
-        #t0 = time.time()
-        channelR,channelG,channelB = exr.channels([foundChannelList[0],foundChannelList[1],foundChannelList[2]], Imath.PixelType(Imath.PixelType.FLOAT)) 
-        #t1 = time.time()
-        #print("EXR loadChannels python function takes : {}".format(t1-t0))
-        #t0 = time.time()
-        #channelR,channelG,channelB = loadExrChannel.loadExrChan(path[0], [foundChannelList[0], foundChannelList[1],foundChannelList[2]])
-        #t1 = time.time()
-        #print("EXR loadChannels CPP function takes : {}".format(t1-t0))
-        channelR = np.frombuffer(channelR, dtype = np.float32)
-        channelR = np.reshape(channelR, isize)
-        channelG = np.frombuffer(channelG, dtype = np.float32)
-        channelG = np.reshape(channelG, isize)
-        channelB = np.frombuffer(channelB, dtype = np.float32)
-        channelB = np.reshape(channelB, isize) 
+        channelR, channelG, channelB = readThreeChannels(
+            exr, path[0], foundChannelList[:3], isize)
     elif len(foundChannelList) == 2:
         channelR, channelG = exr.channels([foundChannelList[0], foundChannelList[1]], Imath.PixelType(Imath.PixelType.FLOAT)) 
         channelR = np.frombuffer(channelR, dtype = np.float32)
@@ -414,12 +436,79 @@ def exrSwitchChannel(path, channel, channelRGBA):
     
     return(img)
 
+@functools.lru_cache(maxsize=4)
+def _loadOcioConfig(ocioVar, mtime):
+    return(OCIO.Config.CreateFromFile(ocioVar))
+
+
+def ocioConfig(ocioVar):
+    '''
+    Parsed OCIO config, kept in memory.
+
+    CreateFromFile reads the yaml and resolves every LUT it references (35 MB
+    for the shipped config) : it used to run once per displayed frame, in every
+    buffer thread. The modification time is part of the key so editing the
+    config still takes effect.
+    '''
+    try:
+        mtime = os.path.getmtime(ocioVar)
+    except OSError:
+        mtime = 0
+    return(_loadOcioConfig(ocioVar, mtime))
+
+
+@functools.lru_cache(maxsize=16)
+def _buildColorspaceProcessor(ocioVar, mtime, ocioIn, ocioOut):
+    config = _loadOcioConfig(ocioVar, mtime)
+    return(config.getProcessor(ocioIn, ocioOut).getDefaultCPUProcessor())
+
+
+@functools.lru_cache(maxsize=16)
+def _buildDisplayProcessor(ocioVar, mtime, ocioOut, display, view, ocioLook):
+    config = _loadOcioConfig(ocioVar, mtime)
+
+    transform = OCIO.DisplayViewTransform()
+    transform.setSrc(ocioOut)
+    transform.setView(view)
+    transform.setDisplay(display)
+
+    pipeline = OCIO.LegacyViewingPipeline()
+    pipeline.setDisplayViewTransform(transform)
+    if ocioLook != "None":
+        pipeline.setLooksOverrideEnabled(True)
+        pipeline.setLooksOverride(ocioLook)
+
+    processor = pipeline.getProcessor(config, config.getCurrentContext())
+    return(processor.getDefaultCPUProcessor())
+
+
+def ocioProcessors(ocioVar, ocioIn, ocioOut, ocioLook, display, view):
+    '''
+    The two CPU processors needed to display a frame, built once per set of
+    settings. Building one bakes and optimises the whole op chain, which costs
+    far more than applying it to a frame ; they are safe to share between the
+    buffer threads.
+    '''
+    try:
+        mtime = os.path.getmtime(ocioVar)
+    except OSError:
+        mtime = 0
+
+    colorspace = None
+    if ocioIn != ocioOut:
+        colorspace = _buildColorspaceProcessor(ocioVar, mtime, ocioIn, ocioOut)
+    displayProcessor = _buildDisplayProcessor(
+        ocioVar, mtime, ocioOut, display, view, ocioLook)
+
+    return(colorspace, displayProcessor)
+
+
 def initOcio2(ocioVar):
     '''
     Def responsible for populating the ocio menus if no config file is found
     '''
 
-    config = OCIO.Config.CreateFromFile(ocioVar)
+    config = ocioConfig(ocioVar)
 
     ccList, viewList = ocio2Version(config)
 
@@ -451,7 +540,7 @@ def getLooks(ocioVar, colorSpace):
     '''
     Def updating looks in ocio menu based on what colorspace is chosen
     '''
-    config = OCIO.Config.CreateFromFile(ocioVar)
+    config = ocioConfig(ocioVar)
 
     looks = config.getLooks()
     looksList = []
@@ -484,8 +573,10 @@ def checkFirstExrChannel(path, channel, channelRGBA):
     Checks if the channel RGB exists in the exr, otherwise returns the first channel
     '''
     exr = EXR.InputFile(path[0])
-    header = exr.header()
-    channelsRaw = header["channels"]
+    try:
+        channelsRaw = exr.header()["channels"]
+    finally:
+        exr.close()
     #print(channelsRaw)
 
     # The channel list of the interface uses upper case ("RGBA"), this test
@@ -616,30 +707,17 @@ def ocioTransform2(img, ocioIn, ocioOut, ocioLook, ocioVar, ocioDisplay):
     '''
     rgb = np.ascontiguousarray(img[...,::-1])
 
-    config = OCIO.Config.CreateFromFile(ocioVar)
     disp, view = ocioDisplay.split(",")
+    colorspace, display = ocioProcessors(
+        ocioVar, ocioIn, ocioOut, ocioLook, disp, view)
 
     # Colorpsace conversion if the in and out colorspaces are different
-    if ocioIn != ocioOut:
+    if colorspace is not None:
         #print("Conversion from {} to {}".format(ocioIn, ocioOut))
-        processor = config.getProcessor(ocioIn, ocioOut)
-        cpu = processor.getDefaultCPUProcessor()
-        cpu.applyRGB(rgb)
+        colorspace.applyRGB(rgb)
 
     # View Transform conversion for display
-    transform = OCIO.DisplayViewTransform()
-    transform.setSrc(ocioOut)
-    transform.setView(view)
-    transform.setDisplay(disp)
-
-    viewer = OCIO.LegacyViewingPipeline()
-    viewer.setDisplayViewTransform(transform)
-    if ocioLook != "None":
-        viewer.setLooksOverrideEnabled(True)
-        viewer.setLooksOverride(ocioLook)
-    processor = viewer.getProcessor(config, config.getCurrentContext())
-    cpu = processor.getDefaultCPUProcessor()
-    cpu.applyRGB(rgb)
+    display.applyRGB(rgb)
 
     # Back into the caller's buffer, in the BGR order the rest of the pipeline
     # expects. applyRGB returns None, so the previous "img = cpu.applyRGB(img)"
@@ -787,6 +865,13 @@ def layerContactSheetBackend(chanList, imgDict):
 
     # Getting casing and size of EXR
     exr = EXR.InputFile(imgDict["path"][0])
+    try:
+        return(contactSheetFromExr(exr, chanList, imgDict))
+    finally:
+        exr.close()
+
+
+def contactSheetFromExr(exr, chanList, imgDict):
     header = exr.header()
     channelsRaw = header["channels"]
     dw = header["dataWindow"]

@@ -6,6 +6,8 @@ import sys
 import os
 from PyQt5 import QtWidgets, QtCore, QtGui
 
+from pyVexr_paths import resource
+
 timelineDictInfos = {}
 
 
@@ -276,7 +278,7 @@ class Timeline(QtWidgets.QWidget):
                 return(timelineDictInfos["slider"][number]["path"])
         except KeyError:
             #print("returning default image")
-            return("imgs/pyVexrSplashScreen_v002.exr")
+            return(resource("imgs", "pyVexrSplashScreen_v002.exr"))
 
     def updateSlider(self, timeLineDict):
         timelineDictInfos["slider"] = timeLineDict

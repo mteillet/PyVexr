@@ -16,11 +16,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "tests"))
 
-# pyVexr resout ses ressources a partir de sys.argv[0] : en sous-processus il
-# faut donc lui presenter le chemin du script principal. Ce reglage disparait
-# quand les chemins passeront par un APP_DIR base sur __file__.
-sys.argv[0] = os.path.join(ROOT, "pyVexr_gui.py")
-
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PyQt5 import QtCore, QtWidgets  # noqa: E402

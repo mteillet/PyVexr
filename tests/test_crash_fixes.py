@@ -188,9 +188,10 @@ def test_timelineClickBeforeTheFirstLayoutDoesNotDivideByZero():
 
 
 def savedConfigWidget(monkeypatch, tmp_path, payload):
-    monkeypatch.setattr(gui, "absPath", "{}/".format(tmp_path))
+    path = tmp_path / "config.json"
     if payload is not None:
-        (tmp_path / "config.json").write_text(payload)
+        path.write_text(payload)
+    monkeypatch.setattr(gui, "readableConfigPath", lambda: str(path))
     return types.SimpleNamespace()
 
 

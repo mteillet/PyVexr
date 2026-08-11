@@ -15,12 +15,9 @@ import math
 import glob
 import sys
 import functools
-# Setting absPath in order to avoid broken file links when using a compiled version on windows
-absPath = os.path.dirname(sys.argv[0])
-if absPath:
-    absPath = "{}/".format(absPath)
+from pyVexr_paths import APP_DIR, ocioConfigPath, resource
 # Adding the cppModules dir to the search path
-sys.path.append('{}cppModules'.format(absPath))
+sys.path.append(resource("cppModules"))
 # The C++ extensions are optional: they are built for one specific CPython
 # version, so a checkout without a matching build must still run (with a numpy
 # fallback) instead of failing at import time.
@@ -737,7 +734,7 @@ def clampImg(img):
 def ocio(img):
     print("OCIO -- {}".format("Version 2"))
 
-    ocioVar = "{}ocio/config.ocio".format(absPath)
+    ocioVar = ocioConfigPath()
     config = OCIO.Config.CreateFromFile(ocioVar)
     #print(config)
 

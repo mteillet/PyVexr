@@ -11,11 +11,8 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from pyVexr_main import loadImg, interpretRectangle, exrListChannels, seqFromPath, initOcio2, getLooks, bufferBackEnd, layerContactSheetBackend, createVideoWriter, createImgWriter
 from pyVexr_timelineGui import Timeline
 
-# Setting absPath in order to avoid broken file links when using a compiled version on windows
-absPath = os.path.dirname(sys.argv[0])
-if absPath:
-    absPath = "{}/".format(absPath)
-realPath = "{}/".format(os.path.realpath("/".join((sys.argv[0]).split("/")[:-1])))
+from pyVexr_paths import (ocioConfigPath, readableConfigPath, resource,
+                          writableConfigPath)
 
 # Subclassing graphicsView in order to be able to track mouse movements in the scene
 class graphicsView(QtWidgets.QGraphicsView):
@@ -288,7 +285,7 @@ class graphicsView(QtWidgets.QGraphicsView):
                 filenames.append(url.toLocalFile())
             else:
                 # Append the default pyVexr logo
-                filenames.append("{}imgs/pyVexrSplashScreen_v002.exr".format(absPath))
+                filenames.append(resource("imgs", "pyVexrSplashScreen_v002.exr"))
         widget.updateImgDict(filenames)
         widget.totalFrameLabel.setText("{}".format(widget.frameNumber.slider.maximum()))
         widget.initOnDrop()
@@ -313,7 +310,7 @@ class MyWidget(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PyVexr -- OpenExr Viewer") 
-        self.setWindowIcon(QtGui.QIcon("{}imgs/pyVexr_Icon_512.jpeg".format(absPath)))
+        self.setWindowIcon(QtGui.QIcon(resource("imgs", "pyVexr_Icon_512.jpeg")))
         self.setAcceptDrops(True)
 
         # ThreadPool
@@ -332,7 +329,7 @@ class MyWidget(QtWidgets.QWidget):
         self.imgDict = {}
         self.imgDict["buffer"] = []
         self.imgDict["path"] = []
-        self.imgDict["ocioVar"] = "{}ocio/config.ocio".format(realPath)
+        self.imgDict["ocioVar"] = ocioConfigPath()
         self.imgDict["ocio"] = {}
         self.imgDict["ocio"]["ocioIn"] = "Linear"
         self.imgDict["ocio"]["ocioOut"] = "Standard"
@@ -1913,7 +1910,7 @@ class MyWidget(QtWidgets.QWidget):
         Returns the saved preferences when they are complete and usable,
         None otherwise.
         '''
-        jsonPath = "{}config.json".format(absPath)
+        jsonPath = readableConfigPath()
         if os.path.exists(jsonPath) == False:
             return(None)
 
@@ -2314,7 +2311,7 @@ class OcioPopup(QtWidgets.QWidget):
         self.btnsLayout = QtWidgets.QHBoxLayout()
 
         self.ocioLabel = QtWidgets.QLabel("Ocio Path")
-        self.ocioPath = QtWidgets.QLineEdit("{}ocio/config.ocio".format(realPath))
+        self.ocioPath = QtWidgets.QLineEdit(widget.imgDict["ocioVar"])
         self.ocioPath.returnPressed.connect(self.pathChanged)
         self.labelCS = QtWidgets.QLabel("Color Space")
         self.comboCS = QtWidgets.QComboBox()
@@ -2468,7 +2465,7 @@ class OcioPopup(QtWidgets.QWidget):
         widget.refreshImg()
 
     def saveConfigClicked(self):
-        jsonPath = "{}config.json".format(realPath)
+        jsonPath = writableConfigPath()
         absoluteOcioPath = (os.path.realpath(self.ocioPath.text()))
 
         # The ocio config has to exist, otherwise the saved preferences make
@@ -2497,18 +2494,17 @@ class OcioPopup(QtWidgets.QWidget):
             print("Could not save the preferences : {}".format(error))
 
     def checkIfJsonExists(self):
-        jsonPath = "config.json"
-        if (os.path.exists("{}{}".format(realPath,jsonPath)) == True):
-            with open("{}{}".format(realPath,jsonPath), "r") as file:
-                config = json.load(file)
-            file.close()
-            self.ocioPath.setText(config["ocioVar"])
-            self.comboInput.setCurrentText(config["ocioIn"])
-            self.comboCS.setCurrentText(config["ocioOut"])
-            self.comboDisplay.setCurrentText(config["ocioDisplay"])
-            self.comboView.setCurrentText(config["ocioLook"])
-        else:
-            pass
+        # Same reader as the main window : incomplete or stale preferences are
+        # ignored rather than raising in the middle of building the window.
+        config = MyWidget.readSavedConfig(self)
+        if config is None:
+            return
+
+        self.ocioPath.setText(config["ocioVar"])
+        self.comboInput.setCurrentText(config["ocioIn"])
+        self.comboCS.setCurrentText(config["ocioOut"])
+        self.comboDisplay.setCurrentText(config["ocioDisplay"])
+        self.comboView.setCurrentText(config["ocioLook"])
 
 
     def cancelClicked(self):
@@ -2530,7 +2526,7 @@ if __name__ == "__main__":
     widget.show()
 
     # Init the gui with the default pyVexr splashcreen in order to enable drag and drop from the start
-    filenames = ["{}imgs/pyVexrSplashScreen_v001.exr".format(absPath)]
+    filenames = [resource("imgs", "pyVexrSplashScreen_v001.exr")]
     widget.updateImgDict(filenames)
 
     sys.exit(app.exec())

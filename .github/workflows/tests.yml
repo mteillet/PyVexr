@@ -44,3 +44,18 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: pytest
+
+      # Les modules C++ sont optionnels : la premiere passe ci-dessus les a
+      # donc testes en repli numpy / lecteur python. On les compile et on
+      # rejoue la suite avec, pour verifier qu'ils produisent exactement les
+      # memes pixels (la non-regression image le verrait sinon).
+      - name: Compiler les modules C++
+        run: |
+          sudo apt-get install -y --no-install-recommends libopenexr-dev
+          bash cppModules/build.sh
+
+      - name: pytest avec les modules C++
+        env:
+          QT_QPA_PLATFORM: offscreen
+          PYTHONPATH: ${{ github.workspace }}/cppModules
+        run: pytest
